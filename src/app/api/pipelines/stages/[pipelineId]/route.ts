@@ -2,11 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/app/lib/db/connection';
 import Stage from '@/app/models/Stage';
 
-export async function GET(req: NextRequest, { params }: { params: { pipelineId: string } }) {
+export async function GET(req: NextRequest, context: { params: Promise<{ pipelineId: string }> }) {
   try {
     await dbConnect();
     
-    const { pipelineId } = params;
+    const { pipelineId } = await context.params; // Await the Promise to get the params object
 
     if (!pipelineId) {
       return NextResponse.json({

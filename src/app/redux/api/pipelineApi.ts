@@ -56,8 +56,8 @@ interface ResponsePipeline {
   name: string;
   notes?: string | null;
   user: { name: string; email: string };
-  created_at: Date;
-  updated_at: Date;
+  createdAt: Date;
+  updatedAt: Date;
   __v: number;
 }
 

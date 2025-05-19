@@ -60,11 +60,12 @@ interface PipelineByIdResponse {
   pipeline: PipelineWithDetails | null;
 }
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+ 
+export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
     await dbConnect();
 
-    const { id } =  await params;
+    const { id } = await context.params;
 
     // Validate ObjectId
     if (!mongoose.Types.ObjectId.isValid(id)) {
