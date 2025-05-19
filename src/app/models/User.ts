@@ -14,7 +14,7 @@ export interface IUser {
     url: string;
   };
   uid?: number;
-  role: 'user' | 'employee' | 'admin';
+  role: 'user' | 'employee' | 'team_member' | 'admin';
   resetPasswordToken?: string;
   resetPasswordExpire?: Date;
   signupMethod: 'OTP' | 'Email/Password' | 'OAuth';
@@ -63,7 +63,7 @@ const userSchema: Schema<IUser> = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ['user', 'employee', 'admin'],
+      enum: ['user', 'employee','team_member' ,'admin'],
       default: 'user',
       immutable: true,
     },

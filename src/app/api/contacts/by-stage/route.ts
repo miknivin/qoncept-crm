@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import mongoose from "mongoose";
 import dbConnect from "@/app/lib/db/connection";
 import Contact from "@/app/models/Contact";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import User from "@/app/models/User"; // Import the User model
 
 export interface GetContactsByStageRequest {
   pipelineId: string;
@@ -30,6 +32,10 @@ export interface GetContactsByStageResponse {
 export async function GET(req: Request) {
   try {
     await dbConnect();
+
+    // Ensure the User model is registered
+    // This is a safeguard; the model should already be registered via import or dbConnect
+    mongoose.model("User");
 
     const { searchParams } = new URL(req.url);
     const pipelineId = searchParams.get("pipelineId");
@@ -76,6 +82,9 @@ export async function GET(req: Request) {
     return NextResponse.json({ contacts: formattedContacts }, { status: 200 });
   } catch (error: unknown) {
     console.error("Error fetching contacts by stage:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Internal server error" },
+      { status: 500 }
+    );
   }
 }
