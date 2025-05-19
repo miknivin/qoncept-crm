@@ -4,7 +4,11 @@ import { useSidebar } from "@/context/SidebarContext";
 import AppHeader from "@/layout/AppHeader";
 import AppSidebar from "@/layout/AppSidebar";
 import Backdrop from "@/layout/Backdrop";
-import React from "react";
+import React, { useEffect } from "react";
+import { useSelector } from "react-redux";
+import { useRouter } from "next/navigation";
+import { RootState } from "../redux/rootReducer";
+import FullLoadingScreen from "@/components/ui/loaders/FullLoadingScreen";
 
 export default function AdminLayout({
   children,
@@ -12,8 +16,25 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const { isExpanded, isHovered, isMobileOpen } = useSidebar();
+const isAuthenticated = useSelector((state: RootState) => state.user.isAuthenticated);
+const loading = useSelector((state: RootState) => state.user.loading);
+  const router = useRouter();
 
-  // Dynamic class for main content margin based on sidebar state
+  useEffect(() => {
+    console.log("isAuthenticated:", isAuthenticated, "loading:", loading);
+    if (isAuthenticated === false && !loading) {
+      router.push("/signin");
+    }
+  }, [isAuthenticated, loading, router]);
+
+  if (loading) {
+    return <FullLoadingScreen />;
+  }
+
+  if (!isAuthenticated) {
+    return null;
+  }
+
   const mainContentMargin = isMobileOpen
     ? "ml-0"
     : isExpanded || isHovered
@@ -27,7 +48,7 @@ export default function AdminLayout({
       <Backdrop />
       {/* Main Content Area */}
       <div
-        className={`flex-1 transition-all  duration-300 ease-in-out ${mainContentMargin}`}
+        className={`flex-1 transition-all duration-300 ease-in-out ${mainContentMargin}`}
       >
         {/* Header */}
         <AppHeader />

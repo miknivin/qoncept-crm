@@ -3,5 +3,7 @@ export default function FullWidthPageLayout({
 }: {
   children: React.ReactNode;
 }) {
+  console.log("rendered full width");
+  
   return <div>{children}</div>;
 }
