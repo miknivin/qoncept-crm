@@ -33,8 +33,6 @@ export async function GET(req: Request) {
   try {
     await dbConnect();
 
-    // Ensure the User model is registered
-    // This is a safeguard; the model should already be registered via import or dbConnect
     mongoose.model("User");
 
     const { searchParams } = new URL(req.url);
