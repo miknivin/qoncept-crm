@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from 'next/server';
 import mongoose, { Types } from 'mongoose';
 import Contact, { IContact, PipelineActive } from '@/app/models/Contact'; // Adjust path
@@ -21,7 +22,6 @@ interface BatchUpdateRequest {
 // PATCH handler
 export async function PATCH(req: Request) {
   try {
-    //console.log("executed");
     await dbConnect();
 
     const { updates } = (await req.json()) as BatchUpdateRequest;
@@ -55,10 +55,13 @@ export async function PATCH(req: Request) {
 
     // Use a MongoDB transaction for atomic updates
     const session = await mongoose.startSession();
+    // Initialize caches
+    const pipelineCache = new Map<string, any>(); // Map<pipelineId, Pipeline>
+    const stageCache = new Map<string, any>(); // Map<stageId, Stage>
     try {
       const response = await session.withTransaction(async () => {
         const updatedContacts: IContact[] = [];
-        ////console.log(updates,'updates')
+
         // Process each update
         for (const update of updates) {
           const { contactId, pipelineId, stageId, order, userId } = update;
@@ -73,17 +76,35 @@ export async function PATCH(req: Request) {
             throw new Error(`Contact not found: ${contactId}`);
           }
 
-          // Verify pipeline and stage exist
-          const pipeline = await mongoose.model('Pipeline').findById(pipelineObjectId).session(session);
-          if (!pipeline) {
-            throw new Error(`Invalid pipeline ID: ${pipelineId}`);
+          // Check cache for pipelineId
+          let pipeline;
+          if (pipelineCache.has(pipelineId)) {
+            pipeline = pipelineCache.get(pipelineId);
+          } else {
+            pipeline = await mongoose.model('Pipeline').findById(pipelineObjectId).session(session);
+            if (!pipeline) {
+              throw new Error(`Invalid pipeline ID: ${pipelineId}`);
+            }
+            pipelineCache.set(pipelineId, pipeline);
           }
-          const stage = await mongoose.model('Stage').findOne({
-            _id: stageObjectId,
-            pipeline_id: pipelineObjectId,
-          }).session(session);
-          if (!stage) {
-            throw new Error(`Invalid stage ID: ${stageId}`);
+
+          // Check cache for stageId
+          let stage;
+          if (stageCache.has(stageId)) {
+            stage = stageCache.get(stageId);
+            // Verify stage belongs to the pipeline
+            if (stage.pipeline_id.toString() !== pipelineId) {
+              throw new Error(`Stage ${stageId} does not belong to pipeline ${pipelineId}`);
+            }
+          } else {
+            stage = await mongoose.model('Stage').findOne({
+              _id: stageObjectId,
+              pipeline_id: pipelineObjectId,
+            }).session(session);
+            if (!stage) {
+              throw new Error(`Invalid stage ID: ${stageId}`);
+            }
+            stageCache.set(stageId, stage);
           }
 
           // Update pipelinesActive
@@ -123,22 +144,18 @@ export async function PATCH(req: Request) {
         // Return response inside transaction
         return NextResponse.json({
           success: true,
-        //   data: updatedContacts.map((contact) => ({
-        //     _id: contact._id,
-        //     name: contact.name,
-        //     email: contact.email,
-        //     phone: contact.phone,
-        //     pipelinesActive: contact.pipelinesActive,
-        //   })),
         });
       });
 
       // Return the response from the transaction
       return response;
     } finally {
+      // Clear caches
+      pipelineCache.clear();
+      stageCache.clear();
+      // End the session
       session.endSession();
     }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error('Error updating contacts pipeline:', error);
     return NextResponse.json(
