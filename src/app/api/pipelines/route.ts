@@ -6,7 +6,7 @@ import Stage from '@/app/models/Stage';
 import { PipelineQueryParams, validatePipelineQueryParams } from '../middlewares/validatePipelineQueryParams';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import User from "@/app/models/User"; // Import the User model
-import mongoose from 'mongoose';
+//import mongoose from 'mongoose';
 
 
 interface PipelineQueryFilter {
@@ -80,7 +80,7 @@ export async function POST(req: Request) {
 export async function GET(request: Request) {
   try {
     await dbConnect();
-    mongoose.model("User");
+   // mongoose.model("User");
     const { searchParams } = new URL(request.url);
     const rawParams: PipelineQueryParams = {
       page: searchParams.get('page') || "1",

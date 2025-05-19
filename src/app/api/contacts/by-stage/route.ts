@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import mongoose from "mongoose";
+//import mongoose from "mongoose";
 import dbConnect from "@/app/lib/db/connection";
 import Contact from "@/app/models/Contact";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -32,8 +32,7 @@ export interface GetContactsByStageResponse {
 export async function GET(req: Request) {
   try {
     await dbConnect();
-
-    mongoose.model("User");
+   // mongoose.model("User");
 
     const { searchParams } = new URL(req.url);
     const pipelineId = searchParams.get("pipelineId");

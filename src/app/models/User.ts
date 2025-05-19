@@ -1,4 +1,4 @@
-import mongoose, { Schema, Model } from "mongoose";
+import mongoose, { Schema } from "mongoose";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
@@ -130,6 +130,6 @@ userSchema.methods.getResetPasswordToken = function (): string {
 };
 
 // Create and export User model
-const User: Model<IUser> = mongoose.models.User || mongoose.model<IUser>("User", userSchema); 
+const User = mongoose.models.User || mongoose.model<IUser>("User", userSchema); 
 
 export default User;
