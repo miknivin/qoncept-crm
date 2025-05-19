@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-//import mongoose from "mongoose";
+import mongoose from "mongoose";
 import dbConnect from "@/app/lib/db/connection";
 import Contact from "@/app/models/Contact";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
