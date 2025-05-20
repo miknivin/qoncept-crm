@@ -396,7 +396,7 @@ export default function PipelineBody({ pipelineId }: { pipelineId: string }) {
         )}
         {!isLoading && !error && data?.pipeline && (
           <>
-            <div className="flex justify-between">
+            <div className="flex justify-between my-2">
               <h3 className="mb-4 font-semibold text-gray-800 text-theme-xl dark:text-white/90 sm:text-2xl pt-2">
                 {data.pipeline.name}
               </h3>
@@ -438,7 +438,7 @@ export default function PipelineBody({ pipelineId }: { pipelineId: string }) {
                           <SortableStage stage={stage} />
                           <div className="mx-2 mt-2 drop-target">
                             {contactQueries[stage._id]?.isLoading ? (
-                              <div className="flex justify-center">
+                              <div className="flex justify-center my-2">
                                 <ShortSpinnerPrimary />
                               </div>
                             ) : contactQueries[stage._id]?.error ? (

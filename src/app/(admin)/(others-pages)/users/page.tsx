@@ -1,6 +1,6 @@
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
-import PipelineHeader from "@/components/page-components/PipelineHeader";
-import PipelineTableOne from "@/components/tables/PipelineTableOne";
+import UserHeader from "@/components/page-components/UsersHeader";
+import UsersTableOne from "@/components/tables/UsersTable";
 import { Metadata } from "next";
 import React from "react";
 
@@ -13,9 +13,9 @@ export default function Users() {
   return (
     <div>
       <PageBreadcrumb pageTitle="users"/>
-      <PipelineHeader/>
+      <UserHeader/>
       <div className="space-y-6">
-          <PipelineTableOne />
+          <UsersTableOne />
       </div>
     </div>
   );

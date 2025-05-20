@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-
 "use client";
 import React, { useState } from "react";
 import BasicPagination from "../ui/pagination/BasicPagination";
@@ -7,22 +6,18 @@ import ShortSpinnerPrimary from "../ui/loaders/ShortSpinnerPrimary";
 import Select from "../form/Select";
 import { ChevronDownIcon } from "@/icons";
 import EditIcon from "../ui/flowbiteIcons/EditIcon";
-import { useGetPipelinesQuery } from "@/app/redux/api/pipelineApi";
-import { formatDateTime } from "@/helpers/formatDate";
 import Link from "next/link";
+import { useGetTeamMembersQuery } from '@/app/redux/api/userApi';
 
-const PipelineTableOne: React.FC = () => {
+const UsersTableOne: React.FC = () => {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [search, setSearch] = useState("");
 
-  const { data, error, isLoading } = useGetPipelinesQuery({
+  const { data, error, isLoading } = useGetTeamMembersQuery({
     page,
     limit,
     search,
-    // Optional: Add createdFrom, createdTo if date filters are needed
-    // createdFrom: "2025-01-01",
-    // createdTo: new Date().toISOString().split("T")[0],
   });
 
   const options = [
@@ -38,7 +33,7 @@ const PipelineTableOne: React.FC = () => {
 
   const handleLimitChange = (value: string) => {
     setLimit(parseInt(value, 10));
-    setPage(1); 
+    setPage(1);
   };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -51,7 +46,7 @@ const PipelineTableOne: React.FC = () => {
       <div className="mb-4 px-5 py-3 flex gap-3 justify-between">
         <input
           type="text"
-          placeholder="Search pipelines..."
+          placeholder="Search users..."
           value={search}
           onChange={handleSearchChange}
           className="w-full max-w-xl rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
@@ -74,7 +69,7 @@ const PipelineTableOne: React.FC = () => {
         <table className="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
           <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
             <tr>
-              <th scope="col" className="px-5 py-3">Pipeline</th>
+              <th scope="col" className="px-5 py-3">Users</th>
               <th scope="col" className="px-5 py-3">User</th>
               <th scope="col" className="px-5 py-3">Created</th>
               <th scope="col" className="px-5 py-3">Notes</th>
@@ -94,22 +89,22 @@ const PipelineTableOne: React.FC = () => {
             {error && (
               <tr className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200">
                 <td colSpan={5} className="px-5 py-4 text-center text-red-500">
-                  Error: {(error as any).data?.error || "Failed to fetch pipelines"}
+                  Error: {(error as any).data?.error || "Failed to fetch users"}
                 </td>
               </tr>
             )}
-            {!isLoading && !error && data?.pipelines.length === 0 && (
+            {!isLoading && !error && data?.users.length === 0 && (
               <tr className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200">
                 <td colSpan={5} className="px-5 py-4 text-center">
-                  No pipelines found
+                  No users found
                 </td>
               </tr>
             )}
             {!isLoading &&
               !error &&
-              data?.pipelines.map((pipeline) => (
+              data?.users.map((user:any) => (
                 <tr
-                  key={pipeline._id}
+                  key={user._id}
                   className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200"
                 >
                   <th
@@ -119,7 +114,7 @@ const PipelineTableOne: React.FC = () => {
                     <div className="flex items-center gap-3">
                       <div>
                         <span className="block font-medium text-gray-800 text-sm dark:text-white/90">
-                          {pipeline.name}
+                          {user.name || 'N/A'}
                         </span>
                       </div>
                     </div>
@@ -127,31 +122,30 @@ const PipelineTableOne: React.FC = () => {
                   <td className="px-5 py-4">
                     <div>
                       <span className="block text-gray-800 text-sm dark:text-white/90">
-                        {pipeline.user.name}
+                        {user.name || 'N/A'}
                       </span>
                       <span className="block text-gray-500 text-xs dark:text-gray-400">
-                        {pipeline.user.email}
+                        {user.email}
                       </span>
                     </div>
                   </td>
                   <td className="px-5 py-4">
-                     {formatDateTime(new Date(pipeline.createdAt))
-                      .split("\n")
-                      .map((line, index) => (
-                        <span key={index} className="block">
-                          {line.trim()}
-                        </span>
-                      ))}
+                    <span className="block">
+                      {new Date(user.createdAt).toLocaleDateString()}
+                    </span>
+                    <span className="block">
+                      {new Date(user.createdAt).toLocaleTimeString()}
+                    </span>
                   </td>
                   <td className="px-5 py-4">
                     <div className="max-w-36 line-clamp-3">
-                      {pipeline.notes || "No notes"}
+                      {user.signupMethod || 'No notes'}
                     </div>
                   </td>
                   <td className="px-5 py-4">
                     <div className="flex flex-wrap">
                       <Link
-                        href={`/pipelines/${pipeline._id}`}
+                        href={`/users/${user._id}`}
                         type="button"
                         className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-2.5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800"
                       >
@@ -168,7 +162,7 @@ const PipelineTableOne: React.FC = () => {
       {data && (
         <div className="px-5 py-3 text-gray-800 dark:text-white/90 flex justify-between items-center">
           <div className="text-sm">
-            Page {data.page} of {data.totalPages} ({data.total} pipelines)
+            Page {data.page} of {data.totalPages} ({data.total} users)
           </div>
           <BasicPagination
             currentPage={data.page}
@@ -183,4 +177,4 @@ const PipelineTableOne: React.FC = () => {
   );
 };
 
-export default PipelineTableOne;
+export default UsersTableOne;

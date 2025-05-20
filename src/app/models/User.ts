@@ -17,6 +17,8 @@ export interface IUser {
   role: 'user' | 'employee' | 'team_member' | 'admin';
   resetPasswordToken?: string;
   resetPasswordExpire?: Date;
+  createdAt?: Date;
+  updatedAt?: Date;
   signupMethod: 'OTP' | 'Email/Password' | 'OAuth';
   getJwtToken: () => string;
   comparePassword: (enteredPassword: string) => Promise<boolean>;

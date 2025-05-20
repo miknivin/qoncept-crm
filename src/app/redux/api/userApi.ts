@@ -41,9 +41,23 @@ interface ApiResponse<T = unknown> {
 interface AdminUsersResponse {
   success: boolean;
   users: IUser[];
+  page: number;
+  totalPages: number;
+  total: number;
 }
 
-type UserTag = "User" | "AdminUsers" | "AdminUser";
+interface CreateUserRequest {
+  name?: string;
+  email: string;
+  password?: string;
+  signupMethod?: 'OTP' | 'Email/Password' | 'OAuth';
+  avatar?: {
+    public_id: string;
+    url: string;
+  };
+}
+
+type UserTag = "User" | "AdminUsers" | "AdminUser" | "TeamMembers";
 
 export const userApi = createApi({
   reducerPath: "userApi",
@@ -51,7 +65,7 @@ export const userApi = createApi({
     baseUrl: `/api`,
     credentials: "include",
   }),
-  tagTypes: ["User", "AdminUsers", "AdminUser"] as UserTag[],
+   tagTypes: ["User", "AdminUsers", "AdminUser", "TeamMembers"] as UserTag[],
   endpoints: (builder) => ({
     getMe: builder.query<IUser, void>({
       query: () => "auth/me",
@@ -137,10 +151,26 @@ export const userApi = createApi({
       }),
       invalidatesTags: ["AdminUsers"],
     }),
+    addTeamMember: builder.mutation<ApiResponse<IUser>, CreateUserRequest>({
+      query: (body) => ({
+        url: "/users/team-member",
+        method: "POST",
+        body,
+      }),
+      transformResponse: (result: ApiResponse<IUser>) => result,
+      invalidatesTags: ["AdminUsers","TeamMembers"],
+    }),
+    getTeamMembers: builder.query<AdminUsersResponse, { page?: number; limit?: number; search?: string }>({
+      query: ({ page = 1, limit = 10, search = '' }) => ({
+        url: "/users/team-member",
+        params: { page, limit, search },
+      }),
+      providesTags: ["TeamMembers"],
+    }),
   }),
 });
 
-// Export typed hooks
+
 export const {
   useGetMeQuery,
   useUpdateProfileMutation,
@@ -152,4 +182,6 @@ export const {
   useGetUserDetailsQuery,
   useUpdateUserMutation,
   useDeleteUserMutation,
+  useAddTeamMemberMutation,
+  useGetTeamMembersQuery
 } = userApi;
