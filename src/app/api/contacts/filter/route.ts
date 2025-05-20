@@ -2,28 +2,46 @@ import dbConnect from "@/app/lib/db/connection";
 import { NextRequest, NextResponse } from "next/server";
 import Contact, { IContact } from "@/app/models/Contact";
 import mongoose, { FilterQuery } from "mongoose";
+import { authorizeRoles, isAuthenticatedUser } from "../../middlewares/auth";
 
-// Define interface for filter body
 interface FilterBody {
   assignedTo?: string;
   pipelineNames?: string[];
   tags?: string[];
 }
 
-// Define response contact type (omitting activities and uid)
 type ResponseContact = Omit<IContact, "activities" | "uid">;
 
 export async function POST(req: NextRequest) {
   try {
+    const user = await isAuthenticatedUser(req);
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: "Need to login" },
+        { status: 400 }
+      );
+    }
+    try {
+      authorizeRoles(user, "admin");
+    } catch (error) {
+      console.log(error);
+      try {
+        authorizeRoles(user, "team_member");
+      } catch (error) {
+        console.log(error);
+        return NextResponse.json(
+          { error: "User is neither admin nor team member" },
+          { status: 401 }
+        );
+      }
+    }
     await dbConnect();
 
-    // Extract query parameters
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "10");
     const keyword = searchParams.get("keyword") || "";
 
-    // Extract filter from body
     let filter: FilterBody;
     try {
       filter = await req.json();
@@ -35,7 +53,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Validate pagination parameters
     if (page < 1 || limit < 1) {
       return NextResponse.json(
         { error: "Invalid page or limit" },
@@ -82,7 +99,7 @@ export async function POST(req: NextRequest) {
     // Calculate skip for pagination
     const skip = (page - 1) * limit;
 
-    // Fetch contacts with pagination and search
+    // Fetch contacts with pagination and total count in parallel
     const [contacts, total] = await Promise.all([
       Contact.find(searchQuery)
         .select("-activities -uid")

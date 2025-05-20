@@ -1,8 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import mongoose, { Types } from 'mongoose';
 import Contact, { IContact, PipelineActive } from '@/app/models/Contact'; // Adjust path
 import dbConnect from '@/app/lib/db/connection';
+import { cacheContact, getCachedContactsBatch, cachePipeline, getCachedPipeline, cacheStage, getCachedStage} from '../../../utils/redis/contactRedis'; // Adjust path
+import { authorizeRoles, isAuthenticatedUser } from '@/app/api/middlewares/auth';
 
 // Validate ObjectId utility
 const validateObjectId = (id: string): boolean => {
@@ -20,8 +22,29 @@ interface BatchUpdateRequest {
 }
 
 // PATCH handler
-export async function PATCH(req: Request) {
+export async function PATCH(req: NextRequest) {
   try {
+    // Authenticate user
+    const user = await isAuthenticatedUser(req);
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: "Need to login" },
+        { status: 400 }
+      );
+    }
+    try {
+      authorizeRoles(user, "admin");
+    } catch {
+      try {
+        authorizeRoles(user, "team_member");
+      } catch {
+        return NextResponse.json(
+          { error: "User is neither admin nor team_member" },
+          { status: 401 }
+        );
+      }
+    }
+
     await dbConnect();
 
     const { updates } = (await req.json()) as BatchUpdateRequest;
@@ -31,6 +54,9 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: 'Updates must be a non-empty array' }, { status: 400 });
     }
 
+    const contactIds = new Set<string>();
+    const pipelineIds = new Set<string>();
+    const stageIds = new Set<string>();
     for (const update of updates) {
       const { contactId, pipelineId, stageId, order, userId } = update;
       if (!validateObjectId(contactId) || !validateObjectId(pipelineId) || !validateObjectId(stageId)) {
@@ -51,18 +77,110 @@ export async function PATCH(req: Request) {
           { status: 400 }
         );
       }
+      contactIds.add(contactId);
+      pipelineIds.add(pipelineId);
+      stageIds.add(stageId);
     }
 
     // Use a MongoDB transaction for atomic updates
     const session = await mongoose.startSession();
-    // Initialize caches
-    const pipelineCache = new Map<string, any>(); // Map<pipelineId, Pipeline>
-    const stageCache = new Map<string, any>(); // Map<stageId, Stage>
     try {
       const response = await session.withTransaction(async () => {
-        const updatedContacts: IContact[] = [];
+        // Batch check contacts in Redis
+        const contactIdsArray = Array.from(contactIds);
+        const cachedContacts = await getCachedContactsBatch(contactIdsArray);
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const contactsToFetch = contactIdsArray.filter((_, i) => !cachedContacts[i]);
 
-        // Process each update
+        // Batch fetch contacts from MongoDB for validation
+        const contacts = await Contact.find({
+          _id: { $in: contactIdsArray.map(id => new Types.ObjectId(id)) }
+        }).session(session).lean();
+        const contactMap = new Map(contacts.map(c => [c._id.toString(), c]));
+        for (const contactId of contactIds) {
+          if (!contactMap.has(contactId)) {
+            throw new Error(`Contact not found: ${contactId}`);
+          }
+        }
+
+        // Batch fetch pipelines and stages from Redis or MongoDB
+        const pipelineMap = new Map<string, any>();
+        const stageMap = new Map<string, any>();
+
+        // Fetch pipelines
+        const pipelineIdsArray = Array.from(pipelineIds);
+        const cachedPipelines = await Promise.all(
+          pipelineIdsArray.map(id => getCachedPipeline(id))
+        );
+        const pipelinesToFetch = pipelineIdsArray.filter((_, i) => !cachedPipelines[i]);
+        if (pipelinesToFetch.length > 0) {
+          const dbPipelines = await mongoose.model('Pipeline')
+            .find({ _id: { $in: pipelinesToFetch.map(id => new Types.ObjectId(id)) } })
+            .session(session)
+            .lean();
+          for (const pipeline of dbPipelines) {
+            pipelineMap.set((pipeline as { _id: Types.ObjectId })._id.toString(), pipeline);
+            Promise.allSettled([
+              cachePipeline((pipeline as { _id: Types.ObjectId })._id.toString(), pipeline as any)
+            ]).catch(error => console.error(`Error caching pipeline ${pipeline._id}:`, error));
+          }
+        }
+        cachedPipelines.forEach((pipeline:any, i:number) => {
+          if (pipeline) {
+            pipelineMap.set(pipelineIdsArray[i], pipeline);
+          }
+        });
+        for (const pipelineId of pipelineIds) {
+          if (!pipelineMap.has(pipelineId)) {
+            throw new Error(`Invalid pipeline ID: ${pipelineId}`);
+          }
+        }
+
+        // Fetch stages
+        const stageIdsArray = Array.from(stageIds);
+        const cachedStages = await Promise.all(
+          stageIdsArray.map(id => getCachedStage(id))
+        );
+        const stagesToFetch = stageIdsArray.filter((_, i) => !cachedStages[i]);
+        if (stagesToFetch.length > 0) {
+          const dbStages = await mongoose.model('Stage')
+            .find({
+              _id: { $in: stagesToFetch.map(id => new Types.ObjectId(id)) },
+              pipeline_id: { $in: Array.from(pipelineIds).map(id => new Types.ObjectId(id)) }
+            })
+            .session(session)
+            .lean();
+          for (const stage of dbStages as any[]) {
+            stageMap.set((stage as any)._id.toString(), stage);
+            // Cache stage non-blocking
+            Promise.allSettled([
+              cacheStage((stage as any)._id.toString(), stage)
+            ]).catch(error => console.error(`Error caching stage ${(stage as any)._id}:`, error));
+          }
+        }
+        cachedStages.forEach((stage:any, i:number) => {
+          if (stage) {
+            stageMap.set(stageIdsArray[i], stage);
+          }
+        });
+        for (const stageId of stageIds) {
+          if (!stageMap.has(stageId)) {
+            throw new Error(`Invalid stage ID: ${stageId}`);
+          }
+        }
+
+        // Validate stage-pipeline relationships
+        for (const update of updates) {
+          const { pipelineId, stageId } = update;
+          const stage = stageMap.get(stageId);
+          if (stage.pipeline_id.toString() !== pipelineId) {
+            throw new Error(`Stage ${stageId} does not belong to pipeline ${pipelineId}`);
+          }
+        }
+
+        // Process updates
+        const updatedContacts: IContact[] = [];
+        const activityPromises: Promise<void>[] = [];
         for (const update of updates) {
           const { contactId, pipelineId, stageId, order, userId } = update;
           const contactObjectId = new Types.ObjectId(contactId);
@@ -70,76 +188,82 @@ export async function PATCH(req: Request) {
           const stageObjectId = new Types.ObjectId(stageId);
           const userObjectId = userId ? new Types.ObjectId(userId) : null;
 
-          // Find the contact
-          const contact = await Contact.findById(contactObjectId).session(session);
-          if (!contact) {
+          // Update contact using findByIdAndUpdate
+          const updateQuery: any = {
+            $set: {
+              [`pipelinesActive.$[elem].stage_id`]: stageObjectId,
+              [`pipelinesActive.$[elem].order`]: order
+            }
+          };
+          const arrayFilters = [{ 'elem.pipeline_id': pipelineObjectId }];
+
+          // If pipeline doesn't exist, push new pipelineActive entry
+          const contact = contactMap.get(contactId);
+         let pipelineExists;
+          if(contact){
+           pipelineExists = contact.pipelinesActive.some(
+            (pa: any) => pa.pipeline_id.toString() === pipelineId
+          );
+          }
+
+          if (!pipelineExists) {
+            updateQuery.$push = {
+              pipelinesActive: {
+                pipeline_id: pipelineObjectId,
+                stage_id: stageObjectId,
+                order
+              } as PipelineActive
+            };
+            delete updateQuery.$set;
+          }
+
+          const updatedContact = await Contact.findByIdAndUpdate(
+            contactObjectId,
+            updateQuery,
+            {
+              new: true,
+              session,
+              arrayFilters: pipelineExists ? arrayFilters : undefined
+            }
+          );
+          if (!updatedContact) {
             throw new Error(`Contact not found: ${contactId}`);
           }
 
-          // Check cache for pipelineId
-          let pipeline;
-          if (pipelineCache.has(pipelineId)) {
-            pipeline = pipelineCache.get(pipelineId);
-          } else {
-            pipeline = await mongoose.model('Pipeline').findById(pipelineObjectId).session(session);
-            if (!pipeline) {
-              throw new Error(`Invalid pipeline ID: ${pipelineId}`);
-            }
-            pipelineCache.set(pipelineId, pipeline);
-          }
-
-          // Check cache for stageId
-          let stage;
-          if (stageCache.has(stageId)) {
-            stage = stageCache.get(stageId);
-            // Verify stage belongs to the pipeline
-            if (stage.pipeline_id.toString() !== pipelineId) {
-              throw new Error(`Stage ${stageId} does not belong to pipeline ${pipelineId}`);
-            }
-          } else {
-            stage = await mongoose.model('Stage').findOne({
-              _id: stageObjectId,
-              pipeline_id: pipelineObjectId,
-            }).session(session);
-            if (!stage) {
-              throw new Error(`Invalid stage ID: ${stageId}`);
-            }
-            stageCache.set(stageId, stage);
-          }
-
-          // Update pipelinesActive
-          const pipelineActiveIndex = contact.pipelinesActive.findIndex(
-            (pa) => pa.pipeline_id.toString() === pipelineId
-          );
-
-          if (pipelineActiveIndex === -1) {
-            contact.pipelinesActive.push({
-              pipeline_id: pipelineObjectId,
-              stage_id: stageObjectId,
-              order,
-            } as PipelineActive);
-          } else {
-            contact.pipelinesActive[pipelineActiveIndex].stage_id = stageObjectId;
-            contact.pipelinesActive[pipelineActiveIndex].order = order;
-          }
-
-          // Log activity if userId provided
+          // Log activity non-blocking with separate try-catch
           if (userObjectId) {
-            await contact.logActivity(
-              'PIPELINE_STAGE_UPDATED',
-              userObjectId,
-              {
-                pipelineId,
-                stageId,
-                order,
-              },
-              session
+            activityPromises.push(
+              (async () => {
+                try {
+                  await updatedContact.logActivity(
+                    'PIPELINE_STAGE_UPDATED',
+                    userObjectId,
+                    {
+                      pipelineId,
+                      stageId,
+                      order,
+                    },
+                    session
+                  );
+                } catch (error) {
+                  console.error(`Failed to log activity for contact ${contactId}:`, error);
+                }
+              })()
             );
           }
 
-          await contact.save({ session });
-          updatedContacts.push(contact);
+          // Cache updated contact non-blocking
+          Promise.allSettled([
+            cacheContact(contactId, updatedContact.toObject())
+          ]).catch((error) => {
+            console.error(`Error caching updated contact ${contactId}:`, error);
+          });
+
+          updatedContacts.push(updatedContact);
         }
+
+        // Execute activity logging non-blocking
+        await Promise.allSettled(activityPromises);
 
         // Return response inside transaction
         return NextResponse.json({
@@ -150,14 +274,17 @@ export async function PATCH(req: Request) {
       // Return the response from the transaction
       return response;
     } finally {
-      // Clear caches
-      pipelineCache.clear();
-      stageCache.clear();
       // End the session
       session.endSession();
     }
   } catch (error: any) {
     console.error('Error updating contacts pipeline:', error);
+    if (error.name === 'MongoServerError' && error.code === 11000) {
+      return NextResponse.json(
+        { error: `Duplicate key error for contact _id: ${error.keyValue?._id || 'unknown'}` },
+        { status: 400 }
+      );
+    }
     return NextResponse.json(
       { error: error.message || 'Internal server error' },
       { status: error.message.includes('not found') || error.message.includes('Invalid') ? 400 : 500 }

@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/app/lib/db/connection';
 import { validatePipelineCreate } from '../middlewares/validatePipelineCreate';
 import Pipeline from '@/app/models/Pipeline';
@@ -6,6 +6,7 @@ import Stage from '@/app/models/Stage';
 import { PipelineQueryParams, validatePipelineQueryParams } from '../middlewares/validatePipelineQueryParams';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import User from "@/app/models/User"; // Import the User model
+import { authorizeRoles, isAuthenticatedUser } from '../middlewares/auth';
 //import mongoose from 'mongoose';
 
 
@@ -34,19 +35,25 @@ interface PipelineResponse {
   limit: number;
 }
 
-export async function POST(req: Request) {
+export async function POST(req:NextRequest) {
   try {
+     const user = await isAuthenticatedUser(req);
+    if (!user) {
+        return NextResponse.json(
+            { success: false, message: "Need to login" },
+            { status: 400 }
+        );
+    }
+    authorizeRoles(user, "admin");
     await dbConnect();
 
     const { name, notes, userId, stages } = await req.json();
 
-    // Validate request data
     const validationResult = validatePipelineCreate({ name, notes, userId, stages });
     if (validationResult.error) {
       return NextResponse.json({ error: validationResult.error }, { status: 400 });
     }
 
-    // Create pipeline
     const pipeline = await Pipeline.create({
       name: name.trim(),
       notes: notes?.trim() || undefined,
@@ -77,8 +84,30 @@ export async function POST(req: Request) {
   }
 }
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
+    const user = await isAuthenticatedUser(request);
+    if (!user) {
+        return NextResponse.json(
+            { success: false, message: "Need to login" },
+            { status: 400 }
+        );
+    }
+    try {
+        authorizeRoles(user, "admin");
+      } catch (error) {
+        console.log(error);
+
+        try {
+          authorizeRoles(user, "team_member");
+        } catch (error) {
+          console.log(error);
+           return NextResponse.json(
+        { error: "User is neither admin or team member" },
+        { status: 401 }
+      );
+        }
+      }
     await dbConnect();
    // mongoose.model("User");
     const { searchParams } = new URL(request.url);
