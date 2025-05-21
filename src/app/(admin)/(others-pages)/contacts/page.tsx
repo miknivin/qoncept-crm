@@ -1,3 +1,4 @@
+import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import ContactsHeader from "@/components/page-components/ContactsHeader";
 import ContactTableOne from "@/components/tables/ContactTableOne";
 
@@ -16,11 +17,11 @@ export const metadata: Metadata = {
 export default function Contacts() {
   return (
     <div>
+      <PageBreadcrumb pageTitle="contacts"/>
       <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] lg:p-6">
           <ContactsHeader/>
-
         <div className="space-y-6">
-            <ContactTableOne/>
+          <ContactTableOne/>
         </div>
       </div>
     </div>

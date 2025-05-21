@@ -16,6 +16,7 @@ import { Modal } from "../ui/modal";
 import AddToPipelineForm from "../form/contact-form/AddToPipelineForm";
 import { useModal } from "@/hooks/useModal";
 import { useSearchParams, useRouter } from "next/navigation";
+import Link from "next/link";
 
 interface FilterParams {
   assignedTo?: string;
@@ -298,13 +299,13 @@ const ContactTableOne: React.FC = () => {
                   </td>
                   <td className="px-5 py-4">
                     <div className="flex flex-wrap">
-                      <button
-                        onClick={() => toast.success("Edit clicked (implement functionality)")}
-                        type="button"
+                      <Link
+                      href={`contacts/${contact._id}`}  
+                      
                         className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-2.5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800"
                       >
                         <EditIcon />
-                      </button>
+                      </Link>
                     </div>
                   </td>
                 </tr>

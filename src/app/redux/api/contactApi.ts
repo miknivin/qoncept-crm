@@ -1,8 +1,27 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { IContact } from "@/app/models/Contact";
 
-export type ResponseContact = Omit<IContact, "activities" | "uid"> & { _id: string };
 
+export interface ResponseActivity {
+  _id: string;
+  action:
+    | 'CONTACT_CREATED'
+    | 'CONTACT_UPDATED'
+    | 'TAG_ADDED'
+    | 'TAG_REMOVED'
+    | 'NOTE_ADDED'
+    | 'NOTE_UPDATED'
+    | 'PIPELINE_ADDED'
+    | 'PIPELINE_STAGE_UPDATED'
+    | 'ASSIGNED_TO_UPDATED';
+  user: { _id: string; name: string; email?: string };
+  details: Record<string, unknown>;
+  createdAt: string;
+}
+export type ResponseContact = Omit<IContact, "uid" | "activities"> & {
+  _id: string;
+  activities: ResponseActivity[];
+};
 interface Pagination {
   page: number;
   limit: number;
@@ -71,6 +90,25 @@ interface BatchUpdateContactDragResponse {
   data: ResponseContact[];
 }
 
+interface UpdateContactRequest {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  notes?: string;
+  userId: string;
+}
+
+interface UpdateContactResponse {
+  success: boolean;
+  data: ResponseContact;
+}
+
+interface GetContactByIdResponse {
+  success: boolean;
+  data: ResponseContact;
+}
+
 export const contactApi = createApi({
   reducerPath: "contactApi",
   baseQuery: fetchBaseQuery({
@@ -117,6 +155,21 @@ export const contactApi = createApi({
       }),
       invalidatesTags: ["Contacts"],
     }),
+    getContactById: builder.query<GetContactByIdResponse, string>({
+      query: (id) => ({
+        url: `/contacts/${id}`,
+        method: "GET",
+      }),
+      providesTags: (result, error, id) => [{ type: "Contacts", id }],
+    }),
+    updateContact: builder.mutation<UpdateContactResponse, UpdateContactRequest>({
+      query: ({ id, ...body }) => ({
+        url: `/contacts/${id}`,
+        method: "PUT",
+        body,
+      }),
+      invalidatesTags: (result, error, { id }) => [{ type: "Contacts", id }, { type: "Contacts", id: "LIST" }],
+    }),
   }),
 });
 
@@ -125,4 +178,6 @@ export const {
   useGetContactsQuery,
   useUpdateContactsPipelineMutation,
   useBatchUpdateContactDragMutation,
+  useGetContactByIdQuery,
+  useUpdateContactMutation
 } = contactApi;

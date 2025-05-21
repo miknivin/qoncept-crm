@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import PhoneIcon from "@/components/ui/flowbiteIcons/Phone";
@@ -35,6 +35,7 @@ function SortableContact({ contact, data }: SortableContactProps) {
     data,
   });
 //console.log(contact,'contact');
+const [probability,  setProbability] = useState("50")
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -49,7 +50,7 @@ function SortableContact({ contact, data }: SortableContactProps) {
   };
 
   const handlePhoneClick = () => {
-    //console.log("phone clicked");
+   // console.log("phone clicked");
     if (contact.phone) {
       window.location.href = `tel:${contact.phone}`;
     }
@@ -81,43 +82,62 @@ function SortableContact({ contact, data }: SortableContactProps) {
           </p>
         </div>
         {/* Button group - no drag listeners */}
-        <div
-          className="inline-flex rounded-md shadow-xs my-2"
-          role="group"
-          onMouseDown={stopPropagation}
-          onTouchStart={stopPropagation}
-        >
-          <button
-            type="button"
-            onClick={handlePhoneClick}
-            className={`inline-flex items-center px-2 py-2 text-sm font-medium text-gray-900 bg-transparent border border-gray-900 rounded-s-lg hover:bg-gray-900 hover:text-white focus:z-10 focus:ring-2 focus:ring-gray-500 focus:bg-gray-900 focus:text-white dark:border-white dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:bg-gray-700 ${
-              !contact.phone ? "opacity-50 cursor-not-allowed" : ""
-            }`}
-            aria-label={`Call ${contact.name || "contact"}`}
+        <div className="flex flex-col justify-start items-start w-full">
+          <div
+            className="inline-flex rounded-md shadow-xs my-2"
+            role="group"
+            onMouseDown={stopPropagation}
+            onTouchStart={stopPropagation}
           >
-            <PhoneIcon />
-          </button>
-          <button
-            type="button"
-            role="button"
-            onClick={handleEmailClick}
-            disabled={!contact.email}
-            className={`inline-flex items-center px-2 py-2 text-sm font-medium text-gray-900 bg-transparent border-t border-b border-gray-900 hover:bg-gray-900 hover:text-white focus:z-10 focus:ring-2 focus:ring-gray-500 focus:bg-gray-900 focus:text-white dark:border-white dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:bg-gray-700 ${
-              !contact.email ? "opacity-50 cursor-not-allowed" : ""
-            }`}
-            aria-label={`Email ${contact.name || "contact"}`}
-          >
-            <EmailIcon />
-          </button>
-          <button
-            type="button"
-            role="button"
-            className="inline-flex items-center px-2 py-2 text-sm font-medium text-gray-900 bg-transparent border border-gray-900 rounded-e-lg hover:bg-gray-900 hover:text-white focus:z-10 focus:ring-2 focus:ring-gray-500 focus:bg-gray-900 focus:text-white dark:border-white dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:bg-gray-700"
-            aria-label={`View tags for ${contact.name || "contact"}`}
-          >
-            <TagIcon />
-          </button>
+            <button
+              type="button"
+              onClick={handlePhoneClick}
+              className={`inline-flex items-center px-2 py-2 text-sm font-medium text-gray-900 bg-transparent border border-gray-900 rounded-s-lg hover:bg-gray-900 hover:text-white focus:z-10 focus:ring-2 focus:ring-gray-500 focus:bg-gray-900 focus:text-white dark:border-white dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:bg-gray-700 ${
+                !contact.phone ? "opacity-50 cursor-not-allowed" : ""
+              }`}
+              aria-label={`Call ${contact.name || "contact"}`}
+            >
+              <PhoneIcon />
+            </button>
+            <button
+              type="button"
+              role="button"
+              onClick={handleEmailClick}
+              disabled={!contact.email}
+              className={`inline-flex items-center px-2 py-2 text-sm font-medium text-gray-900 bg-transparent border-t border-b border-gray-900 hover:bg-gray-900 hover:text-white focus:z-10 focus:ring-2 focus:ring-gray-500 focus:bg-gray-900 focus:text-white dark:border-white dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:bg-gray-700 ${
+                !contact.email ? "opacity-50 cursor-not-allowed" : ""
+              }`}
+              aria-label={`Email ${contact.name || "contact"}`}
+            >
+              <EmailIcon />
+            </button>
+            <button
+              type="button"
+              role="button"
+              className="inline-flex items-center px-2 py-2 text-sm font-medium text-gray-900 bg-transparent border border-gray-900 rounded-e-lg hover:bg-gray-900 hover:text-white focus:z-10 focus:ring-2 focus:ring-gray-500 focus:bg-gray-900 focus:text-white dark:border-white dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:bg-gray-700"
+              aria-label={`View tags for ${contact.name || "contact"}`}
+            >
+              <TagIcon />
+            </button>
+          </div>
+          <div className="flex justify-between flex-row-reverse items-center gap-3 w-full">
+            <label
+            htmlFor="default-range"
+            className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+            >
+              {probability}%
+          </label>
+          <input
+            id="default-range"
+            type="range"
+            onChange={(e)=>setProbability(e.target.value)}
+            defaultValue={50}
+            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
+          />
+          </div>
+          
         </div>
+        
       </div>
     </div>
   );
