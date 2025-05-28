@@ -58,7 +58,6 @@ export async function GET(req: NextRequest) {
         totalPages: Math.ceil(total / limit),
       },
     }, { status: 200 });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error('Error fetching leave requests:', error);
     return NextResponse.json({ message: error.message || 'Server error' }, { status: error.status || 500 });

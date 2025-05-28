@@ -33,11 +33,11 @@ interface UpdateLeaveMongoData {
 }
 
 // GET /api/leaves/[id] - Get a leave request by ID
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     await dbConnect();
     const user = await isAuthenticatedUser(req);
-    const { id } = params;
+    const { id } = await context.params;
 
     if (!Types.ObjectId.isValid(id)) {
       return NextResponse.json({ message: 'Invalid leave ID' }, { status: 400 });
@@ -74,11 +74,11 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 }
 
 // PUT /api/leaves/[id] - Update a leave request
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     await dbConnect();
     const user = await isAuthenticatedUser(req);
-    const { id } = params;
+    const { id } = await context.params;
 
     if (!Types.ObjectId.isValid(id)) {
       return NextResponse.json({ message: 'Invalid leave ID' }, { status: 400 });

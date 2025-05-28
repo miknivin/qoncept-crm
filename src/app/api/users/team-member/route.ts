@@ -40,8 +40,9 @@ export async function POST(req: NextRequest) {
     // Authorize admin role
     try {
       authorizeRoles(reqUser, 'admin');
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
     } catch (error:any) {
+      console.log('error', error);
+      
       return NextResponse.json(
         { error: 'Only admins can create team members' },
         { status: 401 }

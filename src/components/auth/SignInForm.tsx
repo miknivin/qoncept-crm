@@ -35,6 +35,7 @@ export default function SignInForm() {
     try {
       await login({ email, password }).unwrap();
       toast.success("Login success, Redirecting to dashboard");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       console.log(err);
       setError(err!.data?.message || "Failed to sign in. Unexpected Error occurred.");
