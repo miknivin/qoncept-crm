@@ -4,11 +4,70 @@ import mongoose, { Types } from 'mongoose';
 import Contact, { IContact } from '@/app/models/Contact';
 import dbConnect from '@/app/lib/db/connection';
 import { authorizeRoles, isAuthenticatedUser } from '@/app/api/middlewares/auth';
+import User from '@/app/models/User';
 
 // Interface for request body
 interface UpdateProbabilityRequest {
   probability: number;
 }
+
+
+export async function GET(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    await dbConnect();
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+    User
+    let user;
+    try {
+      user = await isAuthenticatedUser(request);
+    } catch (error: any) {
+      return NextResponse.json(
+        { success: false, error: error.message || 'Authentication failed' },
+        { status: 401 }
+      );
+    }
+    if (!user._id) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid user data' },
+        { status: 401 }
+      );
+    }
+    authorizeRoles(user, 'admin', 'team_member');
+    const { id } = await context.params;
+    if (!id || !Types.ObjectId.isValid(id)) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid or missing contact ID' },
+        { status: 400 }
+      );
+    }
+    const contact = await Contact.findById(id)
+      .populate('assignedTo.user', 'name')
+      .populate('tags.user', 'name')
+      .populate('user', 'name')
+      .populate('activities.user', 'name')
+      .lean();
+    if (!contact) {
+      return NextResponse.json(
+        { success: false, error: 'Contact not found' },
+        { status: 404 }
+      );
+    }
+    return NextResponse.json({
+      success: true,
+      data: contact,
+    });
+  } catch (error: any) {
+    console.error('Error retrieving contact:', error);
+    return NextResponse.json(
+      { success: false, error: error.message || 'Internal server error' },
+      { status: error.message.includes('login') || error.message.includes('Not allowed') ? 401 : 500 }
+    );
+  }
+}
+
 
 // PATCH handler to update contact probability
 export async function PATCH(

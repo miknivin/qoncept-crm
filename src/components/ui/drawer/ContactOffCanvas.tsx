@@ -1,5 +1,8 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { RootState } from "@/app/redux/rootReducer";
+import { useEffect, useRef, useState } from "react";
+import { useSelector } from "react-redux";
+import { useRouter, useSearchParams } from "next/navigation";
 
 interface ContactOffCanvasProps {
   isOpen: boolean;
@@ -8,6 +11,40 @@ interface ContactOffCanvasProps {
 
 export default function ContactOffCanvas({ isOpen, onClose }: ContactOffCanvasProps) {
   const offCanvasRef = useRef<HTMLDivElement>(null);
+  const { user } = useSelector((state: RootState) => state.user);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  // Form state
+  const [keyword, setKeyword] = useState("");
+  const [source, setSource] = useState("");
+  const [assignedTo, setAssignedTo] = useState("");
+
+  // Source options with label-value pairs
+  const sourceOptions = [
+    { value: "facebook", label: "Facebook Leads" },
+    { value: "whatsApp", label: "WhatsApp" },
+    { value: "Excel file", label: "Excel file" },
+    { value: "manual", label: "Manual" },
+  ];
+
+  // Initialize form state from query params
+  useEffect(() => {
+    const keyword = searchParams.get("keyword") || "";
+    const source = searchParams.get("source") || "";
+    const filterStr = searchParams.get("filter");
+    let filter: { assignedTo?: string } = {};
+    try {
+      if (filterStr) filter = JSON.parse(filterStr);
+    } catch (e) {
+      console.error("Invalid filter param:", e);
+    }
+    const assignedTo = user?.role === "admin" ? filter.assignedTo || "" : "";
+
+    setKeyword(keyword);
+    setSource(source);
+    setAssignedTo(assignedTo);
+  }, [searchParams, user?.role]);
 
   // Handle clicking outside to close
   useEffect(() => {
@@ -26,6 +63,36 @@ export default function ContactOffCanvas({ isOpen, onClose }: ContactOffCanvasPr
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isOpen, onClose]);
+
+  // Form submission
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const filter = {
+      ...(user?.role === "admin" && assignedTo && { assignedTo }),
+    };
+    const query = new URLSearchParams();
+    query.set("page", "1");
+    query.set("limit", searchParams.get("limit") || "10");
+    if (keyword) query.set("keyword", keyword);
+    if (source) {
+      // Find label for the source value
+      const sourceLabel = sourceOptions.find((opt) => opt.value === source)?.label || source;
+      query.set("source", sourceLabel);
+    }
+    if (Object.keys(filter).length) query.set("filter", JSON.stringify(filter));
+    router.push(`?${query.toString()}`, { scroll: false });
+  };
+
+  // Clear filters
+  const handleClear = () => {
+    setKeyword("");
+    setSource("");
+    setAssignedTo("");
+    const query = new URLSearchParams();
+    query.set("page", "1");
+    query.set("limit", searchParams.get("limit") || "10");
+    router.push(`?${query.toString()}`, { scroll: false });
+  };
 
   return (
     <>
@@ -78,7 +145,7 @@ export default function ContactOffCanvas({ isOpen, onClose }: ContactOffCanvasPr
           Filter contacts by source, assigned user, or other criteria.
         </p>
 
-        <form>
+        <form onSubmit={handleSubmit}>
           <div>
             <label
               htmlFor="contact-search"
@@ -109,9 +176,12 @@ export default function ContactOffCanvas({ isOpen, onClose }: ContactOffCanvasPr
                 id="contact-search"
                 className="block w-full p-2.5 ps-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                 placeholder="Search by name, email, notes..."
+                value={keyword}
+                onChange={(e) => setKeyword(e.target.value)}
               />
             </div>
           </div>
+
           <div className="mb-4">
             <label
               htmlFor="contact-source"
@@ -122,28 +192,37 @@ export default function ContactOffCanvas({ isOpen, onClose }: ContactOffCanvasPr
             <select
               id="contact-source"
               className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+              value={source}
+              onChange={(e) => setSource(e.target.value)}
             >
               <option value="">Choose a source</option>
-              <option value="facebook">Facebook Leads</option>
-              <option value="whatsApp">WhatsApp</option>
-              <option value="Excel file">Excel</option>
-              <option value="manual">Manual</option>
+              {sourceOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </select>
           </div>
-          <div className="mb-4 relative">
-            <label
-              htmlFor="contact-user-search"
-              className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-            >
-              Search users
-            </label>
-            <input
-              type="text"
-              id="contact-user-search"
-              className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-              placeholder="Search users"
-            />
-          </div>
+
+          {user?.role === "admin" && (
+            <div className="mb-4 relative">
+              <label
+                htmlFor="contact-user-search"
+                className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+              >
+                Search users
+              </label>
+              <input
+                type="text"
+                id="contact-user-search"
+                className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                placeholder="Enter user ID"
+                value={assignedTo}
+                onChange={(e) => setAssignedTo(e.target.value)}
+              />
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-4">
             <button
               type="submit"
@@ -154,6 +233,7 @@ export default function ContactOffCanvas({ isOpen, onClose }: ContactOffCanvasPr
             <button
               type="button"
               className="inline-flex items-center px-4 py-2 text-sm font-medium text-center text-gray-900 bg-white border border-gray-200 rounded-lg focus:outline-none hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-100 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700"
+              onClick={handleClear}
             >
               Clear Filters
               <svg

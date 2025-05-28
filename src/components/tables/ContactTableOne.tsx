@@ -9,7 +9,7 @@ import { ChevronDownIcon } from "@/icons";
 import EditIcon from "../ui/flowbiteIcons/EditIcon";
 import { toast } from "react-toastify";
 import AddToPipelineIcon from "../ui/flowbiteIcons/AddToPipeline";
-import AddTagIcon from "../ui/flowbiteIcons/AddTag";
+// import AddTagIcon from "../ui/flowbiteIcons/AddTag";
 import DeleteIcon from "../ui/flowbiteIcons/Delete";
 import { checkBoxClass } from "@/constants/classnames";
 import { Modal } from "../ui/modal";
@@ -19,11 +19,18 @@ import { useModal } from "@/hooks/useModal";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import AssignUserIcon from "../ui/flowbiteIcons/Assign";
+import { RootState } from '@/app/redux/rootReducer';
+import { useSelector } from "react-redux";
 
 interface FilterParams {
   assignedTo?: string;
   pipelineNames?: string[];
   tags?: string[];
+  source?: string;
+  createdAt?: {
+    startDate?: string;
+    endDate?: string;
+  };
 }
 
 const ContactTableOne: React.FC = () => {
@@ -32,7 +39,7 @@ const ContactTableOne: React.FC = () => {
   const [modalType, setModalType] = useState<"addToPipeline" | "assignContacts" | null>(null);
   const searchParams = useSearchParams();
   const router = useRouter();
-
+const { user } = useSelector((state: RootState) => state.user);
   const [params, setParams] = useState<{
     page: number;
     limit: number;
@@ -50,6 +57,14 @@ const ContactTableOne: React.FC = () => {
     const page = parseInt(searchParams.get("page") || "1", 10);
     const limit = parseInt(searchParams.get("limit") || "10", 10);
     const keyword = searchParams.get("keyword") || "";
+    const source = searchParams.get("source") || "";
+    const filterStr = searchParams.get("filter");
+    let filter: FilterParams = {};
+    try {
+      if (filterStr) filter = JSON.parse(filterStr);
+    } catch (e) {
+      console.error("Invalid filter param:", e);
+    }
 
     // Validate page and limit
     const validPage = isNaN(page) || page < 1 ? 1 : page;
@@ -62,6 +77,12 @@ const ContactTableOne: React.FC = () => {
       page: validPage,
       limit: validLimit,
       keyword,
+      filter: {
+        ...prev.filter,
+        ...filter,
+        source: source || filter.source || undefined,
+        createdAt: filter.createdAt || undefined,
+      },
     }));
   }, [searchParams]);
 
@@ -71,9 +92,12 @@ const ContactTableOne: React.FC = () => {
     query.set("page", params.page.toString());
     query.set("limit", params.limit.toString());
     if (params.keyword) query.set("keyword", params.keyword);
+    if (params.filter.source) query.set("source", params.filter.source);
+    if (Object.keys(params.filter).length)
+      query.set("filter", JSON.stringify(params.filter));
 
     router.push(`?${query.toString()}`, { scroll: false });
-  }, [params.page, params.limit, params.keyword, router]);
+  }, [params, router]);
 
   const { data, error, isLoading } = useGetContactsQuery(params);
 
@@ -176,7 +200,8 @@ const ContactTableOne: React.FC = () => {
           className="w-full max-w-xl rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
         />
         <div className="relative flex gap-3">
-          <div className="inline-flex rounded-md shadow-xs" role="group">
+          {user&&user?.role==="admin"&&(
+                   <div className="inline-flex rounded-md shadow-xs" role="group">
             <button
               type="button"
               onClick={handleAddToPipeline}
@@ -187,7 +212,7 @@ const ContactTableOne: React.FC = () => {
             >
               <AddToPipelineIcon />
             </button>
-            <button
+            {/* <button
               type="button"
               disabled={isButtonGroupDisabled}
               className={`px-4 py-2 text-sm font-medium text-gray-900 bg-white border-t border-b border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700 dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-blue-500 dark:focus:text-white ${
@@ -195,7 +220,7 @@ const ContactTableOne: React.FC = () => {
               }`}
             >
               <AddTagIcon />
-            </button>
+            </button> */}
             <button
               type="button"
               onClick={handleAssignContacts}
@@ -216,6 +241,8 @@ const ContactTableOne: React.FC = () => {
               <DeleteIcon />
             </button>
           </div>
+          )}
+   
           <Select
             options={options}
             defaultValue="10"
