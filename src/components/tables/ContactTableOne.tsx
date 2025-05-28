@@ -14,9 +14,11 @@ import DeleteIcon from "../ui/flowbiteIcons/Delete";
 import { checkBoxClass } from "@/constants/classnames";
 import { Modal } from "../ui/modal";
 import AddToPipelineForm from "../form/contact-form/AddToPipelineForm";
+import AssignContactsForm from "../form/contact-form/AssignForm";
 import { useModal } from "@/hooks/useModal";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import AssignUserIcon from "../ui/flowbiteIcons/Assign";
 
 interface FilterParams {
   assignedTo?: string;
@@ -27,6 +29,7 @@ interface FilterParams {
 const ContactTableOne: React.FC = () => {
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
   const { isOpen, openModal, closeModal } = useModal();
+  const [modalType, setModalType] = useState<"addToPipeline" | "assignContacts" | null>(null);
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -46,6 +49,7 @@ const ContactTableOne: React.FC = () => {
   useEffect(() => {
     const page = parseInt(searchParams.get("page") || "1", 10);
     const limit = parseInt(searchParams.get("limit") || "10", 10);
+    const keyword = searchParams.get("keyword") || "";
 
     // Validate page and limit
     const validPage = isNaN(page) || page < 1 ? 1 : page;
@@ -57,10 +61,11 @@ const ContactTableOne: React.FC = () => {
       ...prev,
       page: validPage,
       limit: validLimit,
+      keyword,
     }));
   }, [searchParams]);
 
-  // Update URL query params when page or limit changes
+  // Update URL query params when page, limit, or keyword change
   useEffect(() => {
     const query = new URLSearchParams();
     query.set("page", params.page.toString());
@@ -110,14 +115,25 @@ const ContactTableOne: React.FC = () => {
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
       const allContactIds = data?.contacts?.map((contact) => contact._id) || [];
-      setSelectedContacts(allContactIds);
+      setSelectedContacts((prev) => [...new Set([...prev, ...allContactIds])]);
     } else {
-      setSelectedContacts([]);
+      const currentPageIds = data?.contacts?.map((contact) => contact._id) || [];
+      setSelectedContacts((prev) => prev.filter((id) => !currentPageIds.includes(id)));
     }
   };
 
   const handleAddToPipeline = () => {
     if (selectedContacts.length > 0) {
+      setModalType("addToPipeline");
+      openModal();
+    } else {
+      toast.error("Please select at least one contact");
+    }
+  };
+
+  const handleAssignContacts = () => {
+    if (selectedContacts.length > 0) {
+      setModalType("assignContacts");
       openModal();
     } else {
       toast.error("Please select at least one contact");
@@ -126,6 +142,13 @@ const ContactTableOne: React.FC = () => {
 
   const handleLimitChange = (value: string) => {
     setParams((prev) => ({ ...prev, limit: parseInt(value), page: 1 }));
+  };
+
+  // Clear selections after form submission
+  const handleFormSubmit = () => {
+    setSelectedContacts([]);
+    setModalType(null);
+    closeModal();
   };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -172,6 +195,16 @@ const ContactTableOne: React.FC = () => {
               }`}
             >
               <AddTagIcon />
+            </button>
+            <button
+              type="button"
+              onClick={handleAssignContacts}
+              disabled={isButtonGroupDisabled}
+              className={`px-4 py-2 text-sm font-medium text-gray-900 bg-white border-t border-b border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700 dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-blue-500 dark:focus:text-white ${
+                isButtonGroupDisabled ? "opacity-50 cursor-not-allowed" : ""
+              }`}
+            >
+              <AssignUserIcon />
             </button>
             <button
               type="button"
@@ -300,8 +333,7 @@ const ContactTableOne: React.FC = () => {
                   <td className="px-5 py-4">
                     <div className="flex flex-wrap">
                       <Link
-                      href={`contacts/${contact._id}`}  
-                      
+                        href={`contacts/${contact._id}`}
                         className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-2.5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800"
                       >
                         <EditIcon />
@@ -329,7 +361,12 @@ const ContactTableOne: React.FC = () => {
         </div>
       )}
       <Modal isOpen={isOpen} onClose={closeModal} className="max-w-[700px] p-6 lg:p-10">
-        <AddToPipelineForm selectedContacts={selectedContacts} onClose={closeModal} />
+        {modalType === "addToPipeline" && (
+          <AddToPipelineForm selectedContacts={selectedContacts} onClose={handleFormSubmit} />
+        )}
+        {modalType === "assignContacts" && (
+          <AssignContactsForm selectedContacts={selectedContacts} onClose={handleFormSubmit} />
+        )}
       </Modal>
     </div>
   );

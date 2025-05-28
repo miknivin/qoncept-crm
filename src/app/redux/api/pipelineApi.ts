@@ -46,11 +46,12 @@ interface LeanContact {
     details: Record<string, unknown>;
     createdAt: Date;
   }>;
+  value?:number;
+  probability?:number;
   createdAt: Date;
   updatedAt: Date;
 }
 
-// Interface for pipeline as returned by server
 interface ResponsePipeline {
   _id: string;
   name: string;

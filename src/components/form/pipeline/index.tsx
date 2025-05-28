@@ -15,13 +15,18 @@ import Swal from "sweetalert2";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { toast } from "react-toastify";
 import { useBatchUpdateContactDragMutation } from "@/app/redux/api/contactApi";
+import { useModal } from "@/hooks/useModal";
+import PipelineOffCanvas from "@/components/ui/drawer/PipelineOffCanvas";
+import Button from "@/components/ui/button/Button";
+import FilterIcons from "@/components/ui/flowbiteIcons/Filter";
+import { useFetchContacts } from "@/hooks/useFetchContacts";
 
-// Interface for contact (matches expected structure)
 interface Contact {
   _id: string;
   name: string;
   email: string;
   phone: string;
+  probability?:number
 }
 
 interface Stage {
@@ -49,14 +54,14 @@ const STORAGE_KEY = "pipeline-drag-updates";
 
 export default function PipelineBody({ pipelineId }: { pipelineId: string }) {
   const { data, error, isLoading } = useGetPipelineByIdQuery(pipelineId, { skip: !pipelineId });
+  const { isOpen: isFilterOpen, openModal: openFilter, closeModal: closeFilter } = useModal();
   const [batchUpdateContactDrag] = useBatchUpdateContactDragMutation();
   const [localStages, setLocalStages] = useState<Stage[]>(data?.pipeline?.stages || []);
   const [localContacts, setLocalContacts] = useState<{
     [stageId: string]: Contact[];
   }>({});
-  const [contactQueries, setContactQueries] = useState<{
-    [stageId: string]: ContactQueryState;
-  }>({});
+  const { contactQueries } = useFetchContacts(pipelineId, localStages);
+  
   const [draggedContact, setDraggedContact] = useState<Contact | null>(null);
   const [pendingUpdates, setPendingUpdates] = useState<BatchUpdate[]>([]);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -64,7 +69,7 @@ export default function PipelineBody({ pipelineId }: { pipelineId: string }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-
+// const { contactQueries } = useFetchContacts(pipelineId, localStages);
   // Sync localStages when data changes
   useEffect(() => {
     if (data?.pipeline?.stages) {
@@ -72,48 +77,7 @@ export default function PipelineBody({ pipelineId }: { pipelineId: string }) {
     }
   }, [data]);
 
-  // Fetch contacts for each stage using fetchContactsByStage
-  useEffect(() => {
-    if (!pipelineId || !localStages.length) {
-      setContactQueries({});
-      return;
-    }
 
-    const fetchContacts = async () => {
-      const queries: { [stageId: string]: ContactQueryState } = {};
-
-      // Initialize loading state for each stage
-      localStages.forEach((stage) => {
-        if (stage._id) {
-          queries[stage._id] = { isLoading: true };
-        }
-      });
-      setContactQueries(queries);
-
-      // Fetch contacts for each stage
-      await Promise.all(
-        localStages.map(async (stage: any) => {
-          if (!stage._id) return;
-          try {
-            const data = await fetchContactsByStage(pipelineId, stage._id);
-            setContactQueries((prev) => ({
-              ...prev,
-              [stage._id]: { data, isLoading: false },
-            }));
-          } catch (error) {
-            setContactQueries((prev) => ({
-              ...prev,
-              [stage._id]: { error, isLoading: false },
-            }));
-          }
-        })
-      );
-    };
-
-    fetchContacts();
-  }, [localStages, pipelineId]);
-
-  // Sync localContacts when contactQueries change
   useEffect(() => {
     const newContacts: typeof localContacts = {};
     localStages.forEach((stage) => {
@@ -124,6 +88,7 @@ export default function PipelineBody({ pipelineId }: { pipelineId: string }) {
           name: contact.name || "Unnamed",
           email: contact.email || "No email",
           phone: contact.phone || "No ph no",
+          probability:contact.probability||50
         }));
       }
     });
@@ -203,6 +168,8 @@ export default function PipelineBody({ pipelineId }: { pipelineId: string }) {
   // Handle navigation warnings
   useEffect(() => {
     const handleBeforePopState = async () => {
+      console.log('before pop');
+      
       if (hasUnsavedChanges) {
         const result = await Swal.fire({
           title: "Unsaved Changes",
@@ -377,7 +344,7 @@ export default function PipelineBody({ pipelineId }: { pipelineId: string }) {
   };
 
   return (
-    <div className="min-h-screen rounded-2xl border border-gray-200 bg-white px-5 dark:border-gray-800 dark:bg-white/[0.03] xl:px-10">
+    <div className="min-h-screen rounded-2xl border border-gray-200 bg-white px-5 dark:border-gray-800 dark:bg-white/[0.03] xl:px-10 overflow-hidden">
       <div className="mx-auto w-full text-center">
         {isLoading && (
           <div className="flex justify-center">
@@ -400,18 +367,24 @@ export default function PipelineBody({ pipelineId }: { pipelineId: string }) {
               <h3 className="mb-4 font-semibold text-gray-800 text-theme-xl dark:text-white/90 sm:text-2xl pt-2">
                 {data.pipeline.name}
               </h3>
-              {pendingUpdates.length > 0 && (
-                <button
-                  type="button"
-                  className={`text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800 ${isSaving ? "opacity-50 cursor-not-allowed" : ""}`}
-                  onClick={saveToBackend}
-                  disabled={isSaving}
-                >
-                  {isSaving ? "Saving..." : "Save"}
-                </button>
+              <div className="flex gap-3 items-center">
+                <Button size="sm" variant="outline" endIcon={<FilterIcons />} onClick={() => openFilter()}>
+                  Filter
+                </Button>
+                {pendingUpdates.length > 0 && (
+                  <button
+                    type="button"
+                    className={`text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 h-fit py-2.5 me-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800 ${isSaving ? "opacity-50 cursor-not-allowed" : ""}`}
+                    onClick={saveToBackend}
+                    disabled={isSaving}
+                  >
+                    {isSaving ? "Saving..." : "Save"}
+                  </button>
               )}
+              </div>
+             
             </div>
-            <div className="text-sm text-gray-500 dark:text-gray-400 sm:text-base">
+            <div className="text-sm text-gray-500 dark:text-gray-400 sm:text-base max-w-[70vw]">
               {localStages.length === 0 ? (
                 <p className="text-center">No stages available</p>
               ) : (
@@ -423,11 +396,11 @@ export default function PipelineBody({ pipelineId }: { pipelineId: string }) {
                 >
                   <div
                     role="list"
-                    className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
+                    className="flex flex-nowrap gap-4 overflow-x-auto pb-4 w-full mt-10 min-h-[70dvh]"
                   >
                     {[...localStages]
                       ?.sort((a, b) => a.order - b.order)
-                      .map((stage) => (
+                      .map((stage, index, array) => (
                         <div
                           key={stage._id}
                           id={`stage-${stage._id}`}
@@ -435,7 +408,7 @@ export default function PipelineBody({ pipelineId }: { pipelineId: string }) {
                           role="group"
                           aria-label={`Stage: ${stage.name}`}
                         >
-                          <SortableStage stage={stage} />
+                          <SortableStage stage={stage} isFinalThree={index >= array.length - 3}/>
                           <div className="mx-2 mt-2 drop-target">
                             {contactQueries[stage._id]?.isLoading ? (
                               <div className="flex justify-center my-2">
@@ -471,6 +444,7 @@ export default function PipelineBody({ pipelineId }: { pipelineId: string }) {
           </>
         )}
       </div>
+      <PipelineOffCanvas isOpen={isFilterOpen} onClose={closeFilter} />
     </div>
   );
 }

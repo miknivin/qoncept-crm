@@ -109,6 +109,24 @@ interface GetContactByIdResponse {
   data: ResponseContact;
 }
 
+interface AssignContactsRequest {
+  contactIds: string[];
+  userIds: string[];
+  assignType: "every" | "equally" | "roundRobin";
+}
+
+interface AssignContactsResponse {
+  message: string;
+}
+
+interface UpdateProbabilityResponse {
+  message: string;
+  contact: {
+    _id: string;
+    probability: number;
+  };
+}
+
 export const contactApi = createApi({
   reducerPath: "contactApi",
   baseQuery: fetchBaseQuery({
@@ -170,6 +188,22 @@ export const contactApi = createApi({
       }),
       invalidatesTags: (result, error, { id }) => [{ type: "Contacts", id }, { type: "Contacts", id: "LIST" }],
     }),
+    assignContacts: builder.mutation<AssignContactsResponse, AssignContactsRequest>({
+      query: (body) => ({
+        url: "/contacts/assign",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Contacts"],
+    }),
+     updateProbability: builder.mutation<UpdateProbabilityResponse, { id: string; probability: number }>({
+      query: ({ id, probability }) => ({
+        url: `/contacts/probability/${id}`,
+        method: "PATCH",
+        body: { probability },
+      }),
+      invalidatesTags: (result, error, { id }) => [{ type: "Contacts", id }, { type: "Contacts", id: "LIST" }],
+    }),
   }),
 });
 
@@ -179,5 +213,7 @@ export const {
   useUpdateContactsPipelineMutation,
   useBatchUpdateContactDragMutation,
   useGetContactByIdQuery,
-  useUpdateContactMutation
+  useUpdateContactMutation,
+  useAssignContactsMutation,
+  useUpdateProbabilityMutation
 } = contactApi;

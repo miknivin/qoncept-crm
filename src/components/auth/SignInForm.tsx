@@ -4,7 +4,7 @@ import Checkbox from "@/components/form/input/Checkbox";
 import Input from "@/components/form/input/InputField";
 import Label from "@/components/form/Label";
 import Button from "@/components/ui/button/Button";
-import { ChevronLeftIcon, EyeCloseIcon, EyeIcon } from "@/icons";
+import { EyeCloseIcon, EyeIcon } from "@/icons";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useState, useEffect } from "react";
@@ -35,9 +35,9 @@ export default function SignInForm() {
     try {
       await login({ email, password }).unwrap();
       toast.success("Login success, Redirecting to dashboard");
-    } catch (err: unknown) {
+    } catch (err: any) {
       console.log(err);
-      setError("Failed to sign in. Unexpected Error occurred.");
+      setError(err!.data?.message || "Failed to sign in. Unexpected Error occurred.");
     }
   };
 
@@ -53,7 +53,7 @@ export default function SignInForm() {
 
   return (
     <div className="flex flex-col flex-1 lg:w-1/2 w-full">
-      <div className="w-full max-w-md sm:pt-10 mx-auto mb-5">
+      {/* <div className="w-full max-w-md sm:pt-10 mx-auto mb-5">
         <Link
           href="/"
           className="inline-flex items-center text-sm text-gray-500 transition-colors hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
@@ -61,7 +61,7 @@ export default function SignInForm() {
           <ChevronLeftIcon />
           Back to dashboard
         </Link>
-      </div>
+      </div> */}
       <div className="flex flex-col justify-center flex-1 w-full max-w-md mx-auto">
         <div>
           <div className="mb-5 sm:mb-8">
@@ -73,7 +73,7 @@ export default function SignInForm() {
             </p>
           </div>
           <div>
-            <div className="flex">
+            {/* <div className="flex">
               <button className="inline-flex w-full items-center justify-center gap-3 py-3 text-sm font-normal text-gray-700 transition-colors bg-gray-100 rounded-lg px-7 hover:bg-gray-200 hover:text-gray-800 dark:bg-white/5 dark:text-white/90 dark:hover:bg-white/10">
                 <svg
                   width="20"
@@ -111,7 +111,7 @@ export default function SignInForm() {
                   Or
                 </span>
               </div>
-            </div>
+            </div> */}
             <form onSubmit={handleSubmit}>
               <div className="space-y-6">
                 <div>

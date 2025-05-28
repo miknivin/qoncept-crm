@@ -31,6 +31,17 @@ const UsersTableOne: React.FC = () => {
     setPage(newPage);
   };
 
+  const calculateRatio = (closedContacts: number, assignedContacts: number): string => {
+    if (
+      typeof closedContacts === 'number' &&
+      typeof assignedContacts === 'number' &&
+      assignedContacts > 0
+    ) {
+      return (closedContacts / assignedContacts).toFixed(2);
+    }
+    return '0.00'; 
+  };
+
   const handleLimitChange = (value: string) => {
     setLimit(parseInt(value, 10));
     setPage(1);
@@ -69,17 +80,18 @@ const UsersTableOne: React.FC = () => {
         <table className="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
           <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
             <tr>
-              <th scope="col" className="px-5 py-3">Users</th>
               <th scope="col" className="px-5 py-3">User</th>
-              <th scope="col" className="px-5 py-3">Created</th>
-              <th scope="col" className="px-5 py-3">Notes</th>
+              <th scope="col" className="px-5 py-3">Created at</th>
+              <th scope="col" className="px-5 py-3">Assigned</th>
+              <th scope="col" className="px-5 py-3">Closed</th>
+              <th scope="col" className="px-5 py-3">Conversion</th>
               <th scope="col" className="px-5 py-3">Action</th>
             </tr>
           </thead>
           <tbody>
             {isLoading && (
               <tr className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200">
-                <td colSpan={5} className="px-5 py-4 text-center">
+                <td colSpan={6} className="px-5 py-4 text-center">
                   <div className="w-full flex justify-center">
                     <ShortSpinnerPrimary />
                   </div>
@@ -88,7 +100,7 @@ const UsersTableOne: React.FC = () => {
             )}
             {error && (
               <tr className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200">
-                <td colSpan={5} className="px-5 py-4 text-center text-red-500">
+                <td colSpan={6} className="px-5 py-4 text-center text-red-500">
                   Error: {(error as any).data?.error || "Failed to fetch users"}
                 </td>
               </tr>
@@ -107,18 +119,6 @@ const UsersTableOne: React.FC = () => {
                   key={user._id}
                   className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200"
                 >
-                  <th
-                    scope="row"
-                    className="px-5 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <span className="block font-medium text-gray-800 text-sm dark:text-white/90">
-                          {user.name || 'N/A'}
-                        </span>
-                      </div>
-                    </div>
-                  </th>
                   <td className="px-5 py-4">
                     <div>
                       <span className="block text-gray-800 text-sm dark:text-white/90">
@@ -138,9 +138,19 @@ const UsersTableOne: React.FC = () => {
                     </span>
                   </td>
                   <td className="px-5 py-4">
-                    <div className="max-w-36 line-clamp-3">
-                      {user.signupMethod || 'No notes'}
-                    </div>
+                    <span className="block">
+                      {user.assignedContacts || 0}
+                    </span>
+                  </td>
+                  <td className="px-5 py-4">
+                    <span className="block">
+                      {user.closedContacts || 0}
+                    </span>
+                  </td>
+                  <td className="px-5 py-4">
+                    <span className="block">
+                      {calculateRatio(user.closedContacts, user.assignedContacts)}
+                    </span>
                   </td>
                   <td className="px-5 py-4">
                     <div className="flex flex-wrap">

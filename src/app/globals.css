@@ -287,8 +287,9 @@
   input[type="time"]::-webkit-inner-spin-button,
   input[type="date"]::-webkit-calendar-picker-indicator,
   input[type="time"]::-webkit-calendar-picker-indicator {
-    display: none;
-    -webkit-appearance: none;
+    /* display: none;
+    -webkit-appearance: none; */
+    cursor: pointer !important;
   }
 }
 
@@ -623,8 +624,9 @@ span.flatpickr-weekday,
 
 .input-date-icon::-webkit-inner-spin-button,
 .input-date-icon::-webkit-calendar-picker-indicator {
-  opacity: 0;
-  -webkit-appearance: none;
+  /* opacity: 0;
+  -webkit-appearance: none; */
+  background:#465fff;
 }
 
 .stocks-slider-outer .swiper-button-next:after,

@@ -49,6 +49,8 @@ export interface IContact extends Document {
   createdAt: Date;
   updatedAt: Date;
   source?: string;
+  probability?:number;
+  value?:number;
   // Instance method
   logActivity(
     action: Activity['action'],
@@ -125,6 +127,14 @@ const contactSchema = new Schema<IContact, ContactModel>(
     source: {
       type: String,
       default: "manual",
+    },
+    probability:{
+      type:Number,
+      default:50
+    },
+    value:{
+      type:Number,
+      default:0
     },
     activities: [
       {

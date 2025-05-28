@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useRef, useState,useCallback } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -9,7 +9,6 @@ import {
   CalenderIcon,
   ChevronDownIcon,
   GridIcon,
-  HorizontaLDots,
   ListIcon,
   PieChartIcon,
   PlugInIcon,
@@ -17,6 +16,8 @@ import {
   UserCircleIcon,
 } from "../icons/index";
 import UsersIcon from "@/components/ui/flowbiteIcons/Users";
+import { useSelector } from "react-redux";
+import { RootState } from "@/app/redux/rootReducer";
 
 type NavItem = {
   name: string;
@@ -29,8 +30,7 @@ const navItems: NavItem[] = [
   {
     icon: <GridIcon />,
     name: "Dashboard",
-    path: "/"
-    // subItems: [{ name: "Ecommerce", path: "/", pro: false }],
+    path: "/",
   },
   {
     icon: <CalenderIcon />,
@@ -42,36 +42,21 @@ const navItems: NavItem[] = [
     name: "Contacts",
     path: "/contacts",
   },
-
   {
-    name: "Forms",
+    name: "Leave",
     icon: <ListIcon />,
-    subItems: [{ name: "Form Elements", path: "/form-elements", pro: false }],
+    path: "/leave-management",
   },
-  // {
-  //   name: "Tables",
-  //   icon: <TableIcon />,
-  //   subItems: [{ name: "Basic Tables", path: "/basic-tables", pro: false }],
-  // },
   {
     name: "Pipelines",
     icon: <TableIcon />,
-    path: "/pipelines"
-    // subItems: [{ name: "Basic Tables", path: "/basic-tables", pro: false }],
+    path: "/pipelines/682da76cb5aab2e983c88634",
   },
   {
     icon: <UsersIcon />,
     name: "Users",
     path: "/users",
   },
-  // {
-  //   name: "Pages",
-  //   icon: <PageIcon />,
-  //   subItems: [
-  //     { name: "Blank Page", path: "/blank", pro: false },
-  //     { name: "404 Error", path: "/error-404", pro: false },
-  //   ],
-  // },
 ];
 
 const othersItems: NavItem[] = [
@@ -106,8 +91,20 @@ const othersItems: NavItem[] = [
 ];
 
 const AppSidebar: React.FC = () => {
+  const { user } = useSelector((state: RootState) => state.user);
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const pathname = usePathname();
+
+  // Filter navItems based on user role
+  const filteredNavItems = navItems.filter((item) => {
+    if (user?.role === "user") {
+      return ["Calendar", "Leave"].includes(item.name);
+    }
+    if (user?.role === "team_member") {
+      return item.name !== "Users"; // Hide "Users" for team_member
+    }
+    return true; // Show all items for other roles (e.g., admin)
+  });
 
   const renderMenuItems = (
     navItems: NavItem[],
@@ -244,14 +241,13 @@ const AppSidebar: React.FC = () => {
   );
   const subMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  // const isActive = (path: string) => path === pathname;
-   const isActive = useCallback((path: string) => path === pathname, [pathname]);
+  const isActive = useCallback((path: string) => path === pathname, [pathname]);
 
   useEffect(() => {
     // Check if the current path matches any submenu item
     let submenuMatched = false;
     ["main", "others"].forEach((menuType) => {
-      const items = menuType === "main" ? navItems : othersItems;
+      const items = menuType === "main" ? filteredNavItems : othersItems;
       items.forEach((nav, index) => {
         if (nav.subItems) {
           nav.subItems.forEach((subItem) => {
@@ -271,7 +267,7 @@ const AppSidebar: React.FC = () => {
     if (!submenuMatched) {
       setOpenSubmenu(null);
     }
-  }, [pathname,isActive]);
+  }, [pathname, isActive, filteredNavItems]);
 
   useEffect(() => {
     // Set the height of the submenu items when the submenu is opened
@@ -304,9 +300,9 @@ const AppSidebar: React.FC = () => {
       className={`fixed mt-16 flex flex-col lg:mt-0 top-0 px-5 left-0 bg-white dark:bg-gray-900 dark:border-gray-800 text-gray-900 h-screen transition-all duration-300 ease-in-out z-50 border-r border-gray-200 
         ${
           isExpanded || isMobileOpen
-            ? "w-[290px]"
+            ? "w-[250px]"
             : isHovered
-            ? "w-[290px]"
+            ? "w-[250px]"
             : "w-[90px]"
         }
         ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}
@@ -351,7 +347,7 @@ const AppSidebar: React.FC = () => {
         <nav className="mb-6">
           <div className="flex flex-col gap-4">
             <div>
-              <h2
+              {/* <h2
                 className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
                   !isExpanded && !isHovered
                     ? "lg:justify-center"
@@ -363,11 +359,11 @@ const AppSidebar: React.FC = () => {
                 ) : (
                   <HorizontaLDots />
                 )}
-              </h2>
-              {renderMenuItems(navItems, "main")}
+              </h2> */}
+              {renderMenuItems(filteredNavItems, "main")}
             </div>
-
-            <div className="">
+            {/* Commented out Others section */}
+            {/* <div>
               <h2
                 className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
                   !isExpanded && !isHovered
@@ -382,7 +378,7 @@ const AppSidebar: React.FC = () => {
                 )}
               </h2>
               {renderMenuItems(othersItems, "others")}
-            </div>
+            </div> */}
           </div>
         </nav>
         {/* {isExpanded || isHovered || isMobileOpen ? <SidebarWidget /> : null} */}

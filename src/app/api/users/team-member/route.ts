@@ -1,8 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from "next/server";
 import { authorizeRoles, isAuthenticatedUser } from "../../middlewares/auth";
 import User, { IUser } from "@/app/models/User";
 import dbConnect from "@/app/lib/db/connection";
 import { validateUserInput } from "../../middlewares/validateTeamMember";
+import Contact from "@/app/models/Contact";
 type ResponseUser = Pick<IUser, '_id' | 'name' | 'email' | 'role' | 'signupMethod' | 'avatar' | 'uid'>;
 
 interface CreateUserRequest {
@@ -126,7 +128,7 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    // Authenticate user
+
     const user = await isAuthenticatedUser(req);
     if (!user) {
       return NextResponse.json(
@@ -135,7 +137,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Authorize admin role
+
     try {
       authorizeRoles(user, 'admin');
     } catch (error) {
@@ -146,16 +148,15 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Connect to database
+
     await dbConnect();
 
-    // Parse query parameters
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get('page') || '1', 10);
     const limit = parseInt(searchParams.get('limit') || '10', 10);
     const search = searchParams.get('search') || '';
 
-    // Validate query parameters
+
     if (page < 1 || limit < 1) {
       return NextResponse.json(
         { error: 'Page and limit must be positive numbers' },
@@ -163,8 +164,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Build query
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     const query: any = { role: 'team_member' };
     if (search) {
       query.$or = [
@@ -173,7 +173,6 @@ export async function GET(req: NextRequest) {
       ];
     }
 
-    // Fetch team members
     const skip = (page - 1) * limit;
     const usersRaw = await User.find(query)
       .select('_id name email role signupMethod avatar uid createdAt')
@@ -181,18 +180,39 @@ export async function GET(req: NextRequest) {
       .limit(limit)
       .lean();
 
-    // Map users to expected type
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const users: Pick<IUser, '_id' | 'name' | 'email' | 'role' | 'signupMethod' | 'avatar' | 'uid' | 'createdAt'>[] = usersRaw.map((user: any) => ({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      signupMethod: user.signupMethod,
-      avatar: user.avatar,
-      uid: user.uid,
-      createdAt: user.createdAt,
-    }));
+    const closedStageIds = [
+      '682da76db5aab2e983c8863d',
+      '682da76db5aab2e983c8863e',
+      '682da76db5aab2e983c8863f',
+    ];
+
+
+    const users = await Promise.all(
+      usersRaw.map(async (user: any) => {
+        const totalAssignedContacts = await Contact.countDocuments({
+          'assignedTo.user': user._id,
+        });
+
+        // Count closed contacts for the user
+        const closedContacts = await Contact.countDocuments({
+          'assignedTo.user': user._id,
+          'pipelinesActive.stage_id': { $in: closedStageIds },
+        });
+
+        return {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          signupMethod: user.signupMethod,
+          avatar: user.avatar,
+          uid: user.uid,
+          createdAt: user.createdAt,
+          assignedContacts: totalAssignedContacts, // New field for total assigned contacts
+          closedContacts: closedContacts, // New field for closed contacts
+        };
+      })
+    );
 
     // Count total documents
     const total = await User.countDocuments(query);
@@ -208,7 +228,6 @@ export async function GET(req: NextRequest) {
     };
 
     return NextResponse.json(response, { status: 200 });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error('Error fetching team members:', error);
     return NextResponse.json(

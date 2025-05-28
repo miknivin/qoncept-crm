@@ -90,8 +90,11 @@ export const authApi = createApi({
         }
       },
     }),
-    logout: builder.query<LogoutResponse, void>({
-      query: () => "/logout",
+    logout: builder.mutation<LogoutResponse, void>({
+      query: () => ({
+        url: "/auth/logout",
+        method: "POST",
+      }),
       async onQueryStarted(_args, { dispatch, queryFulfilled }) {
         try {
           await queryFulfilled;
@@ -110,6 +113,6 @@ export const authApi = createApi({
 export const {
   useLoginMutation,
   useRegisterMutation,
-  useLazyLogoutQuery,
+  useLogoutMutation,
   useGoogleSignInMutation,
 } = authApi;

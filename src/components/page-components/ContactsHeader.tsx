@@ -4,9 +4,11 @@ import { Modal } from "../ui/modal";
 import { useModal } from "@/hooks/useModal"; // Adjust path to your useModal hook
 import AddContactForm from "../form/contact-form/Add-Form";
 import FilterIcons from "../ui/flowbiteIcons/Filter";
+import ContactOffCanvas from "../ui/drawer/ContactOffCanvas";
 
 export default function ContactsHeader() {
-  const { isOpen, openModal, closeModal } = useModal();
+  const { isOpen: isAddModalOpen, openModal: openAddModal, closeModal: closeAddModal } = useModal();
+  const { isOpen: isFilterOpen, openModal: openFilter, closeModal: closeFilter } = useModal();
 
   return (
     <>
@@ -15,18 +17,19 @@ export default function ContactsHeader() {
         <div className="flex justify-between items-center gap-3 flex-wrap-reverse">
           {/* <SearchInput/> */}
           <div className="flex gap-2">
-          < Button  size="sm" variant="outline" endIcon={<FilterIcons/>}>
-           Filter 
-          </Button>
-          <Button onClick={() => openModal()} size="sm" variant="primary">
-           Add contact +
-          </Button>
+            <Button size="sm" variant="outline" endIcon={<FilterIcons />} onClick={() => openFilter()}>
+              Filter
+            </Button>
+            <Button onClick={() => openAddModal()} size="sm" variant="primary">
+              Add contact +
+            </Button>
           </div>
         </div>
       </div>
-      <Modal isOpen={isOpen} onClose={closeModal} className="max-w-[700px] p-6 lg:p-10">
-        <AddContactForm onClose={closeModal} />
+      <Modal isOpen={isAddModalOpen} onClose={closeAddModal} className="max-w-[700px] p-6 lg:p-10">
+        <AddContactForm onClose={closeAddModal} />
       </Modal>
+      <ContactOffCanvas isOpen={isFilterOpen} onClose={closeFilter} />
     </>
   );
 }

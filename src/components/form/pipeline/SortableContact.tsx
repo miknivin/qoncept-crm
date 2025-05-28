@@ -1,21 +1,20 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import PhoneIcon from "@/components/ui/flowbiteIcons/Phone";
 import EmailIcon from "@/components/ui/flowbiteIcons/Email";
 import TagIcon from "@/components/ui/flowbiteIcons/TagIcon";
+import { useUpdateProbabilityMutation } from "@/app/redux/api/contactApi";
+import VeryShortSpinnerPrimary from "./../../ui/loaders/veryShortSpinnerPrimary";
+
 
 interface Contact {
   _id: string;
   name?: string;
   email?: string;
   phone?: string;
-//   pipelinesActive?: Array<{
-//   pipeline_id: string;
-//   stage_id: string;
-//   order: number;
-// }>;
+  probability?: number;
 }
 
 interface SortableContactProps {
@@ -34,8 +33,17 @@ function SortableContact({ contact, data }: SortableContactProps) {
     id: `contact-${contact._id}`,
     data,
   });
-//console.log(contact,'contact');
-const [probability,  setProbability] = useState("50")
+  
+  //console.log(contact,'contact');
+  
+  // Initialize probability with contact's probability or fallback to 50
+  const [probability, setProbability] = useState(contact.probability?.toString() || "50");
+  const [updateProbability, { isLoading }] = useUpdateProbabilityMutation();
+
+  // Sync probability with contact prop if it changes
+  useEffect(() => {
+    setProbability(contact.probability?.toString() || "50");
+  }, [contact.probability]);
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -44,13 +52,11 @@ const [probability,  setProbability] = useState("50")
   };
 
   const stopPropagation = (event: React.MouseEvent | React.TouchEvent) => {
-   // console.log("stopped");
     event.preventDefault();
     event.stopPropagation();
   };
 
   const handlePhoneClick = () => {
-   // console.log("phone clicked");
     if (contact.phone) {
       window.location.href = `tel:${contact.phone}`;
     }
@@ -59,6 +65,25 @@ const [probability,  setProbability] = useState("50")
   const handleEmailClick = () => {
     if (contact.email) {
       window.location.href = `mailto:${contact.email}`;
+    }
+  };
+
+  // Update local state during sliding for immediate UI feedback
+  const handleProbabilitySlide = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setProbability(e.target.value);
+  };
+
+  // Trigger mutation when sliding is complete
+  const handleProbabilityChange = async () => {
+    try {
+      await updateProbability({
+        id: contact._id,
+        probability: parseInt(probability),
+      }).unwrap();
+    } catch (error) {
+      console.error("Failed to update probability:", error);
+      // Revert to original probability on error
+      setProbability(contact.probability?.toString() || "50");
     }
   };
 
@@ -122,22 +147,25 @@ const [probability,  setProbability] = useState("50")
           </div>
           <div className="flex justify-between flex-row-reverse items-center gap-3 w-full">
             <label
-            htmlFor="default-range"
-            className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+              htmlFor={`probability-range-${contact._id}`}
+              className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
             >
-              {probability}%
-          </label>
-          <input
-            id="default-range"
-            type="range"
-            onChange={(e)=>setProbability(e.target.value)}
-            defaultValue={50}
-            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
-          />
+              {isLoading ? <VeryShortSpinnerPrimary/>:probability+"%"}
+            </label>
+            <input
+              id={`probability-range-${contact._id}`}
+              type="range"
+              min="0"
+              max="100"
+              value={probability}
+              onChange={handleProbabilitySlide}
+              onMouseUp={handleProbabilityChange}
+              onTouchEnd={handleProbabilityChange}
+              disabled={isLoading}
+              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
+            />
           </div>
-          
         </div>
-        
       </div>
     </div>
   );

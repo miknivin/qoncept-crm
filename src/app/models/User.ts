@@ -14,6 +14,7 @@ export interface IUser {
     url: string;
   };
   uid?: number;
+  phone?: string;
   role: 'user' | 'employee' | 'team_member' | 'admin';
   resetPasswordToken?: string;
   resetPasswordExpire?: Date;
@@ -25,12 +26,10 @@ export interface IUser {
   getResetPasswordToken: () => string;
 }
 
-// Function to generate random UID
 function generateRandomUid(): number {
   return Math.floor(100000 + Math.random() * 900000);
 }
 
-// User Schema
 const userSchema: Schema<IUser> = new mongoose.Schema(
   {
     name: {
@@ -48,6 +47,10 @@ const userSchema: Schema<IUser> = new mongoose.Schema(
         },
         message: "Please enter a valid email address",
       },
+    },
+    phone: {
+      type: String,
+      required: false,
     },
     password: {
       type: String,

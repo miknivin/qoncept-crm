@@ -9,7 +9,12 @@ interface Stage {
   probability: number;
 }
 
-function SortableStage({ stage }: { stage: Stage }) {
+interface SortableStageProps {
+  stage: Stage;
+  isFinalThree: boolean; // New prop to indicate if stage is in the last three
+}
+
+function SortableStage({ stage, isFinalThree }: SortableStageProps) {
   const { attributes, setNodeRef, transform, transition } = useSortable({ id: `stage-${stage._id}` });
 
   const style = {
@@ -23,14 +28,16 @@ function SortableStage({ stage }: { stage: Stage }) {
       ref={setNodeRef}
       style={style}
       {...attributes}
-      // {...listeners}
-      className="mb-4 rounded border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800 hover:shadow-md sticky top-0"
+      className={`mb-4 rounded border border-gray-200 p-4 dark:border-gray-700 hover:shadow-md sticky top-0 ${
+        isFinalThree ? "bg-success-500 dark:bg-success-600" : "bg-white dark:bg-gray-800"
+      }`}
       role="listitem"
       aria-label={`Stage: ${stage.name}`}
     >
       <div className="flex justify-center items-center">
-        <h4 className="font-medium text-gray-800 dark:text-white/90 text-lg">{stage.name}</h4>
-
+        <h4 className={`font-medium text-lg ${isFinalThree ? "text-white dark:text-white" : "text-gray-800 dark:text-white/90"}`}>
+          {stage.name}
+        </h4>
       </div>
     </div>
   );
