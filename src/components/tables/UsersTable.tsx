@@ -5,8 +5,8 @@ import BasicPagination from "../ui/pagination/BasicPagination";
 import ShortSpinnerPrimary from "../ui/loaders/ShortSpinnerPrimary";
 import Select from "../form/Select";
 import { ChevronDownIcon } from "@/icons";
-import EditIcon from "../ui/flowbiteIcons/EditIcon";
-import Link from "next/link";
+// import EditIcon from "../ui/flowbiteIcons/EditIcon";
+// import Link from "next/link";
 import { useGetTeamMembersQuery } from '@/app/redux/api/userApi';
 
 const UsersTableOne: React.FC = () => {
@@ -85,7 +85,7 @@ const UsersTableOne: React.FC = () => {
               <th scope="col" className="px-5 py-3">Assigned</th>
               <th scope="col" className="px-5 py-3">Closed</th>
               <th scope="col" className="px-5 py-3">Conversion</th>
-              <th scope="col" className="px-5 py-3">Action</th>
+              {/* <th scope="col" className="px-5 py-3">Action</th> */}
             </tr>
           </thead>
           <tbody>
@@ -152,7 +152,7 @@ const UsersTableOne: React.FC = () => {
                       {calculateRatio(user.closedContacts, user.assignedContacts)}
                     </span>
                   </td>
-                  <td className="px-5 py-4">
+                  {/* <td className="px-5 py-4">
                     <div className="flex flex-wrap">
                       <Link
                         href={`/users/${user._id}`}
@@ -162,7 +162,7 @@ const UsersTableOne: React.FC = () => {
                         <EditIcon />
                       </Link>
                     </div>
-                  </td>
+                  </td> */}
                 </tr>
               ))}
           </tbody>

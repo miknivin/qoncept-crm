@@ -6,10 +6,10 @@ import dbConnect from '@/app/lib/db/connection';
 
 interface MonthlyConversionRate {
   year: number;
-  month: string; 
+  month: string;
   totalContacts: number;
   closedContacts: number;
-  conversionRate: string; // Ratio as a string with 2 decimal places
+  conversionRate: string;
 }
 
 interface DashboardResponse {
@@ -30,13 +30,13 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Authorize admin role
+    // Authorize admin or team_member role
     try {
-      authorizeRoles(user, 'admin');
+      authorizeRoles(user, 'admin', 'team_member');
     } catch (error) {
       console.log(error);
       return NextResponse.json(
-        { error: 'Only admins can view dashboard data' },
+        { error: 'Only admins or team members can view dashboard data' },
         { status: 401 }
       );
     }
@@ -51,40 +51,27 @@ export async function GET(req: NextRequest) {
       '682da76db5aab2e983c8863f',
     ];
 
+    // Base query based on user role
+    const baseQuery = user.role === 'team_member' ? { 'assignedTo.user': user._id } : {};
+
     // Count total contacts
-    const totalContacts = await Contact.countDocuments({});
+    const totalContacts = await Contact.countDocuments(baseQuery);
 
     // Count total contacts in specified stages
     const totalClosedContacts = await Contact.countDocuments({
+      ...baseQuery,
       'pipelinesActive.stage_id': { $in: closedStageIds },
     });
 
     // Calculate month-wise conversion rates using aggregation
     const monthlyData = await Contact.aggregate([
       {
+        $match: baseQuery,
+      },
+      {
         $facet: {
-          // Total contacts per month
+          // Total contacts per month (based on createdAt)
           totalContacts: [
-            {
-              $group: {
-                _id: {
-                  year: { $year: '$createdAt' },
-                  month: { $month: '$createdAt' },
-                },
-                count: { $sum: 1 },
-              },
-            },
-            {
-              $sort: { '_id.year': 1, '_id.month': 1 }, // Sort by year and month
-            },
-          ],
-          // Closed contacts per month
-          closedContacts: [
-            {
-              $match: {
-                'pipelinesActive.stage_id': { $in: closedStageIds },
-              },
-            },
             {
               $group: {
                 _id: {
@@ -98,24 +85,35 @@ export async function GET(req: NextRequest) {
               $sort: { '_id.year': 1, '_id.month': 1 },
             },
           ],
+          // Closed contacts per month (based on updatedAt)
+          closedContacts: [
+            {
+              $match: {
+                'pipelinesActive.stage_id': { $in: closedStageIds },
+              },
+            },
+            {
+              $group: {
+                _id: {
+                  year: { $year: '$updatedAt' },
+                  month: { $month: '$updatedAt' },
+                },
+                count: { $sum: 1 },
+              },
+            },
+            {
+              $sort: { '_id.year': 1, '_id.month': 1 },
+            },
+          ],
         },
       },
     ]);
-
+    console.log(monthlyData,'monthlydata');
+    
     // Map month numbers to names
     const monthNames = [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December',
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December',
     ];
 
     // Combine total and closed contacts, calculate conversion rates
@@ -130,12 +128,11 @@ export async function GET(req: NextRequest) {
           c._id.year === total._id.year && c._id.month === total._id.month
       );
       const closedCount = closed ? closed.count : 0;
-      const conversionRate =
-        total.count > 0 ? (closedCount / total.count).toFixed(2) : '0.00';
+      const conversionRate = total.count > 0 ? (closedCount / total.count).toFixed(2) : '0.00';
 
       monthlyConversionRates.push({
         year: total._id.year,
-        month: monthNames[total._id.month - 1], // Convert 1-based month to 0-based index
+        month: monthNames[total._id.month - 1],
         totalContacts: total.count,
         closedContacts: closedCount,
         conversionRate,
@@ -155,7 +152,7 @@ export async function GET(req: NextRequest) {
           month: monthNames[closed._id.month - 1],
           totalContacts: 0,
           closedContacts: closed.count,
-          conversionRate: '0.00', // No total contacts, so ratio is 0
+          conversionRate: '0.00',
         });
       }
     });

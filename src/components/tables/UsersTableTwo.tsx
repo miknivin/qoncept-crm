@@ -3,7 +3,7 @@
 "use client";
 import React, { useState } from "react";
 import ShortSpinnerPrimary from "../ui/loaders/ShortSpinnerPrimary";
-import EditIcon from "../ui/flowbiteIcons/EditIcon";
+// import EditIcon from "../ui/flowbiteIcons/EditIcon";
 import Link from "next/link";
 import { useGetTeamMembersQuery } from '@/app/redux/api/userApi';
 
@@ -35,7 +35,8 @@ const UsersTableTwo: React.FC = () => {
 
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
-      <div className="mb-2 px-5 py-2 flex justify-end">
+      <div className="mb-2 px-5 py-2 flex justify-between items-center">
+        <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90 text-start">Users</h3>
         <Link
           href="/users"
           className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-theme-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200"
@@ -53,7 +54,7 @@ const UsersTableTwo: React.FC = () => {
               <th scope="col" className="px-5 py-3">Assigned</th>
               <th scope="col" className="px-5 py-3">Closed</th>
               <th scope="col" className="px-5 py-3">Conversion</th>
-              <th scope="col" className="px-5 py-3">Action</th>
+              {/* <th scope="col" className="px-5 py-3">Action</th> */}
             </tr>
           </thead>
           <tbody>
@@ -120,7 +121,7 @@ const UsersTableTwo: React.FC = () => {
                       {calculateRatio(user.closedContacts, user.assignedContacts)}
                     </span>
                   </td>
-                  <td className="px-5 py-4">
+                  {/* <td className="px-5 py-4">
                     <div className="flex flex-wrap">
                       <Link
                         href={`/users/${user._id}`}
@@ -130,20 +131,20 @@ const UsersTableTwo: React.FC = () => {
                         <EditIcon />
                       </Link>
                     </div>
-                  </td>
+                  </td> */}
                 </tr>
               ))}
           </tbody>
         </table>
       </div>
 
-      {data && (
+      {/* {data && (
         <div className="px-5 py-3 text-gray-800 dark:text-white/90 flex justify-between items-center">
           <div className="text-sm">
             {data.total} users
           </div>
         </div>
-      )}
+      )} */}
     </div>
   );
 };

@@ -37,6 +37,8 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
   try {
     await dbConnect();
     const user = await isAuthenticatedUser(req);
+    //console.log(user);
+    
     const { id } = await context.params;
 
     if (!Types.ObjectId.isValid(id)) {
@@ -46,7 +48,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
     const leaveRequest = await LeaveRequest.findById(id)
       .populate('employeeId', 'name email')
       .populate('approverId', 'name email');
-
+  // console.log(leaveRequest,'leave')
     if (!leaveRequest) {
       return NextResponse.json({ message: 'Leave request not found' }, { status: 404 });
     }
@@ -54,7 +56,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
     if (
       !user ||
       (user.role !== 'admin' &&
-        (!leaveRequest.employeeId || !user?._id || leaveRequest.employeeId.toString() !== user._id.toString()))
+        (!leaveRequest.employeeId || !user?._id || leaveRequest.employeeId._id.toString() !== user._id.toString()))
     ) {
       return NextResponse.json({ message: 'Unauthorized to view this leave request' }, { status: 403 });
     }
@@ -80,6 +82,12 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
     const user = await isAuthenticatedUser(req);
     const { id } = await context.params;
 
+    if (!user) {
+      return NextResponse.json({ message: 'Unauthorized: No user found' }, { status: 401 });
+    }
+
+    console.log('User ID:', user._id?.toString());
+
     if (!Types.ObjectId.isValid(id)) {
       return NextResponse.json({ message: 'Invalid leave ID' }, { status: 400 });
     }
@@ -89,23 +97,35 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
       return NextResponse.json({ message: 'Leave request not found' }, { status: 404 });
     }
 
-    if (
-      !user ||
-      (user.role !== 'admin' &&
-        (!leaveRequest.employeeId || !user?._id || leaveRequest.employeeId.toString() !== user._id.toString()))
-    ) {
-      return NextResponse.json({ message: 'Unauthorized to update this leave request' }, { status: 403 });
+    console.log('Leave Request Employee ID:', leaveRequest.employeeId?.toString());
+    console.log('Comparing IDs:', {
+      employeeId: leaveRequest.employeeId?.toString(),
+      userId: user._id?.toString(),
+      areEqual: leaveRequest.employeeId?.toString() === user._id?.toString(),
+    });
+
+    // Authorization check
+    const isAdmin = user.role === 'admin';
+    const isOwner = leaveRequest.employeeId && user._id && leaveRequest.employeeId.toString() === user._id.toString();
+
+    if (!isAdmin && !isOwner) {
+      return NextResponse.json(
+        { message: 'Unauthorized: You can only update your own leave request or must be an admin' },
+        { status: 403 }
+      );
     }
 
-    if (user.role === 'admin') {
+    // Role-based authorization
+    if (isAdmin) {
       authorizeRoles(user, 'admin');
     } else {
       authorizeRoles(user, 'user', 'employee', 'team_member');
     }
 
-    const body = await req.json() as UpdateLeaveRequestBody;
+    const body = (await req.json()) as UpdateLeaveRequestBody;
     const { leaveType, startDate, endDate, reason, status, comments, approverId, durationType, rejectedReason } = body;
 
+    // Validate fields if provided
     if (leaveType || startDate || endDate || reason || durationType) {
       await validateLeaveRequest({
         leaveType: leaveType || leaveRequest.leaveType,
@@ -116,6 +136,7 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
       });
     }
 
+    // Prepare update data
     const updateData: Partial<UpdateLeaveMongoData> = {
       ...(leaveType && { leaveType }),
       ...(startDate && { startDate: new Date(startDate) }),
@@ -129,12 +150,17 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
       updatedAt: new Date(),
     };
 
-    if (status || approverId) {
-      if (user.role !== 'admin') {
-        return NextResponse.json({ message: 'Only admins can update status or approver' }, { status: 403 });
+    // Restrict status and approverId updates to admins
+    if (status!=="pending" || approverId) {
+      if (!isAdmin) {
+        return NextResponse.json(
+          { message: 'Only admins can update status or approver' },
+          { status: 403 }
+        );
       }
     }
 
+    // Update leave request
     const updatedLeave = await LeaveRequest.findByIdAndUpdate(
       id,
       { $set: updateData },
@@ -147,16 +173,22 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
       return NextResponse.json({ message: 'Failed to update leave request' }, { status: 500 });
     }
 
-    return NextResponse.json({
-      message: 'Leave request updated successfully',
-      data: {
-        ...updatedLeave.toObject(),
-        id: updatedLeave._id.toString(),
+    return NextResponse.json(
+      {
+        message: 'Leave request updated successfully',
+        data: {
+          ...updatedLeave.toObject(),
+          id: updatedLeave._id.toString(),
+        },
       },
-    }, { status: 200 });
+      { status: 200 }
+    );
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error('Error updating leave request:', error);
-    return NextResponse.json({ message: error.message || 'Server error' }, { status: error.status || 500 });
+    return NextResponse.json(
+      { message: error.message || 'Server error' },
+      { status: error.status || 500 }
+    );
   }
 }

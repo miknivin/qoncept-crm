@@ -6,6 +6,7 @@ import { userSlice } from "./features/authSlice";
 import { contactApi } from "./api/contactApi";
 import { pipelineApi } from "./api/pipelineApi";
 import { calenderApi } from "./api/calenderApi";
+import { dashboardApi } from "./api/dashboardApi";
 
 const rootReducer = combineReducers({
   user: userSlice.reducer,
@@ -13,7 +14,8 @@ const rootReducer = combineReducers({
   [authApi.reducerPath]: authApi.reducer,
   [contactApi.reducerPath]: contactApi.reducer,
   [pipelineApi.reducerPath]: pipelineApi.reducer,
-  [calenderApi.reducerPath]:calenderApi.reducer
+  [calenderApi.reducerPath]:calenderApi.reducer,
+  [dashboardApi.reducerPath]:dashboardApi.reducer
 });
 
 export type RootState = ReturnType<typeof rootReducer>;

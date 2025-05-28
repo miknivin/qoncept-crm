@@ -3,7 +3,12 @@ import React from "react";
 import Badge from "../ui/badge/Badge";
 import { ArrowDownIcon, ArrowUpIcon, BoxIconLine, GroupIcon } from "@/icons";
 
-export const EcommerceMetrics = () => {
+interface ContactsMetricsProps {
+  totalContacts: number;
+  totalClosedContacts: number;
+}
+
+const ContactsMetrics: React.FC<ContactsMetricsProps> = ({ totalContacts, totalClosedContacts }) => {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-6">
       {/* <!-- Metric Item Start --> */}
@@ -18,7 +23,7 @@ export const EcommerceMetrics = () => {
               Contacts
             </span>
             <h4 className="mt-2 font-bold text-gray-800 text-title-sm dark:text-white/90">
-              3,782
+              {totalContacts}
             </h4>
           </div>
           <Badge color="success">
@@ -37,10 +42,10 @@ export const EcommerceMetrics = () => {
         <div className="flex items-end justify-between mt-5">
           <div>
             <span className="text-sm text-gray-500 dark:text-gray-400">
-              Orders
+              Closed
             </span>
             <h4 className="mt-2 font-bold text-gray-800 text-title-sm dark:text-white/90">
-              5,359
+              {totalClosedContacts}
             </h4>
           </div>
 
@@ -54,3 +59,5 @@ export const EcommerceMetrics = () => {
     </div>
   );
 };
+
+export default ContactsMetrics

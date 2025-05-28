@@ -36,6 +36,7 @@ export async function GET(req: NextRequest) {
         .populate('employeeId', 'name email')
         .populate('approverId', 'name email')
         .skip(skip)
+        .sort({ createdAt: -1 })
         .limit(limit);
     } else {
       // Non-admins can only fetch their own leave requests
@@ -45,6 +46,7 @@ export async function GET(req: NextRequest) {
         .populate('employeeId', 'name email')
         .populate('approverId', 'name email')
         .skip(skip)
+        .sort({ createdAt: -1 })
         .limit(limit);
     }
 

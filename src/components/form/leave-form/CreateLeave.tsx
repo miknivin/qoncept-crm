@@ -50,7 +50,7 @@ export default function AddLeaveForm({ onClose }: AddLeaveFormProps) {
   const minDate = new Date(today.setDate(today.getDate() + 7));
   const minDateString = minDate.toISOString().split("T")[0];
 
-  const restrictMinDate = formData.leaveType && !["sick", "personal"].includes(formData.leaveType);
+  const restrictMinDate = formData.leaveType && !["sick"].includes(formData.leaveType);
 
   // Time slot options
   const timeSlotOptions = {

@@ -178,6 +178,7 @@ export async function GET(req: NextRequest) {
     const usersRaw = await User.find(query)
       .select('_id name email role signupMethod avatar uid createdAt')
       .skip(skip)
+      .sort({createdAt:-1})
       .limit(limit)
       .lean();
 

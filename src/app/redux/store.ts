@@ -5,6 +5,7 @@ import { userApi } from "./api/userApi"
 import { contactApi } from "./api/contactApi";
 import { pipelineApi } from "./api/pipelineApi";
 import { calenderApi } from "./api/calenderApi";
+import { dashboardApi } from "./api/dashboardApi";
 
 const store = configureStore({
   reducer: rootReducer,
@@ -14,7 +15,8 @@ const store = configureStore({
       authApi.middleware,
       contactApi.middleware,
       pipelineApi.middleware,
-      calenderApi.middleware
+      calenderApi.middleware,
+      dashboardApi.middleware
     ),
 });
 

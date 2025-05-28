@@ -4,7 +4,9 @@ import { useGetLeaveByIdQuery, useUpdateLeaveMutation } from "@/app/redux/api/ca
 import Button from "@/components/ui/button/Button";
 import ShortSpinnerDark from "@/components/ui/loaders/ShortSpinnerDark";
 import { useState, useEffect } from "react";
+import { useSelector } from "react-redux";
 import { toast } from "react-toastify";
+import { RootState } from '@/app/redux/rootReducer';
 
 interface EditLeaveFormProps {
   id: string;
@@ -14,7 +16,7 @@ interface EditLeaveFormProps {
 export default function EditLeaveForm({ id, onClose }: EditLeaveFormProps) {
   const { data: leave, isLoading: isFetching } = useGetLeaveByIdQuery(id);
   const [updateLeave, { isLoading: isUpdating }] = useUpdateLeaveMutation();
-
+  const { user } = useSelector((state: RootState) => state.user);
   const [formData, setFormData] = useState({
     leaveType: "" as "vacation" | "sick" | "personal" | "maternity" | "paternity" | "other",
     startDate: "",
@@ -171,7 +173,11 @@ export default function EditLeaveForm({ id, onClose }: EditLeaveFormProps) {
   };
 
   if (isFetching) {
-    return <ShortSpinnerDark />;
+    return (
+    <div className="flex justify-center items-center">
+        <ShortSpinnerDark />
+    </div>
+  );
   }
 
   if (!leave) {
@@ -312,6 +318,7 @@ export default function EditLeaveForm({ id, onClose }: EditLeaveFormProps) {
             required
           />
         </div>
+        {user?.role==="admin"&&(
         <div>
           <label
             htmlFor="status"
@@ -332,6 +339,8 @@ export default function EditLeaveForm({ id, onClose }: EditLeaveFormProps) {
             <option value="rejected">Rejected</option>
           </select>
         </div>
+        )}
+   
         {formData.status === "rejected" && (
           <div>
             <label

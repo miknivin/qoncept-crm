@@ -6,12 +6,24 @@ import { DropdownItem } from "../ui/dropdown/DropdownItem";
 import { useState } from "react";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 
+interface MonthlyConversionRate {
+  year: number;
+  month: string;
+  totalContacts: number;
+  closedContacts: number;
+  conversionRate: string;
+}
+
+interface MonthlySalesChartProps {
+  monthlyConversionRates: MonthlyConversionRate[];
+}
+
 // Dynamically import the ReactApexChart component
 const ReactApexChart = dynamic(() => import("react-apexcharts"), {
   ssr: false,
 });
 
-export default function MonthlySalesChart() {
+export default function MonthlySalesChart({ monthlyConversionRates }: MonthlySalesChartProps) {
   const options: ApexOptions = {
     colors: ["#465fff"],
     chart: {
@@ -39,20 +51,7 @@ export default function MonthlySalesChart() {
       colors: ["transparent"],
     },
     xaxis: {
-      categories: [
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "May",
-        "Jun",
-        "Jul",
-        "Aug",
-        "Sep",
-        "Oct",
-        "Nov",
-        "Dec",
-      ],
+      categories: monthlyConversionRates.map((rate) => `${rate.month.slice(0, 3)} ${rate.year}`),
       axisBorder: {
         show: false,
       },
@@ -81,22 +80,23 @@ export default function MonthlySalesChart() {
     fill: {
       opacity: 1,
     },
-
     tooltip: {
       x: {
         show: false,
       },
       y: {
-        formatter: (val: number) => `${val}`,
+        formatter: (val: number) => `${val.toFixed(2)}`,
       },
     },
   };
+
   const series = [
     {
-      name: "Sales",
-      data: [168, 385, 201, 298, 187, 195, 291, 110, 215, 390, 280, 112],
+      name: "Conversion Rate",
+      data: monthlyConversionRates.map((rate) => parseFloat(rate.conversionRate)),
     },
   ];
+
   const [isOpen, setIsOpen] = useState(false);
 
   function toggleDropdown() {
@@ -111,7 +111,7 @@ export default function MonthlySalesChart() {
     <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white px-5 pt-5 dark:border-gray-800 dark:bg-white/[0.03] sm:px-6 sm:pt-6">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-          Monthly Sales
+          Monthly Conversion Rates
         </h3>
 
         <div className="relative inline-block">
