@@ -6,6 +6,7 @@ import Contact from '@/app/models/Contact';
 import dbConnect from '@/app/lib/db/connection';
 import { authorizeRoles, isAuthenticatedUser } from '@/app/api/middlewares/auth';
 import Pipeline from '@/app/models/Pipeline';
+import Stage from '@/app/models/Stage';
 
 // Interface for request body
 interface UpdateProbabilityRequest {
