@@ -7,6 +7,7 @@ import { useGetTeamMembersQuery } from "@/app/redux/api/userApi";
 import { useAssignContactsMutation } from "@/app/redux/api/contactApi";
 import { IUser } from "@/app/models/User";
 import Chip from "@/components/ui/chips/Chip";
+import ShortSpinnerDark from "@/components/ui/loaders/ShortSpinnerDark";
 
 interface AssignContactsFormProps {
   onClose: () => void;
@@ -40,7 +41,7 @@ export default function AssignContactsForm({ onClose, selectedContacts }: Assign
   });
 
   // Mutation for assigning contacts
-  const [assignContacts] = useAssignContactsMutation();
+  const [assignContacts, {isLoading:assignLoading}] = useAssignContactsMutation();
 
   // Mock data for testing
 
@@ -201,8 +202,8 @@ export default function AssignContactsForm({ onClose, selectedContacts }: Assign
           <Button type="button" onClick={onClose} variant="outline">
             Cancel
           </Button>
-          <Button type="submit" variant="primary">
-            Assign Contacts
+          <Button type="submit" disabled={assignLoading} variant="primary">
+            {assignLoading?<ShortSpinnerDark/>:"Assign"}
           </Button>
         </div>
       </form>

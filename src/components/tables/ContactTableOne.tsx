@@ -191,7 +191,7 @@ const { user } = useSelector((state: RootState) => state.user);
 
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
-      <div className="mb-4 px-5 py-3 flex gap-3 justify-between">
+      <div className="mb-2 px-5 py-3 flex gap-3 justify-between">
         <input
           type="text"
           placeholder="Search contacts..."
@@ -201,7 +201,7 @@ const { user } = useSelector((state: RootState) => state.user);
         />
         <div className="relative flex gap-3">
           {user&&user?.role==="admin"&&(
-                   <div className="inline-flex rounded-md shadow-xs" role="group">
+          <div className="inline-flex rounded-md shadow-xs" role="group">
             <button
               type="button"
               onClick={handleAddToPipeline}
@@ -256,6 +256,9 @@ const { user } = useSelector((state: RootState) => state.user);
         </div>
       </div>
       <div className="relative overflow-x-auto">
+    {selectedContacts&&selectedContacts.length>0&&( 
+          <h3 className="text-sm mb-1 px-5 font-semibold text-gray-800 dark:text-white/90 text-start">{selectedContacts.length}{" "}contacts selected</h3>
+          )}
         <table className="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
           <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
             <tr>

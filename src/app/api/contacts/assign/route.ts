@@ -17,18 +17,23 @@ export async function POST(req: NextRequest) {
     // Authenticate the user
     const currentUser = await isAuthenticatedUser(req);
     authorizeRoles(currentUser, 'admin');
+
     // Parse request body
     const body: AssignContactsRequest = await req.json();
     const { contactIds, userIds, assignType } = body;
+    console.log("Debug: Parsed request body:", { contactIds, userIds, assignType });
 
     // Validate input
     if (!Array.isArray(contactIds) || contactIds.length === 0) {
+      console.log("Debug: Validation failed - Invalid or empty contactIds:", contactIds);
       return NextResponse.json({ error: "Invalid or empty contactIds" }, { status: 400 });
     }
     if (!Array.isArray(userIds) || userIds.length === 0) {
+      console.log("Debug: Validation failed - Invalid or empty userIds:", userIds);
       return NextResponse.json({ error: "Invalid or empty userIds" }, { status: 400 });
     }
     if (!["every", "equally", "roundRobin"].includes(assignType)) {
+      console.log("Debug: Validation failed - Invalid assignType:", assignType);
       return NextResponse.json({ error: "Invalid assignType" }, { status: 400 });
     }
 
@@ -74,14 +79,15 @@ export async function POST(req: NextRequest) {
             });
           });
         } else if (assignType === "equally") {
-          // Divide contacts equally among users
+          console.log("Debug: Processing 'equally' assignment");
           const contactsPerUser = Math.floor(contactIds.length / userIds.length);
-          const remainder = contactIds.length % userIds.length;
-
+          console.log("Debug: Contacts per user:", contactsPerUser, "Total contacts:", contactIds.length, "Users:", userIds.length);
           let contactIndex = 0;
-          userIds.forEach((userId, index) => {
-            const numContacts = contactsPerUser + (index < remainder ? 1 : 0);
-            for (let i = 0; i < numContacts && contactIndex < contactIds.length; i++) {
+
+          // First, assign the base number of contacts to each user
+          userIds.forEach((userId) => {
+            console.log("Debug: Assigning base contacts to user:", userId);
+            for (let i = 0; i < contactsPerUser && contactIndex < contactIds.length; i++) {
               updates.push({
                 contactId: contactIds[contactIndex],
                 assignedTo: [{ user: userId, time: new Date() }],
@@ -92,11 +98,30 @@ export async function POST(req: NextRequest) {
                   createdAt: new Date(),
                 },
               });
+              console.log("Debug: Assigned contact", contactIds[contactIndex], "to user", userId);
               contactIndex++;
             }
           });
+
+
+          console.log("Debug: Distributing remaining contacts, starting at index:", contactIndex);
+          for (let i = contactIndex; i < contactIds.length; i++) {
+            const userId = userIds[i % userIds.length];
+            updates.push({
+              contactId: contactIds[i],
+              assignedTo: [{ user: userId, time: new Date() }],
+              activity: {
+                action: "ASSIGNED_TO_UPDATED",
+                user: currentUser._id!,
+                details: { userIds: [userId], assignType },
+                createdAt: new Date(),
+              },
+            });
+            console.log("Debug: Assigned remaining contact", contactIds[i], "to user", userId);
+          }
+          console.log("Debug: Final updates for 'equally':", updates);
         } else if (assignType === "roundRobin") {
-          // Assign contacts in a round-robin manner
+          console.log("Debug: Processing 'roundRobin' assignment");
           contactIds.forEach((contactId, index) => {
             const userId = userIds[index % userIds.length];
             updates.push({
@@ -109,7 +134,9 @@ export async function POST(req: NextRequest) {
                 createdAt: new Date(),
               },
             });
+            console.log("Debug: Assigned contact", contactId, "to user", userId);
           });
+          console.log("Debug: Final updates for 'roundRobin':", updates);
         }
 
         // Perform bulk updates
@@ -119,7 +146,7 @@ export async function POST(req: NextRequest) {
             update: {
               $set: { assignedTo },
               $push: { activities: activity },
-              $inc: { __v: 1 }, // Manually increment version
+              $inc: { __v: 1 },
             },
           },
         }));
@@ -133,7 +160,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: "Contacts assigned successfully" }, { status: 200 });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
-    console.error("Error assigning contacts:", error);
+    console.error("Debug: Error assigning contacts:", error);
     return NextResponse.json(
       { error: error.message || "Failed to assign contacts" },
       { status: error.message.includes("login") ? 401 : 500 }
