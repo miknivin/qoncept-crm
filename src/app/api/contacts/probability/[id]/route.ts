@@ -1,9 +1,11 @@
+/* eslint-disable @typescript-eslint/no-unused-expressions */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from 'next/server';
 import  { Types } from 'mongoose';
 import Contact from '@/app/models/Contact';
 import dbConnect from '@/app/lib/db/connection';
 import { authorizeRoles, isAuthenticatedUser } from '@/app/api/middlewares/auth';
+import Pipeline from '@/app/models/Pipeline';
 
 // Interface for request body
 interface UpdateProbabilityRequest {
@@ -17,6 +19,7 @@ export async function PATCH(
 ) {
   try {
     // Connect to database
+    Pipeline
     await dbConnect();
 
     // Authenticate user and authorize roles

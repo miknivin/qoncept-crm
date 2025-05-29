@@ -5,6 +5,7 @@ import Contact, { IContact, PipelineActive } from '@/app/models/Contact'; // Adj
 import dbConnect from '@/app/lib/db/connection';
 import { cacheContact, getCachedContactsBatch, cachePipeline, getCachedPipeline, cacheStage, getCachedStage} from '../../../utils/redis/contactRedis'; // Adjust path
 import { authorizeRoles, isAuthenticatedUser } from '@/app/api/middlewares/auth';
+import Stage from '@/app/models/Stage';
 
 // Validate ObjectId utility
 const validateObjectId = (id: string): boolean => {
@@ -44,7 +45,8 @@ export async function PATCH(req: NextRequest) {
         );
       }
     }
-
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+    Stage
     await dbConnect();
 
     const { updates } = (await req.json()) as BatchUpdateRequest;
