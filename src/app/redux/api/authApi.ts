@@ -3,11 +3,11 @@ import { userApi } from "./userApi";
 import { setIsAuthenticated, setUser } from "../features/authSlice";
 import { IUser } from "@/app/models/User";
 
-
 interface RegisterRequest {
   email: string;
   password: string;
   name: string;
+  phone: string;
 }
 
 interface LoginRequest {
@@ -31,7 +31,6 @@ interface LogoutResponse {
 }
 
 // Define the authApi with TypeScript
-
 export const authApi = createApi({
   reducerPath: "authApi",
   baseQuery: fetchBaseQuery({
@@ -62,7 +61,7 @@ export const authApi = createApi({
         method: "POST",
         body,
       }),
-      async onQueryStarted(_args, {dispatch, queryFulfilled }) {
+      async onQueryStarted(_args, { dispatch, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
           dispatch(setUser(data.user));

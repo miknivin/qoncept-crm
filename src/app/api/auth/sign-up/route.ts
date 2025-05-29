@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import User from '@/app/models/User'; // Adjust path to your User model
-
 import { z } from 'zod';
 import dbConnect from './../../../lib/db/connection';
 import sendToken from '../../utils/sendToken';
@@ -10,6 +9,8 @@ const registerSchema = z.object({
   name: z.string().max(50).optional(),
   email: z.string().email(),
   password: z.string().min(6),
+  phone: z.string()
+    .regex(/^\+?[1-9]\d{1,14}$/, 'Invalid phone number format'),
 });
 
 export async function POST(request: NextRequest) {
@@ -28,18 +29,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { name, email, password } = parsedData.data;
+    const { name, email, password, phone } = parsedData.data;
 
-    // Connect to MongoDB using dbConnect
     await dbConnect();
 
     // Check if user already exists
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ $or: [{ email }, { phone }] });
     if (existingUser) {
       return NextResponse.json(
         {
           success: false,
-          message: 'User with this email already exists',
+          message: existingUser.email === email 
+            ? 'User with this email already exists'
+            : 'User with this phone number already exists',
         },
         { status: 400 }
       );
@@ -50,6 +52,7 @@ export async function POST(request: NextRequest) {
       name,
       email,
       password,
+      phone,
       signupMethod: 'Email/Password',
     });
 
