@@ -17,7 +17,7 @@ export default function ContactByIdWrapper({ contactId }: ContactByIdWrapperProp
   if (error || !data?.success) return <div>Error loading contact</div>;
 
   const contact = data.data;
-  console.log(contact,'contact');
+  //console.log(contact,'contact');
   
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-7 p-6">

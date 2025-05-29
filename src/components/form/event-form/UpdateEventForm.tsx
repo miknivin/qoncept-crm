@@ -1,13 +1,14 @@
-// src/components/form/event-form/EventForm.tsx
+// src/components/form/event-form/UpdateEventForm.tsx
 import React from "react";
-import { useCreateEventMutation } from "@/app/redux/api/calenderApi";
+import { useUpdateEventMutation, useDeleteEventMutation } from "@/app/redux/api/calenderApi";
 import { toast } from "react-toastify";
 import { useEventForm } from "@/hooks/useEventForm";
 import { ICalendarEvent } from "@/components/calendar/Calendar";
 
-interface EventFormProps {
-  selectedEvent: ICalendarEvent | null;
+interface UpdateEventFormProps {
+  selectedEvent: ICalendarEvent;
   onSubmit: () => void;
+  onDelete: () => void;
 }
 
 const calendarsEvents = {
@@ -17,7 +18,7 @@ const calendarsEvents = {
   Warning: "warning",
 };
 
-const EventForm: React.FC<EventFormProps> = ({ selectedEvent, onSubmit }) => {
+const UpdateEventForm: React.FC<UpdateEventFormProps> = ({ selectedEvent, onSubmit, onDelete }) => {
   const {
     eventTitle,
     setEventTitle,
@@ -32,7 +33,8 @@ const EventForm: React.FC<EventFormProps> = ({ selectedEvent, onSubmit }) => {
     resetForm,
   } = useEventForm(selectedEvent);
 
-  const [createEvent] = useCreateEventMutation();
+  const [updateEvent] = useUpdateEventMutation();
+  const [deleteEvent] = useDeleteEventMutation();
 
   const handleSubmit = async () => {
     try {
@@ -40,19 +42,34 @@ const EventForm: React.FC<EventFormProps> = ({ selectedEvent, onSubmit }) => {
         return;
       }
 
-      await createEvent({
+      const eventData: ICalendarEvent = {
+        id: selectedEvent.id,
         title: eventTitle,
         start: eventStartDate,
         end: eventEndDate || eventStartDate,
         allDay: true,
         extendedProps: { calendar: eventLevel },
-      }).unwrap();
-      toast.success("Event added successfully");
+      };
+
+      await updateEvent(eventData).unwrap();
+      toast.success("Event updated successfully");
       onSubmit();
       resetForm();
     } catch (error) {
-      console.error("Error saving event:", error);
-      toast.error("Failed to save event");
+      console.error("Error updating event:", error);
+      toast.error("Failed to update event");
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      await deleteEvent({ _id: selectedEvent.id }).unwrap();
+      toast.success("Event deleted successfully");
+      onDelete();
+      resetForm();
+    } catch (error) {
+      console.error("Error deleting event:", error);
+      toast.error("Failed to delete event");
     }
   };
 
@@ -151,11 +168,18 @@ const EventForm: React.FC<EventFormProps> = ({ selectedEvent, onSubmit }) => {
           type="button"
           className="btn btn-success btn-update-event flex w-full justify-center rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-600 sm:w-auto"
         >
-          Add Event
+          Update Changes
+        </button>
+        <button
+          onClick={handleDelete}
+          type="button"
+          className="flex w-full justify-center rounded-lg bg-red-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-red-600 sm:w-auto"
+        >
+          Delete Event
         </button>
       </div>
     </div>
   );
 };
 
-export default EventForm;
+export default UpdateEventForm;

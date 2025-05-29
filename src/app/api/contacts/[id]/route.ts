@@ -1,16 +1,19 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from 'next/server';
-import mongoose, { Types } from 'mongoose';
-import Contact, { IContact } from '@/app/models/Contact';
+import  { Types } from 'mongoose';
+import Contact from '@/app/models/Contact';
 import dbConnect from '@/app/lib/db/connection';
 import { authorizeRoles, isAuthenticatedUser } from '@/app/api/middlewares/auth';
 import User from '@/app/models/User';
 
 // Interface for request body
-interface UpdateProbabilityRequest {
-  probability: number;
+interface UpdateContactRequest {
+  name: string;
+  email: string;
+  phone: string;
+  notes?: string;
+  tags?: { name: string }[];
 }
-
 
 export async function GET(
   request: NextRequest,
@@ -68,17 +71,14 @@ export async function GET(
   }
 }
 
-
-// PATCH handler to update contact probability
-export async function PATCH(
+export async function PUT(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Connect to database
     await dbConnect();
-
-    // Authenticate user and authorize roles
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+    User;
     let user;
     try {
       user = await isAuthenticatedUser(request);
@@ -88,20 +88,15 @@ export async function PATCH(
         { status: 401 }
       );
     }
-
-    if (!user._id) {
+    if (!user._id || !Types.ObjectId.isValid(user._id)) {
       return NextResponse.json(
-        { success: false, error: 'Invalid user data' },
+        { success: false, error: 'Invalid user ID' },
         { status: 401 }
       );
     }
-
     authorizeRoles(user, 'admin', 'team_member');
 
-    // Extract and await params
     const { id } = await context.params;
-
-    // Validate ID
     if (!id || !Types.ObjectId.isValid(id)) {
       return NextResponse.json(
         { success: false, error: 'Invalid or missing contact ID' },
@@ -109,69 +104,131 @@ export async function PATCH(
       );
     }
 
-    const { probability } = await request.json() as UpdateProbabilityRequest;
+    // Parse request body
+    const body: UpdateContactRequest = await request.json();
 
-    // Validate probability
-    if (typeof probability !== 'number' || probability < 0 || probability > 100) {
+    // Manual validation
+    const errors: string[] = [];
+
+    if (!body.name || typeof body.name !== 'string' || body.name.length > 200) {
+      errors.push('Name is required and must not exceed 200 characters');
+    }
+    if (!body.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)) {
+      errors.push('Valid email is required');
+    }
+    if (!body.phone || !/^\+?[1-9]\d{1,14}$/.test(body.phone)) {
+      errors.push('Valid phone number is required (e.g., +1234567890)');
+    }
+    if (body.notes !== undefined && (typeof body.notes !== 'string' || body.notes.length > 5000)) {
+      errors.push('Notes must be a string and not exceed 5000 characters if provided');
+    }
+    if (
+      body.tags !== undefined &&
+      (!Array.isArray(body.tags) ||
+        body.tags.some((tag) => typeof tag !== 'object' || !tag.name || typeof tag.name !== 'string'))
+    ) {
+      errors.push('Tags must be an array of objects with a name property if provided');
+    }
+
+    if (errors.length > 0) {
       return NextResponse.json(
-        { success: false, error: 'Probability must be a number between 0 and 100' },
+        {
+          success: false,
+          message: 'Invalid input data',
+          errors,
+        },
         { status: 400 }
       );
     }
 
-    // Start a Mongoose session for transaction
-    const mongooseSession = await mongoose.startSession();
-    let contact: IContact | null = null;
-
-    await mongooseSession.withTransaction(async () => {
-      // Find and update contact
-      contact = await Contact.findById(id).session(mongooseSession);
-
-      if (!contact) {
-        await mongooseSession.abortTransaction();
-        return NextResponse.json(
-          { success: false, error: 'Contact not found' },
-          { status: 404 }
-        );
-      }
-
-      // Store old probability for logging
-      const oldProbability = contact.probability;
-
-      // Update probability
-      contact.probability = probability;
-
-      // Log activity
-      await contact.logActivity(
-        'CONTACT_UPDATED',
-        new Types.ObjectId(user._id),
-        {
-          field: 'probability',
-          oldValue: oldProbability,
-          newValue: probability,
-        },
-        mongooseSession
+    // Find the contact
+    const contact = await Contact.findOne({ _id: id, user: user._id });
+    if (!contact) {
+      return NextResponse.json(
+        { success: false, message: 'Contact not found or unauthorized' },
+        { status: 404 }
       );
+    }
 
-      // Save contact
-      await contact.save({ session: mongooseSession });
+    // Check for duplicate email (excluding current contact)
+    const existingEmailContact = await Contact.findOne({
+      email: body.email,
+      _id: { $ne: id },
+    });
+    if (existingEmailContact) {
+      return NextResponse.json(
+        { success: false, message: 'Email already in use by another contact' },
+        { status: 400 }
+      );
+    }
+
+    // Check for duplicate phone (excluding current contact)
+    const existingPhoneContact = await Contact.findOne({
+      phone: body.phone,
+      _id: { $ne: id },
+    });
+    if (existingPhoneContact) {
+      return NextResponse.json(
+        { success: false, message: 'Phone number already in use by another contact' },
+        { status: 400 }
+      );
+    }
+
+    // Log tag changes
+    const oldTags = contact.tags.map((tag) => tag.name);
+    const newTags = body.tags ? body.tags.map((tag) => tag.name) : [];
+    const addedTags = newTags.filter((tag) => !oldTags.includes(tag));
+    const removedTags = oldTags.filter((tag) => !newTags.includes(tag));
+
+    // Update contact fields
+    contact.name = body.name;
+    contact.email = body.email;
+    contact.phone = body.phone;
+    contact.notes = body.notes ?? '';
+
+    // Clear existing tags and add new ones
+    contact.tags.splice(0, contact.tags.length);
+    if (body.tags) {
+      body.tags.forEach((tag) => {
+        contact.tags.push({ name: tag.name, user: new Types.ObjectId(user._id) });
+      });
+    }
+
+    await contact.save();
+
+    // Log activities for tag changes
+    for (const tag of addedTags) {
+      await contact.logActivity('TAG_ADDED', new Types.ObjectId(user._id), { tag });
+    }
+    for (const tag of removedTags) {
+      await contact.logActivity('TAG_REMOVED', new Types.ObjectId(user._id), { tag });
+    }
+    // Log contact update
+    await contact.logActivity('CONTACT_UPDATED', new Types.ObjectId(user._id), {
+      updatedFields: { name: body.name, email: body.email, phone: body.phone, notes: body.notes },
     });
 
-    mongooseSession.endSession();
+    // Fetch updated contact with populated fields
+    const updatedContact = await Contact.findById(id)
+      .populate('assignedTo.user', 'name')
+      .populate('tags.user', 'name')
+      .populate('user', 'name')
+      .populate('activities.user', 'name')
+      .lean();
 
-    return NextResponse.json({
-      success: true,
-      message: 'Probability updated successfully',
-      contact: {
-        _id: contact!._id,
-        probability: contact!.probability,
+    return NextResponse.json(
+      {
+        success: true,
+        contact: updatedContact,
       },
-    });
+      { status: 200 }
+    );
   } catch (error: any) {
-    console.error('Error updating contact probability:', error);
+    console.error('Error updating contact:', error);
     return NextResponse.json(
       { success: false, error: error.message || 'Internal server error' },
       { status: error.message.includes('login') || error.message.includes('Not allowed') ? 401 : 500 }
     );
   }
 }
+

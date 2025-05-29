@@ -15,9 +15,9 @@ import { useModal } from "@/hooks/useModal";
 import { Modal } from "@/components/ui/modal";
 import { useGetEventsQuery } from "@/app/redux/api/calenderApi";
 import EventForm from "../form/event-form/EventForm";
+import UpdateEventForm from "../form/event-form/UpdateEventForm";
 
-// Define the interface for the CalendarEvent (matches eventsApi)
-interface ICalendarEvent {
+export interface ICalendarEvent {
   id: string;
   title: string;
   start: string;
@@ -47,11 +47,23 @@ const Calendar: React.FC = () => {
     openModal();
   };
 
+  const handleAddEventButtonClick = () => {
+    setSelectedEvent(null); // Clear selected event for new event creation
+    openModal();
+  };
+
+  const handleModalClose = () => {
+    setSelectedEvent(null); // Clear selected event when closing modal
+    closeModal();
+  };
+
   const handleFormSubmit = () => {
+    setSelectedEvent(null); // Clear selected event after submission
     closeModal();
   };
 
   const handleFormDelete = () => {
+    setSelectedEvent(null); // Clear selected event after deletion
     closeModal();
   };
 
@@ -75,14 +87,14 @@ const Calendar: React.FC = () => {
           customButtons={{
             addEventButton: {
               text: "Add Event +",
-              click: openModal,
+              click: handleAddEventButtonClick, // Use dedicated handler
             },
           }}
         />
       </div>
       <Modal
         isOpen={isOpen}
-        onClose={closeModal}
+        onClose={handleModalClose} // Use updated close handler
         className="max-w-[700px] p-6 lg:p-10"
       >
         <div className="flex flex-col px-2 overflow-y-auto custom-scrollbar">
@@ -91,11 +103,18 @@ const Calendar: React.FC = () => {
               {selectedEvent ? "Edit Event" : "Add Event"}
             </h5>
           </div>
-          <EventForm
-            selectedEvent={selectedEvent}
-            onSubmit={handleFormSubmit}
-            onDelete={handleFormDelete}
-          />
+          {selectedEvent ? (
+            <UpdateEventForm
+              selectedEvent={selectedEvent}
+              onSubmit={handleFormSubmit}
+              onDelete={handleFormDelete}
+            />
+          ) : (
+            <EventForm
+              selectedEvent={null}
+              onSubmit={handleFormSubmit}
+            />
+          )}
         </div>
       </Modal>
     </div>

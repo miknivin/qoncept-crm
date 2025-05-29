@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { ResponseContact, useUpdateContactMutation } from '@/app/redux/api/contactApi';
-import Chip from '@/components/ui/chips/Chip';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
+import Chip from '@/components/ui/chips/Chip';
+
 interface UpdateContactFormProps {
   contact: ResponseContact;
 }
@@ -14,7 +15,8 @@ interface ContactFormData {
   email: string;
   phone: string;
   notes?: string;
-  tags: string[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  tags: { name: string; user?: any }[];
 }
 
 const UpdateContactForm: React.FC<UpdateContactFormProps> = ({ contact }) => {
@@ -38,7 +40,7 @@ const UpdateContactForm: React.FC<UpdateContactFormProps> = ({ contact }) => {
         email: contact.email,
         phone: contact.phone,
         notes: contact.notes || '',
-        tags: contact.tags.map((tag) => tag.name), // Extract tag names
+        tags: contact.tags,
       });
     }
   }, [contact]);
@@ -54,22 +56,23 @@ const UpdateContactForm: React.FC<UpdateContactFormProps> = ({ contact }) => {
       setTagError('Tag cannot be empty');
       return;
     }
-    if (formData.tags.includes(trimmedTag)) {
+    if (formData.tags.some((t) => t.name === trimmedTag)) {
       setTagError('Tag already exists');
       return;
     }
+    // Backend will set the user field for tags
     setFormData((prev) => ({
       ...prev,
-      tags: [...prev.tags, trimmedTag],
+      tags: [...prev.tags, { name: trimmedTag, user: '' }], // user will be set in backend
     }));
     setTagInput('');
     setTagError('');
   };
 
-  const handleTagRemove = (tag: string) => {
+  const handleTagRemove = (tagName: string) => {
     setFormData((prev) => ({
       ...prev,
-      tags: prev.tags.filter((t) => t !== tag),
+      tags: prev.tags.filter((t) => t.name !== tagName),
     }));
     setTagError('');
   };
@@ -77,19 +80,26 @@ const UpdateContactForm: React.FC<UpdateContactFormProps> = ({ contact }) => {
   const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
-      const userId = '507f1f77bcf86cd799439012'; 
-      const result = await updateContact({
+      // Remove user field from tags before sending, as backend will set it
+      const payload = {
         id: contact._id,
-        ...formData,
-        userId,
-      }).unwrap();
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        notes: formData.notes,
+        tags: formData.tags.map((tag) => ({ name: tag.name })), // Send only name
+      };
+      const result = await updateContact(payload).unwrap();
       if (result.success) {
         router.push('/contacts');
-         toast.success('Contact updated successfully');
-
+        toast.success('Contact updated successfully');
       }
-    } catch (error) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
       console.error('Error updating contact:', error);
+      const errorMessage = error.data?.message || 'Failed to update contact';
+      const errorDetails = error?.data?.errors?.join(', ') || '';
+      toast.error(errorDetails ? `${errorMessage}: ${errorDetails}` : errorMessage);
     }
   };
 
@@ -98,9 +108,9 @@ const UpdateContactForm: React.FC<UpdateContactFormProps> = ({ contact }) => {
       <div>
         <label
           htmlFor="name"
-          className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400"
+          className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-white"
         >
-          Contact Name
+          Name
         </label>
         <input
           type="text"
@@ -115,7 +125,7 @@ const UpdateContactForm: React.FC<UpdateContactFormProps> = ({ contact }) => {
       <div>
         <label
           htmlFor="email"
-          className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400"
+          className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-white"
         >
           Email
         </label>
@@ -132,7 +142,7 @@ const UpdateContactForm: React.FC<UpdateContactFormProps> = ({ contact }) => {
       <div>
         <label
           htmlFor="phone"
-          className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400"
+          className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-white"
         >
           Phone
         </label>
@@ -149,7 +159,7 @@ const UpdateContactForm: React.FC<UpdateContactFormProps> = ({ contact }) => {
       <div>
         <label
           htmlFor="tags"
-          className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400"
+          className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-white"
         >
           Tags (Optional)
         </label>
@@ -160,7 +170,7 @@ const UpdateContactForm: React.FC<UpdateContactFormProps> = ({ contact }) => {
         >
           <div className="flex flex-wrap gap-2 mb-2">
             {formData.tags.map((tag) => (
-              <Chip key={tag} text={tag} onRemove={() => handleTagRemove(tag)} />
+              <Chip key={tag.name} text={tag.name} onRemove={() => handleTagRemove(tag.name)} />
             ))}
           </div>
           <input
@@ -189,7 +199,7 @@ const UpdateContactForm: React.FC<UpdateContactFormProps> = ({ contact }) => {
       <div>
         <label
           htmlFor="notes"
-          className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400"
+          className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-white"
         >
           Notes
         </label>

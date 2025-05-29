@@ -96,7 +96,7 @@ interface UpdateContactRequest {
   email: string;
   phone: string;
   notes?: string;
-  userId: string;
+  tags?: { name: string }[]; // Send only name, backend sets user
 }
 
 interface UpdateContactResponse {
