@@ -20,6 +20,7 @@ export async function PATCH(
   try {
     // Connect to database
     Pipeline
+    Stage
     await dbConnect();
 
     // Authenticate user and authorize roles
