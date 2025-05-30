@@ -40,6 +40,7 @@
     "react-dnd-html5-backend": "^16.0.1",
     "react-dom": "^19.0.0",
     "react-dropzone": "^14.3.5",
+    "react-qr-code": "^2.0.15",
     "react-redux": "^9.2.0",
     "react-toastify": "^11.0.5",
     "redis": "^5.0.1",
