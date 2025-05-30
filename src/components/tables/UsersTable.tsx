@@ -14,7 +14,7 @@ const UsersTableOne: React.FC = () => {
   const [limit, setLimit] = useState(10);
   const [search, setSearch] = useState("");
 
-  const { data, error, isLoading } = useGetTeamMembersQuery({
+  const { data, error, isLoading, isFetching } = useGetTeamMembersQuery({
     page,
     limit,
     search,
@@ -89,7 +89,7 @@ const UsersTableOne: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {isLoading && (
+            {(isLoading || isFetching) && (
               <tr className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200">
                 <td colSpan={6} className="px-5 py-4 text-center">
                   <div className="w-full flex justify-center">

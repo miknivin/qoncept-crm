@@ -5,11 +5,13 @@ import User, { IUser } from "@/app/models/User";
 import dbConnect from "@/app/lib/db/connection";
 import { validateUserInput } from "../../middlewares/validateTeamMember";
 import Contact from "@/app/models/Contact";
-type ResponseUser = Pick<IUser, '_id' | 'name' | 'email' | 'role' | 'signupMethod' | 'avatar' | 'uid'>;
+
+type ResponseUser = Pick<IUser, '_id' | 'name' | 'email' | 'role' | 'signupMethod' | 'avatar' | 'uid' | 'phone'>;
 
 interface CreateUserRequest {
   name?: string;
   email: string;
+  phone: string; // Made phone required
   password?: string;
   signupMethod?: 'OTP' | 'Email/Password' | 'OAuth';
   avatar?: {
@@ -20,7 +22,7 @@ interface CreateUserRequest {
 
 interface TeamMembersResponse {
   success: boolean;
-  users: Pick<IUser, '_id' | 'name' | 'email' | 'role' | 'signupMethod' | 'avatar' | 'uid' | 'createdAt'>[];
+  users: Pick<IUser, '_id' | 'name' | 'email' | 'role' | 'signupMethod' | 'avatar' | 'uid' | 'createdAt' | 'phone'>[];
   page: number;
   totalPages: number;
   total: number;
@@ -40,9 +42,8 @@ export async function POST(req: NextRequest) {
     // Authorize admin role
     try {
       authorizeRoles(reqUser, 'admin');
-    } catch (error:any) {
+    } catch (error: any) {
       console.log('error', error);
-      
       return NextResponse.json(
         { error: 'Only admins can create team members' },
         { status: 401 }
@@ -57,8 +58,7 @@ export async function POST(req: NextRequest) {
     try {
       body = await req.json();
     } catch (error) {
-        console.log(error);
-        
+      console.log(error);
       return NextResponse.json(
         { error: 'Invalid request body' },
         { status: 400 }
@@ -68,12 +68,22 @@ export async function POST(req: NextRequest) {
     // Validate input
     validateUserInput(body);
 
-    const { name, email, password, signupMethod = 'Email/Password', avatar } = body;
+    const { name, email, phone, password, signupMethod = 'Email/Password', avatar } = body;
+
+    // Validate Indian phone number
+    const phoneRegex = /^[6-9]\d{9}$/;
+    if (!phoneRegex.test(phone.replace(/\D/g, ''))) {
+      return NextResponse.json(
+        { error: 'Invalid Indian phone number. Must be 10 digits starting with 6, 7, 8, or 9' },
+        { status: 400 }
+      );
+    }
 
     // Create new user
     const newUser: Partial<IUser> = {
       name,
       email,
+      phone, // Added phone field
       password: signupMethod === 'Email/Password' ? password : undefined,
       signupMethod,
       role: 'team_member',
@@ -82,11 +92,12 @@ export async function POST(req: NextRequest) {
 
     const user = new User(newUser);
     await user.save();
-    
+
     const responseUser: ResponseUser = {
       _id: user._id,
       name: user.name,
       email: user.email,
+      phone: user.phone, // Added phone to response
       role: user.role,
       signupMethod: user.signupMethod,
       avatar: user.avatar,
@@ -104,10 +115,12 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     console.error('Error creating team member:', error);
 
-    // Handle duplicate email
+    // Handle duplicate email or phone
     if (error.name === 'MongoServerError' && error.code === 11000) {
+      const field = error.keyValue?.email ? 'email' : 'phone';
+      const value = error.keyValue?.email || error.keyValue?.phone || 'unknown';
       return NextResponse.json(
-        { error: `Email ${error.keyValue?.email || 'unknown'} already exists` },
+        { error: `${field.charAt(0).toUpperCase() + field.slice(1)} ${value} already exists` },
         { status: 409 }
       );
     }
@@ -129,7 +142,6 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-
     const user = await isAuthenticatedUser(req);
     if (!user) {
       return NextResponse.json(
@@ -137,7 +149,6 @@ export async function GET(req: NextRequest) {
         { status: 400 }
       );
     }
-
 
     try {
       authorizeRoles(user, 'admin');
@@ -149,14 +160,12 @@ export async function GET(req: NextRequest) {
       );
     }
 
-
     await dbConnect();
 
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get('page') || '1', 10);
     const limit = parseInt(searchParams.get('limit') || '10', 10);
     const search = searchParams.get('search') || '';
-
 
     if (page < 1 || limit < 1) {
       return NextResponse.json(
@@ -165,20 +174,20 @@ export async function GET(req: NextRequest) {
       );
     }
 
-
     const query: any = { role: 'team_member' };
     if (search) {
       query.$or = [
         { name: { $regex: search, $options: 'i' } },
         { email: { $regex: search, $options: 'i' } },
+        { phone: { $regex: search, $options: 'i' } }, // Added phone to search query
       ];
     }
 
     const skip = (page - 1) * limit;
     const usersRaw = await User.find(query)
-      .select('_id name email role signupMethod avatar uid createdAt')
+      .select('_id name email phone role signupMethod avatar uid createdAt') // Added phone to select
       .skip(skip)
-      .sort({createdAt:-1})
+      .sort({ createdAt: -1 })
       .limit(limit)
       .lean();
 
@@ -187,7 +196,6 @@ export async function GET(req: NextRequest) {
       '682da76db5aab2e983c8863e',
       '682da76db5aab2e983c8863f',
     ];
-
 
     const users = await Promise.all(
       usersRaw.map(async (user: any) => {
@@ -205,13 +213,14 @@ export async function GET(req: NextRequest) {
           _id: user._id,
           name: user.name,
           email: user.email,
+          phone: user.phone, // Added phone to response
           role: user.role,
           signupMethod: user.signupMethod,
           avatar: user.avatar,
           uid: user.uid,
           createdAt: user.createdAt,
-          assignedContacts: totalAssignedContacts, // New field for total assigned contacts
-          closedContacts: closedContacts, // New field for closed contacts
+          assignedContacts: totalAssignedContacts,
+          closedContacts: closedContacts,
         };
       })
     );

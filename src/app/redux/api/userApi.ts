@@ -50,6 +50,7 @@ interface CreateUserRequest {
   name?: string;
   email: string;
   password?: string;
+  phone?:string;
   signupMethod?: 'OTP' | 'Email/Password' | 'OAuth';
   avatar?: {
     public_id: string;
