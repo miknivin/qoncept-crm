@@ -4,6 +4,8 @@ import { useGetTeamMembersQuery } from "@/app/redux/api/userApi";
 import { useEffect, useRef, useState } from "react";
 import Chip from "../chips/Chip";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useSelector } from "react-redux";
+import { RootState } from "@/app/redux/rootReducer";
 
 interface OffCanvasProps {
   isOpen: boolean;
@@ -13,6 +15,7 @@ interface OffCanvasProps {
 export default function PipelineOffCanvas({ isOpen, onClose }: OffCanvasProps) {
   const offCanvasRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const { user } = useSelector((state: RootState) => state.user);
   const searchParams = useSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -226,6 +229,7 @@ export default function PipelineOffCanvas({ isOpen, onClose }: OffCanvasProps) {
               )}
             </div>
           </div>
+         
           <div className="mb-4">
             <label
               htmlFor="countries"
@@ -246,7 +250,8 @@ export default function PipelineOffCanvas({ isOpen, onClose }: OffCanvasProps) {
               <option value="manual">Manual</option>
             </select>
           </div>
-          <div className="mb-4 relative">
+           {user&&user.role==="admin"&&(
+            <div className="mb-4 relative">
             <label
               htmlFor="simple-search"
               className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
@@ -307,6 +312,8 @@ export default function PipelineOffCanvas({ isOpen, onClose }: OffCanvasProps) {
               </div>
             )}
           </div>
+          )}
+          
           <div className="grid grid-cols-2 gap-4">
             <button
               type="submit"
