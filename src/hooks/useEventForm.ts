@@ -1,8 +1,5 @@
-// src/hooks/useEventForm.ts
 import { useState, useEffect } from "react";
-import { ICalendarEvent } from './../components/calendar/Calendar';
-
-
+import { ICalendarEvent } from '@/components/calendar/Calendar';
 
 interface EventFormState {
   eventTitle: string;
@@ -19,24 +16,28 @@ export const useEventForm = (selectedEvent: ICalendarEvent | null) => {
   const [eventLevel, setEventLevel] = useState("");
   const [errors, setErrors] = useState<EventFormState["errors"]>({});
 
+  // Format date to YYYY-MM-DD in IST timezone
+  const formatDateToLocal = (dateString: string): string => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return "";
+    // Adjust for IST (UTC+5:30)
+    const istOffset = 5.5 * 60; // IST offset in minutes
+    const localDate = new Date(date.getTime() + istOffset * 60 * 1000);
+    return localDate.toISOString().split("T")[0];
+  };
+
   // Populate form fields when editing an event
   useEffect(() => {
     const today = new Date().toISOString().split("T")[0];
     if (selectedEvent) {
-      const startDate = selectedEvent.start ? new Date(selectedEvent.start) : null;
-      const formattedStart = startDate && !isNaN(startDate.getTime())
-        ? startDate.toISOString().split("T")[0]
-        : today;
-
-      const endDate = selectedEvent.end ? new Date(selectedEvent.end) : null;
-      const formattedEnd = endDate && !isNaN(endDate.getTime())
-        ? endDate.toISOString().split("T")[0]
-        : "";
+      const formattedStart = selectedEvent.start ? formatDateToLocal(selectedEvent.start) : today;
+      const formattedEnd = selectedEvent.end ? formatDateToLocal(selectedEvent.end) : "";
 
       setEventTitle(selectedEvent.title || "");
       setEventStartDate(formattedStart);
       setEventEndDate(formattedEnd);
-      setEventLevel(selectedEvent.extendedProps.calendar || "");
+      setEventLevel(selectedEvent.extendedProps?.calendar || "Primary");
       setErrors({});
     } else {
       resetForm();
@@ -47,13 +48,13 @@ export const useEventForm = (selectedEvent: ICalendarEvent | null) => {
     setEventTitle("");
     setEventStartDate("");
     setEventEndDate("");
-    setEventLevel("");
+    setEventLevel("Primary"); // Set default level to Primary
     setErrors({});
   };
 
   const validateForm = () => {
     const newErrors: EventFormState["errors"] = {};
-    if (!eventTitle) newErrors.title = "Event title is required";
+    if (!eventTitle.trim()) newErrors.title = "Event title is required";
     if (!eventStartDate) newErrors.startDate = "Start date is required";
     if (!eventLevel) newErrors.level = "Event color is required";
     setErrors(newErrors);

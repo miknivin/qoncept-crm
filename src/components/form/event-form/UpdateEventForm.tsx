@@ -35,7 +35,10 @@ const UpdateEventForm: React.FC<UpdateEventFormProps> = ({ selectedEvent, onSubm
 
   const [updateEvent] = useUpdateEventMutation();
   const [deleteEvent] = useDeleteEventMutation();
-
+  console.log(eventStartDate,'start');
+  console.log(eventEndDate, 'end');
+  
+  
   const handleSubmit = async () => {
     try {
       if (!validateForm()) {
@@ -138,7 +141,6 @@ const UpdateEventForm: React.FC<UpdateEventFormProps> = ({ selectedEvent, onSubm
           <input
             id="event-start-date"
             type="date"
-            onClick={() => document.getElementById("event-start-date")?.focus()}
             value={eventStartDate}
             onChange={(e) => setEventStartDate(e.target.value)}
             className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 focus:border-brand-300 focus:outline-none focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800"
