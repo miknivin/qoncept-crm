@@ -4,7 +4,7 @@ import dbConnect from '@/app/lib/db/connection';
 import Pipeline from '@/app/models/Pipeline';
 import Stage from '@/app/models/Stage';
 import Contact from '@/app/models/Contact';
-
+import User from "@/app/models/User";
 // Interface for lean stage
 interface LeanStage {
   _id: string;
@@ -66,7 +66,8 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
     await dbConnect();
 
     const { id } = await context.params;
-
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+    User
     // Validate ObjectId
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json({ error: 'Invalid pipeline ID' }, { status: 400 });
