@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import { useEffect } from "react";
 import { useSelector } from "react-redux";
@@ -9,11 +8,16 @@ import MonthlyTarget from "@/components/ecommerce/MonthlyTarget";
 import Calendar from "@/components/calendar/Calendar";
 import ContactTableTwo from "@/components/tables/ContactTableTwo";
 import LeavesTableTwo from "@/components/tables/LeavesTableTwo";
+import UsersTableTwo from "@/components/tables/UsersTableTwo";
 import ShortSpinnerPrimary from "@/components/ui/loaders/ShortSpinnerPrimary";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import { useGetDashboardDataQuery } from "../redux/api/dashboardApi";
-import { RootState } from '@/app/redux/rootReducer';
-import UsersTableTwo from "@/components/tables/UsersTableTwo";
+import { RootState } from "@/app/redux/rootReducer";
+
+interface DashboardError {
+  data?: { error?: string };
+  status?: number;
+}
 
 export default function Page() {
   const { user } = useSelector((state: RootState) => state.user);
@@ -38,9 +42,20 @@ export default function Page() {
 
   // Handle error state
   if (error || (!data?.success && !isLoading)) {
+    const errorMessage =
+      (error as DashboardError)?.data?.error || "Failed to load dashboard data";
     return (
       <div className="text-red-500 text-center">
-        Error: {(error as any)?.data?.error || "Failed to load dashboard data"}
+        Error: {errorMessage}
+      </div>
+    );
+  }
+
+  // Handle loading state for the entire dashboard
+  if (isLoading || !data) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <ShortSpinnerPrimary />
       </div>
     );
   }
@@ -48,23 +63,15 @@ export default function Page() {
   return (
     <div className="grid grid-cols-12 gap-4 md:gap-6">
       <div className="col-span-12 space-y-6 xl:col-span-7">
-        {isLoading ? (
-          <div className="flex justify-center items-center h-64">
-            <ShortSpinnerPrimary />
-          </div>
-        ) : (
-          <>
-            <ContactsMetrics
-              totalContacts={data.totalContacts}
-              totalClosedContacts={data.totalClosedContacts}
-            />
-            <MonthlySalesChart monthlyConversionRates={data.monthlyConversionRates} />
-          </>
-        )}
+        <ContactsMetrics
+          totalContacts={data.totalContacts}
+          totalClosedContacts={data.totalClosedContacts}
+        />
+        <MonthlySalesChart monthlyConversionRates={data.monthlyConversionRates} />
       </div>
 
       <div className="col-span-12 xl:col-span-5">
-        <MonthlyTarget />
+        <MonthlyTarget totalContacts={data.totalContacts} totalClosedContacts={data.totalClosedContacts} />
       </div>
 
       <div className="col-span-12 xl:col-span-12">

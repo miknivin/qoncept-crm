@@ -4,13 +4,18 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import PhoneIcon from "@/components/ui/flowbiteIcons/Phone";
 import EmailIcon from "@/components/ui/flowbiteIcons/Email";
-import TagIcon from "@/components/ui/flowbiteIcons/TagIcon";
+import NotesIcon from "@/components/ui/flowbiteIcons/Notes";
 import { useUpdateProbabilityMutation } from "@/app/redux/api/contactApi";
 import VeryShortSpinnerPrimary from "./../../ui/loaders/veryShortSpinnerPrimary";
 import { useModal } from "@/hooks/useModal";
 import { Modal } from "@/components/ui/modal";
 import QRCodeModalContent from "@/components/qr-code/QRCodeModalContent";
+import NotesAndTagsForm from "./NotesAndTagForm";
 
+interface Tag {
+  user: string;
+  name: string;
+}
 
 interface Contact {
   _id: string;
@@ -18,6 +23,8 @@ interface Contact {
   email?: string;
   phone?: string;
   probability?: number;
+  notes?: string;
+  tags?: Tag[];
 }
 
 interface SortableContactProps {
@@ -36,14 +43,12 @@ function SortableContact({ contact, data }: SortableContactProps) {
     id: `contact-${contact._id}`,
     data,
   });
-  
-  //console.log(contact,'contact');
-  
-  // Initialize probability with contact's probability or fallback to 50
+
   const [probability, setProbability] = useState(contact.probability?.toString() || "50");
   const [updateProbability, { isLoading }] = useUpdateProbabilityMutation();
-  const { isOpen, openModal, closeModal } = useModal();
-  // Sync probability with contact prop if it changes
+  const { isOpen: isQRModalOpen, openModal: openQRModal, closeModal: closeQRModal } = useModal();
+  const { isOpen: isNotesModalOpen, openModal: openNotesModal, closeModal: closeNotesModal } = useModal();
+
   useEffect(() => {
     setProbability(contact.probability?.toString() || "50");
   }, [contact.probability]);
@@ -66,25 +71,16 @@ function SortableContact({ contact, data }: SortableContactProps) {
     }
   };
 
-  const handleContextMenu = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    if (contact.phone) {
-      openModal();
-    }
-  };
-
   const handleEmailClick = () => {
     if (contact.email) {
       window.location.href = `mailto:${contact.email}`;
     }
   };
 
-  // Update local state during sliding for immediate UI feedback
   const handleProbabilitySlide = (e: React.ChangeEvent<HTMLInputElement>) => {
     setProbability(e.target.value);
   };
 
-  // Trigger mutation when sliding is complete
   const handleProbabilityChange = async () => {
     try {
       await updateProbability({
@@ -93,7 +89,6 @@ function SortableContact({ contact, data }: SortableContactProps) {
       }).unwrap();
     } catch (error) {
       console.error("Failed to update probability:", error);
-      // Revert to original probability on error
       setProbability(contact.probability?.toString() || "50");
     }
   };
@@ -108,7 +103,6 @@ function SortableContact({ contact, data }: SortableContactProps) {
       aria-label={`Contact: ${contact.name || "Unnamed"}`}
     >
       <div className="flex justify-start items-start flex-col">
-        {/* Draggable area */}
         <div {...listeners} className="w-full cursor-move text-left">
           <p className="text-sm font-medium text-gray-800 dark:text-white/90">
             {contact.name || "Unnamed"}
@@ -117,7 +111,6 @@ function SortableContact({ contact, data }: SortableContactProps) {
             {contact.phone || "No phno"}
           </p>
         </div>
-        {/* Button group - no drag listeners */}
         <div className="flex flex-col justify-start items-start w-full">
           <div
             className="inline-flex rounded-md shadow-xs my-2"
@@ -128,7 +121,12 @@ function SortableContact({ contact, data }: SortableContactProps) {
             <button
               type="button"
               onClick={handlePhoneClick}
-              onContextMenu={handleContextMenu}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                if (contact.phone) {
+                  openQRModal();
+                }
+              }}
               className={`inline-flex items-center px-2 py-2 text-sm font-medium text-gray-900 bg-transparent border border-gray-900 rounded-s-lg hover:bg-gray-900 hover:text-white focus:z-10 focus:ring-2 focus:ring-gray-500 focus:bg-gray-900 focus:text-white dark:border-white dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:bg-gray-700 ${
                 !contact.phone ? "opacity-50 cursor-not-allowed" : ""
               }`}
@@ -150,11 +148,11 @@ function SortableContact({ contact, data }: SortableContactProps) {
             </button>
             <button
               type="button"
-              role="button"
+              onClick={openNotesModal}
               className="inline-flex items-center px-2 py-2 text-sm font-medium text-gray-900 bg-transparent border border-gray-900 rounded-e-lg hover:bg-gray-900 hover:text-white focus:z-10 focus:ring-2 focus:ring-gray-500 focus:bg-gray-900 focus:text-white dark:border-white dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:bg-gray-700"
-              aria-label={`View tags for ${contact.name || "contact"}`}
+              aria-label={`View notes and tags for ${contact.name || "contact"}`}
             >
-              <TagIcon />
+              <NotesIcon />
             </button>
           </div>
           <div className="flex justify-between flex-row-reverse items-center gap-3 w-full">
@@ -162,7 +160,7 @@ function SortableContact({ contact, data }: SortableContactProps) {
               htmlFor={`probability-range-${contact._id}`}
               className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
             >
-              {isLoading ? <VeryShortSpinnerPrimary/>:probability+"%"}
+              {isLoading ? <VeryShortSpinnerPrimary /> : probability + "%"}
             </label>
             <input
               id={`probability-range-${contact._id}`}
@@ -179,8 +177,11 @@ function SortableContact({ contact, data }: SortableContactProps) {
           </div>
         </div>
       </div>
-      <Modal isOpen={isOpen} onClose={closeModal} className="max-w-[400px] p-6">
-        <QRCodeModalContent contact={contact} onClose={closeModal} />
+      <Modal isOpen={isQRModalOpen} onClose={closeQRModal} className="max-w-[400px] p-6">
+        <QRCodeModalContent contact={contact} onClose={closeQRModal} />
+      </Modal>
+      <Modal isOpen={isNotesModalOpen} onClose={closeNotesModal} className="max-w-[400px] p-6">
+        <NotesAndTagsForm contact={contact} onClose={closeNotesModal} />
       </Modal>
     </div>
   );

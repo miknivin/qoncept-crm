@@ -153,11 +153,15 @@ export default function AddContactForm({ onClose }: AddContactFormProps) {
               id="tags"
               type="text"
               value={tagInput}
-              onChange={(e) => setTagInput(e.target.value)}
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              onChange={(e:any) => setTagInput(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && tagInput.trim()) {
+                if (e.key === "Enter") {
                   e.preventDefault();
-                  handleTagAdd(tagInput);
+                  if (tagInput.trim()) {
+                    handleTagAdd(tagInput);
+                  }
+        
                 }
               }}
               onBlur={() => {

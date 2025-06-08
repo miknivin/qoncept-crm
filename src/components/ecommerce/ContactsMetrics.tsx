@@ -1,7 +1,8 @@
 "use client";
+import { BoxIconLine, GroupIcon } from "@/icons";
 import React from "react";
-import Badge from "../ui/badge/Badge";
-import { ArrowDownIcon, ArrowUpIcon, BoxIconLine, GroupIcon } from "@/icons";
+// import Badge from "../ui/badge/Badge";
+// import { ArrowDownIcon, ArrowUpIcon, BoxIconLine, GroupIcon } from "@/icons";
 
 interface ContactsMetricsProps {
   totalContacts: number;
@@ -26,10 +27,10 @@ const ContactsMetrics: React.FC<ContactsMetricsProps> = ({ totalContacts, totalC
               {totalContacts}
             </h4>
           </div>
-          <Badge color="success">
+          {/* <Badge color="success">
             <ArrowUpIcon />
             11.01%
-          </Badge>
+          </Badge> */}
         </div>
       </div>
       {/* <!-- Metric Item End --> */}
@@ -49,10 +50,10 @@ const ContactsMetrics: React.FC<ContactsMetricsProps> = ({ totalContacts, totalC
             </h4>
           </div>
 
-          <Badge color="error">
+          {/* <Badge color="error">
             <ArrowDownIcon className="text-error-500" />
             9.05%
-          </Badge>
+          </Badge> */}
         </div>
       </div>
       {/* <!-- Metric Item End --> */}

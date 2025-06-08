@@ -127,6 +127,27 @@ interface UpdateProbabilityResponse {
   };
 }
 
+interface UpdateContactNotesRequest {
+  id: string;
+  tags?: { name: string; user?: string }[];
+  notes?: string;
+}
+
+interface UpdateContactNotesResponse {
+  message: string;
+  contact: ResponseContact;
+}
+
+export interface Tag {
+  user: string;
+  name: string;
+}
+interface GetContactNotesAndTagsResponse {
+  message: string;
+  notes: string;
+  tags: Tag[];
+}
+
 export const contactApi = createApi({
   reducerPath: "contactApi",
   baseQuery: fetchBaseQuery({
@@ -204,6 +225,21 @@ export const contactApi = createApi({
       }),
       invalidatesTags: (result, error, { id }) => [{ type: "Contacts", id }, { type: "Contacts", id: "LIST" }],
     }),
+    updateContactNotes: builder.mutation<UpdateContactNotesResponse, UpdateContactNotesRequest>({
+      query: ({ id, ...body }) => ({
+        url: `/contacts/notes/${id}`,
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: (result, error, { id }) => [{ type: "Contacts", id }, { type: "Contacts", id: "LIST" }],
+    }),
+    getContactNotesAndTags: builder.query<GetContactNotesAndTagsResponse, string>({
+      query: (id) => ({
+        url: `/contacts/notes/${id}`,
+        method: "GET",
+      }),
+      providesTags: (result, error, id) => [{ type: "Contacts", id }],
+    }),
   }),
 });
 
@@ -215,5 +251,7 @@ export const {
   useGetContactByIdQuery,
   useUpdateContactMutation,
   useAssignContactsMutation,
-  useUpdateProbabilityMutation
+  useUpdateProbabilityMutation,
+  useUpdateContactNotesMutation,
+  useGetContactNotesAndTagsQuery,
 } = contactApi;

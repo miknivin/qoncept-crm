@@ -64,7 +64,7 @@ export const Modal: React.FC<ModalProps> = ({
       )}
       <div
         ref={modalRef}
-        className={`${contentClasses}  ${className} max-h-screen min-h-[70vh] overflow-y-auto`}
+        className={`${contentClasses}  ${className} max-h-screen min-h-fit overflow-y-auto`}
         onClick={(e) => e.stopPropagation()}
       >
         {showCloseButton && (
