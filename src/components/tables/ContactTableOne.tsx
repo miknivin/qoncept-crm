@@ -225,13 +225,13 @@ const { user } = useSelector((state: RootState) => state.user);
               type="button"
               onClick={handleAssignContacts}
               disabled={isButtonGroupDisabled}
-              className={`px-4 py-2 text-sm font-medium text-gray-900 bg-white border-t border-b border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700 dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-blue-500 dark:focus:text-white ${
+              className={`px-4 py-2 text-sm font-medium text-gray-900 bg-white border border-b border-gray-200 rounded-e-lg hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700 dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-blue-500 dark:focus:text-white ${
                 isButtonGroupDisabled ? "opacity-50 cursor-not-allowed" : ""
               }`}
             >
               <AssignUserIcon />
             </button>
-            <button
+            {/* <button
               type="button"
               disabled={isButtonGroupDisabled}
               className={`px-4 py-2 text-sm font-medium text-gray-900 bg-red-600 border border-gray-200 rounded-e-lg hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700 dark:bg-red-800 dark:border-red-700 dark:text-white dark:hover:text-white dark:hover:bg-red-700 dark:focus:ring-blue-500 dark:focus:text-white ${
@@ -239,7 +239,7 @@ const { user } = useSelector((state: RootState) => state.user);
               }`}
             >
               <DeleteIcon />
-            </button>
+            </button> */}
           </div>
           )}
    
