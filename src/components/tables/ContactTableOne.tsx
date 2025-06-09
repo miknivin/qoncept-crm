@@ -10,7 +10,7 @@ import EditIcon from "../ui/flowbiteIcons/EditIcon";
 import { toast } from "react-toastify";
 import AddToPipelineIcon from "../ui/flowbiteIcons/AddToPipeline";
 // import AddTagIcon from "../ui/flowbiteIcons/AddTag";
-import DeleteIcon from "../ui/flowbiteIcons/Delete";
+// import DeleteIcon from "../ui/flowbiteIcons/Delete";
 import { checkBoxClass } from "@/constants/classnames";
 import { Modal } from "../ui/modal";
 import AddToPipelineForm from "../form/contact-form/AddToPipelineForm";
