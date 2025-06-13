@@ -45,6 +45,7 @@ export interface IContact extends Document {
   tags: Types.DocumentArray<Tag>;
   user?: Types.ObjectId;
   uid?: number;
+  businessName?:string;
   activities: Types.DocumentArray<Activity>;
   createdAt: Date;
   updatedAt: Date;
@@ -76,6 +77,9 @@ const contactSchema = new Schema<IContact, ContactModel>(
       type: String,
       required: [true, 'Please enter contact email'],
       unique: true,
+    },
+    businessName: {
+      type: String,
     },
     phone: {
       type: String,

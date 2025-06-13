@@ -6,6 +6,7 @@ interface Contact {
   email: string;
   phone: string;
   notes?: string;
+  businessName?:string;
   source?: string;
   user?: { name: string; email: string };
   tags: Array<{ user: { name: string; email: string }; name: string }>;

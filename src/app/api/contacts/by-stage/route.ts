@@ -22,6 +22,7 @@ export interface GetContactsByStageResponse {
     phone: string;
     notes?: string;
     source?: string;
+    businessName?:string;
     user?: { name: string; email: string };
     tags: Array<{ user: { name: string; email: string }; name: string }>;
     pipelinesActive: Array<{
@@ -90,7 +91,7 @@ export async function GET(req: NextRequest) {
     }
 
     const contacts = await Contact.find(query)
-      .select("name email phone notes user source tags probability pipelinesActive createdAt updatedAt")
+      .select("name email phone notes user source tags businessName probability pipelinesActive createdAt updatedAt")
       .populate("user", "name email")
       .populate("tags.user", "name email")
       .lean();

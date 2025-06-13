@@ -31,6 +31,7 @@ interface LeanContact {
   email: string;
   phone: string;
   notes?: string;
+  businessName?:string;
   assignedTo: Array<{ user: { name: string; email: string }; time: Date }>;
   pipelinesActive: Array<{
     pipeline_id: string;

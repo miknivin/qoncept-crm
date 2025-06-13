@@ -20,13 +20,16 @@ import PipelineOffCanvas from "@/components/ui/drawer/PipelineOffCanvas";
 import Button from "@/components/ui/button/Button";
 import FilterIcons from "@/components/ui/flowbiteIcons/Filter";
 import { useFetchContacts } from "@/hooks/useFetchContacts";
+import { Tag } from "@/app/models/Contact";
 
 interface Contact {
   _id: string;
   name: string;
   email: string;
   phone: string;
-  probability?:number
+  tag?:Tag
+  businessName?: string;
+  probability?: number;
 }
 
 interface Stage {
@@ -83,10 +86,12 @@ export default function PipelineBody({ pipelineId }: { pipelineId: string }) {
     localStages.forEach((stage) => {
       const query = contactQueries[stage._id];
       if (stage._id && query?.data?.contacts && !query.isLoading && !query.error) {
-        newContacts[stage._id] = query.data.contacts.map((contact) => ({
+        newContacts[stage?._id] = query.data.contacts.map((contact) => ({
           _id: contact._id,
           name: contact.name || "Unnamed",
           email: contact.email || "No email",
+          businessName:contact?.businessName||"Nil",
+          tags: contact.tags || [],
           phone: contact.phone || "No ph no",
           probability:contact.probability||50
         }));
@@ -408,7 +413,7 @@ export default function PipelineBody({ pipelineId }: { pipelineId: string }) {
                           role="group"
                           aria-label={`Stage: ${stage.name}`}
                         >
-                          <SortableStage stage={stage} isFinalThree={index >= array.length - 3}/>
+                          <SortableStage stage={stage} count={localContacts[stage._id]?.length || 0} isFinalThree={index >= array.length - 3}/>
                           <div className="mx-2 mt-2 drop-target">
                             {contactQueries[stage._id]?.isLoading ? (
                               <div className="flex justify-center my-2">

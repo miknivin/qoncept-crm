@@ -11,10 +11,11 @@ interface Stage {
 
 interface SortableStageProps {
   stage: Stage;
+  count:number;
   isFinalThree: boolean; // New prop to indicate if stage is in the last three
 }
 
-function SortableStage({ stage, isFinalThree }: SortableStageProps) {
+function SortableStage({ stage, count=0, isFinalThree }: SortableStageProps) {
   const { attributes, setNodeRef, transform, transition } = useSortable({ id: `stage-${stage._id}` });
 
   const style = {
@@ -34,10 +35,11 @@ function SortableStage({ stage, isFinalThree }: SortableStageProps) {
       role="listitem"
       aria-label={`Stage: ${stage.name}`}
     >
-      <div className="flex justify-center items-center">
+      <div className="flex justify-center items-center flex-col">
         <h4 className={`font-medium text-lg ${isFinalThree ? "text-white dark:text-white" : "text-gray-800 dark:text-white/90"}`}>
           {stage.name}
         </h4>
+        <p className="font-light text-xs">{count} contacts</p>
       </div>
     </div>
   );
