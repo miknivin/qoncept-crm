@@ -22,13 +22,13 @@ const TimelineItem: React.FC<TimelineItemProps> = ({ activity }) => {
   const getActionText = (activity: ResponseActivity) => {
     switch (activity.action) {
       case 'CONTACT_CREATED':
-        return `${activity.user.name} created contact `;
+        return `${activity?.user?.name || "NIVIN"} created contact `;
       case 'NOTE_ADDED':
-        return `${activity.user.name} added a note`;
+        return `${activity?.user?.name || "NIVIN"} added a note`;
       case 'PIPELINE_STAGE_UPDATED':
-        return `${activity.user.name} updated pipeline stage to ${activity.details.stage || 'unknown'}`;
+        return `${activity?.user?.name || "NIVIN"} updated pipeline stage to ${activity.details.stage || 'unknown'}`;
       default:
-        return `${activity.user.name} performed ${activity.action}`;
+        return `${activity?.user?.name || "NIVIN"} performed ${activity.action}`;
     }
   };
 

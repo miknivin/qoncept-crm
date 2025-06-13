@@ -111,6 +111,9 @@ function SortableContact({ contact, data }: SortableContactProps) {
           <p className="text-xs text-gray-500 line-clamp-2 dark:text-gray-400">
             {contact.businessName || "Nil"}
           </p>
+          <a href={`tel:${contact.phone}`} className="text-xs underline text-gray-500 line-clamp-2 dark:text-gray-400">
+            {contact.phone || "Nil"}
+          </a>
           {
             contact?.tags && contact.tags.length > 0 && (
               contact.tags.slice(0, 2).map((tag, index) => (
