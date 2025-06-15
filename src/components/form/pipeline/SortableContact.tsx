@@ -99,7 +99,7 @@ function SortableContact({ contact, data }: SortableContactProps) {
       ref={setNodeRef}
       style={style}
       {...attributes}
-      className="mb-2 rounded-md border border-gray-200 bg-white py-2 px-3 dark:border-gray-700 dark:bg-gray-800 hover:shadow-sm"
+      className="mb-2 rounded-md border border-gray-200 bg-white py-2 px-3 dark:border-gray-700 dark:bg-gray-800 hover:shadow-sm touch-manipulation"
       role="listitem"
       aria-label={`Contact: ${contact.name || "Unnamed"}`}
     >

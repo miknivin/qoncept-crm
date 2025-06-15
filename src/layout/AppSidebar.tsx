@@ -26,7 +26,7 @@ type NavItem = {
   subItems?: { name: string; path: string; pro?: boolean; new?: boolean }[];
 };
 
-const navItems: NavItem[] = [
+const getNavItems = (isMobile: boolean): NavItem[] =>[
   {
     icon: <GridIcon />,
     name: "Dashboard",
@@ -50,7 +50,7 @@ const navItems: NavItem[] = [
   {
     name: "Pipelines",
     icon: <TableIcon />,
-    path: "/pipelines/682da76cb5aab2e983c88634",
+    path: isMobile ? "/pipelines/mobile/682da76cb5aab2e983c88634" : "/pipelines/682da76cb5aab2e983c88634",
   },
   {
     icon: <UsersIcon />,
@@ -94,8 +94,22 @@ const AppSidebar: React.FC = () => {
   const { user } = useSelector((state: RootState) => state.user);
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const pathname = usePathname();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [isMobile, setIsMobile] = useState(false);
+  const [navItems, setNavItems] = useState<NavItem[]>(getNavItems(false));
+  
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 768; // Tailwind 'md' breakpoint
+      setIsMobile(mobile);
+      setNavItems(getNavItems(mobile));
+    };
 
-  // Filter navItems based on user role
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
   const filteredNavItems = navItems.filter((item) => {
     if (user?.role === "user") {
       return ["Calendar", "Leave"].includes(item.name);
@@ -297,7 +311,7 @@ const AppSidebar: React.FC = () => {
 
   return (
     <aside
-      className={`fixed mt-16 flex flex-col lg:mt-0 top-0 px-5 left-0 bg-white dark:bg-gray-900 dark:border-gray-800 text-gray-900 h-screen transition-all duration-300 ease-in-out z-50 border-r border-gray-200 
+      className={`fixed mt-16 flex flex-col lg:mt-0 top-0 px-5 left-0 bg-white dark:bg-gray-900 dark:border-gray-800 text-gray-900 h-screen z-9999 transition-all duration-300 ease-in-out border-r border-gray-200 
         ${
           isExpanded || isMobileOpen
             ? "w-[250px]"

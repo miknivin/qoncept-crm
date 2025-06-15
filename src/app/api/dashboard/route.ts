@@ -108,7 +108,7 @@ export async function GET(req: NextRequest) {
         },
       },
     ]);
-    console.log(monthlyData,'monthlydata');
+   // console.log(monthlyData,'monthlydata');
     
     // Map month numbers to names
     const monthNames = [

@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 import dbConnect from '@/app/lib/db/connection';
 import Pipeline from '@/app/models/Pipeline';
 import Stage from '@/app/models/Stage';
-import Contact from '@/app/models/Contact';
+// import Contact from '@/app/models/Contact';
 import User from "@/app/models/User";
 // Interface for lean stage
 interface LeanStage {
@@ -52,7 +52,7 @@ interface LeanPipeline {
 // Interface for pipeline with stages and contacts
 interface PipelineWithDetails extends LeanPipeline {
   stages: LeanStage[];
-  contacts: LeanContact[];
+  contacts?: LeanContact[];
 }
 
 // Interface for API response
@@ -87,21 +87,21 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
         .lean() as unknown as LeanStage[];
 
     // Fetch contacts
-    const contacts = await Contact.find({ 'pipelinesActive.pipeline_id': id })
-        .populate([
-            { path: 'user', select: 'name email' },
-            { path: 'assignedTo.user', select: 'name email' },
-            { path: 'tags.user', select: 'name email' },
-            { path: 'activities.user', select: 'name email' },
-        ])
-        .lean() as unknown as LeanContact[];
+    // const contacts = await Contact.find({ 'pipelinesActive.pipeline_id': id })
+    //     .populate([
+    //         { path: 'user', select: 'name email' },
+    //         { path: 'assignedTo.user', select: 'name email' },
+    //         { path: 'tags.user', select: 'name email' },
+    //         { path: 'activities.user', select: 'name email' },
+    //     ])
+    //     .lean() as unknown as LeanContact[];
 
     // Combine response
     const response: PipelineByIdResponse = {
       pipeline: {
         ...pipeline,
         stages,
-        contacts,
+        // contacts,
       },
     };
 
