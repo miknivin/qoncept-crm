@@ -62,7 +62,7 @@ function MobileContactCard({ contact, stages, onStageChange, selectedStageFromPa
   const [selectedStage, setSelectedStage] = useState(contact.stageId || "");
   const [updateProbability, { isLoading: isProbabilityLoading }] = useUpdateProbabilityMutation();
   const { isOpen: isNotesModalOpen, openModal: openNotesModal, closeModal: closeNotesModal } = useModal();
-
+  const [longPress, setLongPress] = useState(false);
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -70,12 +70,34 @@ function MobileContactCard({ contact, stages, onStageChange, selectedStageFromPa
     opacity: transform ? 0.8 : 1,
   };
 
-  const handlePhoneClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
+const handlePhoneClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+  e.preventDefault(); 
+
+
+  if (longPress || !contact.phone) {
+    return;
+  }
+
+  const sanitizedPhone = contact.phone.replace(/[^+\d]/g, ''); 
+  window.location.href = `tel:${sanitizedPhone}`;
+};
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let longPressTimeout:any;
+  const handleTouchStart = () => {
+  // Start a timer for long press (e.g., 800ms)
+  longPressTimeout = setTimeout(() => {
+    setLongPress(true);
     if (contact.phone) {
-      window.location.href = `tel:${contact.phone}`;
+      // Open WhatsApp in a new tab
+      window.open(`https://wa.me/${contact.phone}?text=Hello`, '_blank');
     }
+  }, 800);
+};
+
+  const handleTouchEnd = () => {
+    // Clear the timeout if touch ends before long press
+    clearTimeout(longPressTimeout);
+    setLongPress(false);
   };
 
   const handleEmailClick = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -197,6 +219,9 @@ function MobileContactCard({ contact, stages, onStageChange, selectedStageFromPa
             <button
               type="button"
               onClick={handlePhoneClick}
+              onTouchStart={handleTouchStart}
+              onTouchEnd={handleTouchEnd}
+              onTouchCancel={handleTouchEnd} // Handle cases where touch is interrupted
               className={`flex items-center px-3 py-1 text-sm font-medium text-gray-900 bg-transparent border border-gray-300 rounded-md hover:bg-gray-100 dark:border-gray-600 dark:text-white dark:hover:bg-gray-700 ${
                 !contact.phone ? "opacity-50 cursor-not-allowed" : ""
               }`}

@@ -1,8 +1,11 @@
+/* eslint-disable @typescript-eslint/no-unused-expressions */
 import { NextRequest, NextResponse } from 'next/server';
 import mongoose, { Types } from 'mongoose';
 import Contact, { IContact, Tag } from '@/app/models/Contact';
 import dbConnect from '@/app/lib/db/connection';
 import { authorizeRoles, isAuthenticatedUser } from '../../../middlewares/auth';
+import Pipeline from '@/app/models/Pipeline';
+import User from '@/app/models/User';
 
 // Interface for request body
 interface UpdateContactRequest {
@@ -88,7 +91,7 @@ export async function PATCH(
         { status: 401 }
       );
     }
-
+    User
     // Authorize roles: admin or team_member
     try {
        authorizeRoles(currentUser, 'admin');
@@ -106,7 +109,7 @@ export async function PATCH(
     }
 
     const userId = new Types.ObjectId(currentUser._id);
-
+    Pipeline
     // Connect to MongoDB
     await dbConnect();
 
