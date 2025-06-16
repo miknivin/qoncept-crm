@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-expressions */
 import { NextRequest, NextResponse } from 'next/server';
 import mongoose, { Types } from 'mongoose';
@@ -6,6 +7,7 @@ import dbConnect from '@/app/lib/db/connection';
 import { authorizeRoles, isAuthenticatedUser } from '../../../middlewares/auth';
 import Pipeline from '@/app/models/Pipeline';
 import User from '@/app/models/User';
+import Stage from '@/app/models/Stage';
 
 // Interface for request body
 interface UpdateContactRequest {
@@ -19,7 +21,7 @@ export async function GET(
 ) {
   try {
     // Authenticate user
-    const currentUser = await isAuthenticatedUser(request);
+    const currentUser: any = await isAuthenticatedUser(request);
     if (!currentUser) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -44,6 +46,8 @@ export async function GET(
     }
 
     // Connect to MongoDB
+    Pipeline
+    Stage
     await dbConnect();
 
     // Get contact ID from params
@@ -110,6 +114,7 @@ export async function PATCH(
 
     const userId = new Types.ObjectId(currentUser._id);
     Pipeline
+    Stage
     // Connect to MongoDB
     await dbConnect();
 
