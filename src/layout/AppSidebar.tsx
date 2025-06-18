@@ -26,7 +26,7 @@ type NavItem = {
   subItems?: { name: string; path: string; pro?: boolean; new?: boolean }[];
 };
 
-const getNavItems = (isMobile: boolean): NavItem[] =>[
+const getNavItems = (isMobile: boolean): NavItem[] => [
   {
     icon: <GridIcon />,
     name: "Dashboard",
@@ -92,12 +92,11 @@ const othersItems: NavItem[] = [
 
 const AppSidebar: React.FC = () => {
   const { user } = useSelector((state: RootState) => state.user);
-  const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
+  const { isExpanded, isMobileOpen, isHovered, setIsHovered, toggleMobileSidebar } = useSidebar();
   const pathname = usePathname();
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [isMobile, setIsMobile] = useState(false);
   const [navItems, setNavItems] = useState<NavItem[]>(getNavItems(false));
-  
+
   useEffect(() => {
     const checkMobile = () => {
       const mobile = window.innerWidth < 768; // Tailwind 'md' breakpoint
@@ -120,6 +119,12 @@ const AppSidebar: React.FC = () => {
     return true; // Show all items for other roles (e.g., admin)
   });
 
+  const handleMenuClick = useCallback(() => {
+    if (isMobile && isMobileOpen) {
+      toggleMobileSidebar();
+    }
+  }, [isMobile, isMobileOpen, toggleMobileSidebar]);
+
   const renderMenuItems = (
     navItems: NavItem[],
     menuType: "main" | "others"
@@ -129,8 +134,11 @@ const AppSidebar: React.FC = () => {
         <li key={nav.name}>
           {nav.subItems ? (
             <button
-              onClick={() => handleSubmenuToggle(index, menuType)}
-              className={`menu-item group  ${
+              onClick={() => {
+                handleSubmenuToggle(index, menuType);
+                handleMenuClick();
+              }}
+              className={`menu-item group ${
                 openSubmenu?.type === menuType && openSubmenu?.index === index
                   ? "menu-item-active"
                   : "menu-item-inactive"
@@ -141,7 +149,7 @@ const AppSidebar: React.FC = () => {
               }`}
             >
               <span
-                className={` ${
+                className={`${
                   openSubmenu?.type === menuType && openSubmenu?.index === index
                     ? "menu-item-icon-active"
                     : "menu-item-icon-inactive"
@@ -154,7 +162,7 @@ const AppSidebar: React.FC = () => {
               )}
               {(isExpanded || isHovered || isMobileOpen) && (
                 <ChevronDownIcon
-                  className={`ml-auto w-5 h-5 transition-transform duration-200  ${
+                  className={`ml-auto w-5 h-5 transition-transform duration-200 ${
                     openSubmenu?.type === menuType &&
                     openSubmenu?.index === index
                       ? "rotate-180 text-brand-500"
@@ -167,6 +175,7 @@ const AppSidebar: React.FC = () => {
             nav.path && (
               <Link
                 href={nav.path}
+                onClick={handleMenuClick}
                 className={`menu-item group ${
                   isActive(nav.path) ? "menu-item-active" : "menu-item-inactive"
                 }`}
@@ -204,6 +213,7 @@ const AppSidebar: React.FC = () => {
                   <li key={subItem.name}>
                     <Link
                       href={subItem.path}
+                      onClick={handleMenuClick}
                       className={`menu-dropdown-item ${
                         isActive(subItem.path)
                           ? "menu-dropdown-item-active"
@@ -250,9 +260,7 @@ const AppSidebar: React.FC = () => {
     type: "main" | "others";
     index: number;
   } | null>(null);
-  const [subMenuHeight, setSubMenuHeight] = useState<Record<string, number>>(
-    {}
-  );
+  const [subMenuHeight, setSubMenuHeight] = useState<Record<string, number>>({});
   const subMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const isActive = useCallback((path: string) => path === pathname, [pathname]);
@@ -284,7 +292,7 @@ const AppSidebar: React.FC = () => {
   }, [pathname, isActive, filteredNavItems]);
 
   useEffect(() => {
-    // Set the height of the submenu items when the submenu is opened
+    // Set the height of the submenu items when the sidebar or submenu is opened
     if (openSubmenu !== null) {
       const key = `${openSubmenu.type}-${openSubmenu.index}`;
       if (subMenuRefs.current[key]) {
@@ -294,7 +302,7 @@ const AppSidebar: React.FC = () => {
         }));
       }
     }
-  }, [openSubmenu]);
+  }, [openSubmenu, isMobileOpen, isExpanded, isHovered]);
 
   const handleSubmenuToggle = (index: number, menuType: "main" | "others") => {
     setOpenSubmenu((prevOpenSubmenu) => {
@@ -325,7 +333,7 @@ const AppSidebar: React.FC = () => {
       onMouseLeave={() => setIsHovered(false)}
     >
       <div
-        className={`py-8 flex  ${
+        className={`py-8 flex ${
           !isExpanded && !isHovered ? "lg:justify-center" : "justify-start"
         }`}
       >
@@ -349,20 +357,20 @@ const AppSidebar: React.FC = () => {
             </>
           ) : (
             <>
-            <Image
-              className="dark:hidden"
-              src="/images/logo/logo-icon-light.svg"
-              alt="Logo"
-              width={32}
-              height={32}
-            />
-            <Image
-              className="hidden dark:block"
-              src="/images/logo/logo-icon.svg"
-              alt="Logo"
-              width={32}
-              height={32}
-            />
+              <Image
+                className="dark:hidden"
+                src="/images/logo/logo-icon-light.svg"
+                alt="Logo"
+                width={32}
+                height={32}
+              />
+              <Image
+                className="hidden dark:block"
+                src="/images/logo/logo-icon.svg"
+                alt="Logo"
+                width={32}
+                height={32}
+              />
             </>
           )}
         </Link>
@@ -371,19 +379,6 @@ const AppSidebar: React.FC = () => {
         <nav className="mb-6">
           <div className="flex flex-col gap-4">
             <div>
-              {/* <h2
-                className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
-                  !isExpanded && !isHovered
-                    ? "lg:justify-center"
-                    : "justify-start"
-                }`}
-              >
-                {isExpanded || isHovered || isMobileOpen ? (
-                  "Menu"
-                ) : (
-                  <HorizontaLDots />
-                )}
-              </h2> */}
               {renderMenuItems(filteredNavItems, "main")}
             </div>
             {/* Commented out Others section */}

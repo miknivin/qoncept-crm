@@ -188,7 +188,8 @@ const { user } = useSelector((state: RootState) => state.user);
   const isAllSelected =
     (data?.contacts?.length ?? 0) > 0 &&
     data?.contacts?.every((contact) => selectedContacts.includes(contact._id));
-
+  
+  const isAdmin = user && user.role === "admin";
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
       <div className="mb-2 px-5 py-3 flex gap-3 justify-between">
@@ -262,14 +263,16 @@ const { user } = useSelector((state: RootState) => state.user);
         <table className="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
           <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
             <tr>
-              <th scope="col" className="px-5 py-3 w-12">
-                <input
-                  type="checkbox"
-                  className={`${checkBoxClass}`}
-                  checked={isAllSelected}
-                  onChange={handleSelectAll}
-                />
-              </th>
+              {isAdmin && (
+                <th scope="col" className="px-5 py-3 w-12">
+                  <input
+                    type="checkbox"
+                    className={`${checkBoxClass}`}
+                    checked={isAllSelected}
+                    onChange={handleSelectAll}
+                  />
+                </th>
+              )}
               <th scope="col" className="px-5 py-3">
                 Contact
               </th>
@@ -282,9 +285,11 @@ const { user } = useSelector((state: RootState) => state.user);
               <th scope="col" className="px-5 py-3">
                 Notes
               </th>
-              <th scope="col" className="px-5 py-3">
-                Action
-              </th>
+              {isAdmin && (
+                <th scope="col" className="px-5 py-3">
+                  Action
+                </th>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -318,14 +323,16 @@ const { user } = useSelector((state: RootState) => state.user);
                   key={contact._id}
                   className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200"
                 >
-                  <td className="px-5 py-4 w-12">
-                    <input
-                      type="checkbox"
-                      className={`${checkBoxClass}`}
-                      checked={selectedContacts.includes(contact._id)}
-                      onChange={() => handleCheckboxChange(contact._id)}
-                    />
-                  </td>
+                  {isAdmin && (
+                    <td className="px-5 py-4 w-12">
+                      <input
+                        type="checkbox"
+                        className={`${checkBoxClass}`}
+                        checked={selectedContacts.includes(contact._id)}
+                        onChange={() => handleCheckboxChange(contact._id)}
+                      />
+                    </td>
+                  )}
                   <th
                     scope="row"
                     className="px-5 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white"
@@ -360,16 +367,18 @@ const { user } = useSelector((state: RootState) => state.user);
                       {contact.notes || "No notes"}
                     </div>
                   </td>
-                  <td className="px-5 py-4">
-                    <div className="flex flex-wrap">
-                      <Link
-                        href={`contacts/${contact._id}`}
-                        className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-2.5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800"
-                      >
-                        <EditIcon />
-                      </Link>
-                    </div>
-                  </td>
+                  {isAdmin && (
+                    <td className="px-5 py-4">
+                      <div className="flex flex-wrap">
+                        <Link
+                          href={`contacts/${contact._id}`}
+                          className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-2.5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800"
+                        >
+                          <EditIcon />
+                        </Link>
+                      </div>
+                    </td>
+                  )}
                 </tr>
               ))}
           </tbody>

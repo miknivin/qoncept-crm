@@ -12,6 +12,10 @@ import { Modal } from "@/components/ui/modal";
 import NotesAndTagsForm from "../pipeline/NotesAndTagForm";
 import { toast } from "react-toastify";
 import DragGripIcon from "@/components/ui/flowbiteIcons/DragGrip";
+import Link from "next/link";
+import RedirectIcon from "@/components/ui/flowbiteIcons/Redirect";
+import { useSelector } from "react-redux";
+import { RootState } from "@/app/redux/rootReducer";
 
 interface Tag {
   user: string;
@@ -64,6 +68,7 @@ function MobileContactCard({ contact, stages, onStageChange, selectedStageFromPa
   const { isOpen: isNotesModalOpen, openModal: openNotesModal, closeModal: closeNotesModal } = useModal();
   const [longPress, setLongPress] = useState(false);
 
+  const { user } = useSelector((state: RootState) => state.user);
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -149,7 +154,7 @@ let longPressTimeout:any;
       className="relative rounded-md border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800"
     >
       {selectedStageFromParent!=="all"&&(
-        <div {...listeners} className="absolute top-[-8px] right-[-8px] z-99 rounded-md p-2 bg-blue-700 cursor-move text-white touch-none">
+        <div {...listeners} className="absolute top-[-8px] right-[-8px] z-50 rounded-md p-2 bg-blue-700 cursor-move text-white touch-none">
         <DragGripIcon />
       </div>
       )}
@@ -248,6 +253,15 @@ let longPressTimeout:any;
             >
               <NotesIcon />
             </button>
+           {user && user.role==="admin"&&(
+            <Link
+              href={`/contacts/${contact._id||"684fbbf3a1b0e8eda0c7cfa4"}`}
+              className="flex items-center px-3 py-1 text-sm font-medium text-gray-900 bg-transparent border border-gray-300 rounded-md hover:bg-gray-100 dark:border-gray-600 dark:text-white dark:hover:bg-gray-700"
+            >
+              <RedirectIcon  />
+            </Link>
+           )}
+            
           </div>
           <div className="flex items-center gap-3">
             <input

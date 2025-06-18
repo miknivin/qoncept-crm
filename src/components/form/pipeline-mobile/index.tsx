@@ -249,7 +249,7 @@ useEffect(() => {
         )}
         {!isPipelineLoading && !isContactsLoading && !error && data?.pipeline && (
           <>
-            <div className="flex flex-col md:flex-row sm:items-center sm:justify-between gap-4 mb-6 p-3 sticky top-16 z-999 bg-white dark:border-gray-800 rounded-xl dark:bg-gray-900">
+            <div className="flex flex-col md:flex-row sm:items-center sm:justify-between gap-4 mb-6 p-3 sticky top-16 z-99 bg-white dark:border-gray-800 rounded-xl dark:bg-gray-900">
             <div className="flex justify-between flex-nowrap">
               <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
                 {data.pipeline.name}
