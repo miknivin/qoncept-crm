@@ -1,13 +1,14 @@
 "use client";
-import { useCreatePipelineMutation } from "@/app/redux/api/pipelineApi";
+import { useUpdatePipelineMutation, useGetPipelineByIdQuery } from "@/app/redux/api/pipelineApi";
 import Button from "@/components/ui/button/Button";
 import ShortSpinnerDark from "@/components/ui/loaders/ShortSpinnerDark";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { RootState } from "@/app/redux/rootReducer";
 import { toast } from "react-toastify";
-import StageList from "./StagesDnd";
+import StageList, { StageDrop } from "./StagesDnd";
 import styles from "./AddPipelineForm.module.css";
+
 // Define interfaces
 interface StageInput {
   name: string;
@@ -15,15 +16,17 @@ interface StageInput {
 }
 
 interface Stage extends StageInput {
-  id: string; // Unique ID for React DnD
-  order: number; // Assigned based on position
+  id: string; 
+  order: number; 
+  stage_id?: string; 
 }
 
-interface AddPipelineFormProps {
+interface EditPipelineFormProps {
+  pipelineId: string;
   onClose: () => void;
 }
 
-export default function AddPipelineForm({ onClose }: AddPipelineFormProps) {
+export default function EditPipelineForm({ pipelineId, onClose }: EditPipelineFormProps) {
   const { user } = useSelector((state: RootState) => state.user);
   const [formData, setFormData] = useState({
     name: "",
@@ -34,7 +37,27 @@ export default function AddPipelineForm({ onClose }: AddPipelineFormProps) {
   const [stageInput, setStageInput] = useState<StageInput>({ name: "", probability: "" });
   const [error, setError] = useState<string | null>(null);
   const [stageError, setStageError] = useState<string | null>(null);
-  const [createPipeline, { isLoading }] = useCreatePipelineMutation();
+  const [updatePipeline, { isLoading: isUpdating }] = useUpdatePipelineMutation();
+  const { data: pipelineData, isLoading: isFetching, error: fetchError } = useGetPipelineByIdQuery(pipelineId);
+
+  // Prefill form with pipeline data
+  useEffect(() => {
+    if (pipelineData?.pipeline) {
+      const { name, notes, stages } = pipelineData.pipeline;
+      setFormData({
+        name: name || "",
+        notes: notes || "",
+        userId: user ? user._id : "",
+        stages: stages.map((stage, index) => ({
+          id: stage._id, // Use backend _id for React DnD
+          stage_id: stage._id, // Backend stage ID for updates
+          name: stage.name,
+          probability: stage.probability, // Convert to percentage
+          order: stage.order || index + 1,
+        })),
+      });
+    }
+  }, [pipelineData, user]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -92,10 +115,6 @@ export default function AddPipelineForm({ onClose }: AddPipelineFormProps) {
     }));
   };
 
-//   const setStages = (stages: Stage[]) => {
-//     setFormData((prev) => ({ ...prev, stages }));
-//   };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -106,17 +125,18 @@ export default function AddPipelineForm({ onClose }: AddPipelineFormProps) {
     }
 
     try {
-      const response = await createPipeline({
+      const response = await updatePipeline({
+        pipelineId,
         name: formData.name,
-        notes: formData.notes,
-        userId: formData.userId || "",
+        notes: formData.notes || null,
         stages: formData.stages.map((stage) => ({
+          stage_id: stage.stage_id, // Include stage_id for existing stages
           name: stage.name,
           order: stage.order,
-          probability: typeof stage.probability === "number" ? stage.probability : Number(stage.probability),
+          probability: typeof stage.probability === "number" ? stage.probability / 100 : Number(stage.probability) / 100, // Convert to 0-1
         })),
       }).unwrap();
-      console.log("Pipeline created:", response.pipeline);
+      console.log("Pipeline updated:", response.pipeline);
       setFormData({
         name: "",
         notes: "",
@@ -125,17 +145,25 @@ export default function AddPipelineForm({ onClose }: AddPipelineFormProps) {
       });
       setStageInput({ name: "", probability: "" });
       onClose();
-      toast.success("Pipeline and stages added successfully");
+      toast.success("Pipeline and stages updated successfully");
     } catch (err: unknown) {
-      console.error("Error creating pipeline:", err);
-      setError("Failed to create pipeline");
+      console.error("Error updating pipeline:", err);
+      setError("Failed to update pipeline");
     }
   };
+
+  if (isFetching) {
+    return <ShortSpinnerDark />;
+  }
+
+  if (fetchError) {
+    return <p className="text-red-500">Error loading pipeline data</p>;
+  }
 
   return (
     <>
       <h2 className="mb-2 font-semibold text-gray-800 modal-title text-theme-xl dark:text-white/90 lg:text-2xl">
-        Add New Pipeline
+        Edit Pipeline
       </h2>
       <form onSubmit={handleSubmit} className="space-y-4 max-h-[85vh] overflow-y-auto">
         <div>
@@ -180,33 +208,32 @@ export default function AddPipelineForm({ onClose }: AddPipelineFormProps) {
             role="group"
             aria-label="Enter stages"
           >
-           {formData.stages.filter(stage => typeof stage.probability === 'number').length > 0 && (
-                <StageList
-                    stages={formData.stages.filter(
-                    (stage): stage is Stage => typeof stage.probability === 'number'
-                    )}
-                    setStages={(updated) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        stages: updated.map((stage) => ({
-                          ...stage,
-                          probability: stage.probability ?? 0, // or handle as needed
-                        })),
-                      }))
-                    }
-                    handleStageRemove={handleStageRemove}
-                />
-                )}
-
-            
+            {formData.stages.filter((stage) => typeof stage.probability === "number").length > 0 && (
+             <StageList
+                stages={formData.stages as StageDrop[]} // Cast to StageDrop
+                setStages={(updated: StageDrop[]) =>
+                  setFormData((prev) => ({
+                                      ...prev,
+                                      stages: updated
+                                        .map((stage, idx) => ({
+                                          ...stage,
+                                          order: idx + 1,
+                                          probability: stage.probability !== undefined ? stage.probability : 0.5,
+                                        })) // Reassign orders and ensure probability is present
+                                        .sort((a, b) => a.order - b.order), // Sort after DnD
+                                    }))
+                }
+                handleStageRemove={handleStageRemove}
+              />
+            )}
             <div className="space-y-2">
-               <input
+              <input
                 type="text"
                 name="name"
                 value={stageInput.name}
                 onChange={handleStageInputChange}
                 placeholder="Stage name"
-                className={`w-full outline-none text-sm text-gray-800 bg-transparent placeholder:text-gray-400 dark:text-white/90 dark:placeholder:text-white/30 p-2 focus:bg-transparent ${styles.noAutofillBg} border border-gray-300 mb-2 dark:border-gray-700 `}
+                className={`w-full outline-none text-sm text-gray-800 bg-transparent placeholder:text-gray-400 dark:text-white/90 dark:placeholder:text-white/30 p-2 focus:bg-transparent ${styles.noAutofillBg} border border-gray-300 mb-2 dark:border-gray-700`}
                 aria-label="Stage name"
               />
               <input
@@ -238,8 +265,8 @@ export default function AddPipelineForm({ onClose }: AddPipelineFormProps) {
           <Button type="button" onClick={onClose} variant="outline">
             Cancel
           </Button>
-          <Button type="submit" variant="primary" disabled={isLoading}>
-            {isLoading ? <ShortSpinnerDark /> : "Save Pipeline"}
+          <Button type="submit" variant="primary" disabled={isUpdating || isFetching}>
+            {isUpdating ? <ShortSpinnerDark /> : "Update Pipeline"}
           </Button>
         </div>
       </form>

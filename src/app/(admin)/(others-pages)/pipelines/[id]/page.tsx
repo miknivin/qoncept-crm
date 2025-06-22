@@ -1,5 +1,5 @@
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
-import PipelineBody from "@/components/form/pipeline";
+import PipelineBody from "@/components/pipeline";
 import { Metadata } from "next";
 import React from "react";
 import mongoose from "mongoose";

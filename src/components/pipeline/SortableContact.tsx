@@ -6,7 +6,7 @@ import PhoneIcon from "@/components/ui/flowbiteIcons/Phone";
 import EmailIcon from "@/components/ui/flowbiteIcons/Email";
 import NotesIcon from "@/components/ui/flowbiteIcons/Notes";
 import { useUpdateProbabilityMutation } from "@/app/redux/api/contactApi";
-import VeryShortSpinnerPrimary from "./../../ui/loaders/veryShortSpinnerPrimary";
+import VeryShortSpinnerPrimary from "../ui/loaders/veryShortSpinnerPrimary";
 import { useModal } from "@/hooks/useModal";
 import { Modal } from "@/components/ui/modal";
 import QRCodeModalContent from "@/components/qr-code/QRCodeModalContent";

@@ -283,6 +283,9 @@ const { user } = useSelector((state: RootState) => state.user);
                 Tags
               </th>
               <th scope="col" className="px-5 py-3">
+                Created at
+              </th>
+              <th scope="col" className="px-5 py-3">
                 Notes
               </th>
               {isAdmin && (
@@ -360,6 +363,15 @@ const { user } = useSelector((state: RootState) => state.user);
                       ) : (
                         <span>None</span>
                       )}
+                    </div>
+                  </td>
+                  <td className="px-5 py-4">
+                    <div className="max-w-36 line-clamp-3">
+                      {new Date(contact.createdAt).toLocaleDateString('en-GB', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: '2-digit',
+                      })}
                     </div>
                   </td>
                   <td className="px-5 py-4">

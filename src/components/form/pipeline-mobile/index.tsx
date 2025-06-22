@@ -51,7 +51,7 @@ export default function MobilePipelineBody({ pipelineId }: { pipelineId: string 
   const [batchUpdateContactDrag, { isLoading: isBatchUpdating }] = useBatchUpdateContactDragMutation();
   const [localStages, setLocalStages] = useState<Stage[]>([]);
   const [localContacts, setLocalContacts] = useState<Contact[]>([]);
-  const [selectedStage, setSelectedStage] = useState<string>("682da76db5aab2e983c88636");
+  const [selectedStage, setSelectedStage] = useState<string>(process.env.NEXT_PUBLIC_DEFAULT_STAGE|| "682da76db5aab2e983c88636");
   const [pendingUpdates, setPendingUpdates] = useState<BatchUpdate[]>([]);
   const { contactQueries, isLoading: isContactsLoading, refetch } = useFetchContactsWithLoading(pipelineId, localStages);
 

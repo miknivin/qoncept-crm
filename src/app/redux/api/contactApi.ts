@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { IContact } from "@/app/models/Contact";
 
@@ -148,6 +149,19 @@ interface GetContactNotesAndTagsResponse {
   tags: Tag[];
 }
 
+interface ContactPayload {
+  contacts: any[];
+  assignedUsers: string[];
+  assignType: "every" | "equally" | "roundRobin";
+  addToPipeline: boolean;
+}
+
+interface BulkImportContactsResponse {
+  message: string;
+  contacts: ResponseContact[];
+  failed: { contact: any; error: string }[];
+}
+
 export const contactApi = createApi({
   reducerPath: "contactApi",
   baseQuery: fetchBaseQuery({
@@ -159,6 +173,14 @@ export const contactApi = createApi({
     createContact: builder.mutation<ContactResponse, ContactRequest>({
       query: (body) => ({
         url: "/contacts",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Contacts"],
+    }),
+     bulkImportContacts: builder.mutation<BulkImportContactsResponse, ContactPayload>({
+      query: (body) => ({
+        url: "/contacts/bulk",
         method: "POST",
         body,
       }),
@@ -245,6 +267,7 @@ export const contactApi = createApi({
 
 export const {
   useCreateContactMutation,
+  useBulkImportContactsMutation,
   useGetContactsQuery,
   useUpdateContactsPipelineMutation,
   useBatchUpdateContactDragMutation,

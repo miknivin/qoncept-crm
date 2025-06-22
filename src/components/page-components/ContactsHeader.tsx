@@ -5,11 +5,13 @@ import { useModal } from "@/hooks/useModal"; // Adjust path to your useModal hoo
 import AddContactForm from "../form/contact-form/Add-Form";
 import FilterIcons from "../ui/flowbiteIcons/Filter";
 import ContactOffCanvas from "../ui/drawer/ContactOffCanvas";
+import FileIcon from "../ui/flowbiteIcons/File";
+import ContactImportStepper from "../form/contact-form/bulk-upload/ContactImportStepper";
 
 export default function ContactsHeader() {
   const { isOpen: isAddModalOpen, openModal: openAddModal, closeModal: closeAddModal } = useModal();
   const { isOpen: isFilterOpen, openModal: openFilter, closeModal: closeFilter } = useModal();
-
+    const { isOpen: isImportModalOpen, openModal: openImportModal, closeModal: closeImportModal } = useModal();
   return (
     <>
       <div className="flex flex-col lg:flex-row gap-2 lg:gap-0 items-start justify-between lg:items-center w-full my-5">
@@ -20,12 +22,18 @@ export default function ContactsHeader() {
             <Button size="sm" variant="outline" endIcon={<FilterIcons />} onClick={() => openFilter()}>
               Filter
             </Button>
+            <Button size="sm" variant="outline" endIcon={<FileIcon />} onClick={() => openImportModal()}>
+              Bulk import
+            </Button>
             <Button onClick={() => openAddModal()} size="sm" variant="primary">
               Add contact +
             </Button>
           </div>
         </div>
       </div>
+      <Modal isOpen={isImportModalOpen} onClose={closeImportModal} className="max-w-[700px] p-6 lg:p-10">
+        <ContactImportStepper onClose={closeImportModal} />
+      </Modal>
       <Modal isOpen={isAddModalOpen} onClose={closeAddModal} className="max-w-[700px] p-6 lg:p-10">
         <AddContactForm onClose={closeAddModal} />
       </Modal>

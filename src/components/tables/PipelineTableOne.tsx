@@ -10,12 +10,16 @@ import EditIcon from "../ui/flowbiteIcons/EditIcon";
 import { useGetPipelinesQuery } from "@/app/redux/api/pipelineApi";
 import { formatDateTime } from "@/helpers/formatDate";
 import Link from "next/link";
+import EditPencilIcon from "../ui/flowbiteIcons/EditPencil";
+import { Modal } from "../ui/modal";
+import EditPipelineForm from "../form/pipeline-form/EditPipelineForm";
 
 const PipelineTableOne: React.FC = () => {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [search, setSearch] = useState("");
-
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedPipelineId, setSelectedPipelineId] = useState<string | null>(null);
   const { data, error, isLoading } = useGetPipelinesQuery({
     page,
     limit,
@@ -44,6 +48,17 @@ const PipelineTableOne: React.FC = () => {
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearch(e.target.value);
     setPage(1);
+  };
+
+  const openModal = (pipelineId: string) => {
+    setSelectedPipelineId(pipelineId);
+    setIsModalOpen(true);
+  };
+
+  
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedPipelineId(null);
   };
 
   return (
@@ -127,10 +142,10 @@ const PipelineTableOne: React.FC = () => {
                   <td className="px-5 py-4">
                     <div>
                       <span className="block text-gray-800 text-sm dark:text-white/90">
-                        {pipeline.user.name}
+                        {pipeline?.user?.name||"nil"}
                       </span>
                       <span className="block text-gray-500 text-xs dark:text-gray-400">
-                        {pipeline.user.email}
+                        {pipeline?.user?.email || "nil"}
                       </span>
                     </div>
                   </td>
@@ -157,6 +172,13 @@ const PipelineTableOne: React.FC = () => {
                       >
                         <EditIcon />
                       </Link>
+                      <button
+                        type="button"
+                        onClick={() => openModal(pipeline._id)}
+                        className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-2.5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800"
+                      >
+                        <EditPencilIcon />
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -179,6 +201,9 @@ const PipelineTableOne: React.FC = () => {
           />
         </div>
       )}
+      <Modal isOpen={isModalOpen} onClose={closeModal} className="max-w-[700px] p-6 lg:p-10">
+              <EditPipelineForm pipelineId={selectedPipelineId || ""} onClose={closeModal} />
+        </Modal>
     </div>
   );
 };

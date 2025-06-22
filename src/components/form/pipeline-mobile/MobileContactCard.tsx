@@ -9,7 +9,7 @@ import { useUpdateProbabilityMutation } from "@/app/redux/api/contactApi";
 import VeryShortSpinnerPrimary from "@/components/ui/loaders/veryShortSpinnerPrimary";
 import { useModal } from "@/hooks/useModal";
 import { Modal } from "@/components/ui/modal";
-import NotesAndTagsForm from "../pipeline/NotesAndTagForm";
+import NotesAndTagsForm from "../../pipeline/NotesAndTagForm";
 import { toast } from "react-toastify";
 import DragGripIcon from "@/components/ui/flowbiteIcons/DragGrip";
 import Link from "next/link";

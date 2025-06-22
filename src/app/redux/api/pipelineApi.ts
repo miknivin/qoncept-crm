@@ -125,6 +125,13 @@ interface GetStagesByPipelineIdResponse {
   data: MinimalStage[];
 }
 
+interface UpdatePipelineRequest {
+  pipelineId: string;
+  name?: string;
+  notes?: string | null;
+  stages?: StageRequest[];
+}
+
 export const pipelineApi = createApi({
   reducerPath: "pipelineApi",
   baseQuery: fetchBaseQuery({
@@ -157,6 +164,14 @@ export const pipelineApi = createApi({
     getPipelineById: builder.query<GetPipelineByIdResponse, string>({
       query: (id) => `/pipelines/pipeline-by-id/${id}`,
       providesTags: (result, error, id) => [{ type: "Pipelines", id }],
+    }),
+    updatePipeline: builder.mutation<PipelineResponse, UpdatePipelineRequest>({
+      query: ({ pipelineId, ...body }) => ({
+        url: `/pipelines/${pipelineId}`, // Updated endpoint
+        method: "PUT",
+        body,
+      }),
+      invalidatesTags: ["Pipelines", "Stages"],
     }),
     getContactsByStage: builder.query<GetContactsByStageResponse, { pipelineId: string; stageId: string }>({
       query: ({ pipelineId, stageId }) => ({
@@ -191,4 +206,5 @@ export const {
   useGetContactsByStageQuery,
   useGetAllPipelinesLeanQuery,
   useGetStagesByPipelineIdQuery,
+  useUpdatePipelineMutation
 } = pipelineApi;

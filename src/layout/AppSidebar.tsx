@@ -25,7 +25,7 @@ type NavItem = {
   path?: string;
   subItems?: { name: string; path: string; pro?: boolean; new?: boolean }[];
 };
-
+const pipelineId = process.env.NEXT_PUBLIC_DEFAULT_PIPELINE;
 const getNavItems = (isMobile: boolean): NavItem[] => [
   {
     icon: <GridIcon />,
@@ -50,7 +50,7 @@ const getNavItems = (isMobile: boolean): NavItem[] => [
   {
     name: "Pipelines",
     icon: <TableIcon />,
-    path: isMobile ? "/pipelines/mobile/682da76cb5aab2e983c88634" : "/pipelines/682da76cb5aab2e983c88634",
+    path: isMobile? `/pipelines/mobile/${pipelineId}`: `/pipelines/${pipelineId}`,
   },
   {
     icon: <UsersIcon />,

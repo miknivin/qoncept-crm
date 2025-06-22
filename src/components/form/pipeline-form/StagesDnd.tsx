@@ -20,8 +20,9 @@ import { CSS } from "@dnd-kit/utilities";
 export interface StageDrop {
   id: string;
   name: string;
-  probability: number;
   order: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  probability?:any | 0.5;
 }
 
 interface StageItemProps {
@@ -54,9 +55,7 @@ const StageItem = ({ stage, onRemove }: StageItemProps) => {
       {...listeners}
       className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-white/90 cursor-move"
     >
-      <span>
-        {stage.name} (Probability: {stage.probability}%)
-      </span>
+      <span>{stage.name}</span>
       <button
         type="button"
         onClick={() => onRemove(stage.name)}
@@ -79,12 +78,15 @@ interface StageListProps {
 export default function StageList({ stages, setStages, handleStageRemove }: StageListProps) {
   const sensors = useSensors(useSensor(PointerSensor));
 
+  // Ensure stages are initially sorted by order
+  const sortedStages = [...stages].sort((a, b) => a.order - b.order);
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (active.id !== over?.id) {
-      const oldIndex = stages.findIndex((s) => s.id === active.id);
-      const newIndex = stages.findIndex((s) => s.id === over?.id);
-      const reordered = arrayMove(stages, oldIndex, newIndex).map((s, idx) => ({
+      const oldIndex = sortedStages.findIndex((s) => s.id === active.id);
+      const newIndex = sortedStages.findIndex((s) => s.id === over?.id);
+      const reordered = arrayMove(sortedStages, oldIndex, newIndex).map((s, idx) => ({
         ...s,
         order: idx + 1,
       }));
@@ -94,9 +96,9 @@ export default function StageList({ stages, setStages, handleStageRemove }: Stag
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-      <SortableContext items={stages.map((s) => s.id)} strategy={verticalListSortingStrategy}>
+      <SortableContext items={sortedStages.map((s) => s.id)} strategy={verticalListSortingStrategy}>
         <div className="flex flex-col gap-2 mb-2">
-          {stages.map((stage) => (
+          {sortedStages.map((stage) => (
             <StageItem key={stage.id} stage={stage} onRemove={handleStageRemove} />
           ))}
         </div>
