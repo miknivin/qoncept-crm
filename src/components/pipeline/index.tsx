@@ -47,6 +47,7 @@ interface AssignedTo {
   user: User;
   time: string; // Use string for frontend to handle ISO date strings
 }
+
 interface Stage {
   _id: string;
   name: string;
@@ -106,7 +107,7 @@ export default function PipelineBody({ pipelineId }: { pipelineId: string }) {
           name: contact.name || "Unnamed",
           email: contact.email || "No email",
           businessName:contact?.businessName||"Nil",
-          assignedTo: contact?.assignedTo,
+          assignedTo: contact?.assignedTo || [],
           tags: contact.tags || [],
           phone: contact.phone || "No ph no",
           probability:contact.probability||50

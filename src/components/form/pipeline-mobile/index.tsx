@@ -14,8 +14,23 @@ import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, us
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { useBatchUpdateContactDragMutation } from "@/app/redux/api/contactApi";
 import { get, set, del } from "idb-keyval";
-import { Tag } from "@/app/models/Contact";
 import useAutoSave from "@/hooks/useAutoSave";
+
+interface Tag {
+  user: string;
+  name: string;
+}
+
+interface User {
+  _id: string;
+  name: string;
+  email: string;
+}
+
+interface AssignedTo {
+  user: User;
+  time: string; // Use string for frontend to handle ISO date strings
+}
 
 interface Contact {
   _id: string;
@@ -24,6 +39,7 @@ interface Contact {
   phone: string;
   businessName?: string;
   tag?:Tag;
+  assignedTo?: AssignedTo[];
   probability?: number;
   stageId?: string;
 }
@@ -74,6 +90,7 @@ useEffect(() => {
         email: contact.email || "No email",
         businessName: contact.businessName || "Nil",
         phone: contact.phone || "No phone",
+        assignedTo: contact?.assignedTo || [],
         probability: contact.probability || 50,
         stageId: stage._id,
         tags: contact.tags || [],

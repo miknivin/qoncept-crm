@@ -22,6 +22,17 @@ interface Tag {
   name: string;
 }
 
+interface User {
+  _id: string;
+  name: string;
+  email: string;
+}
+
+interface AssignedTo {
+  user: User;
+  time: string; 
+}
+
 interface Contact {
   _id: string;
   name?: string;
@@ -29,6 +40,7 @@ interface Contact {
   phone?: string;
   businessName?: string;
   probability?: number;
+  assignedTo?: AssignedTo[];
   notes?: string;
   tags?: Tag[];
   stageId?: string;
@@ -145,7 +157,7 @@ let longPressTimeout:any;
     setSelectedStage(newStageId);
     onStageChange(contact._id, newStageId);
   };
-
+  const isAdmin = user && user.role === "admin";
   return (
     <div
       ref={setNodeRef}
@@ -174,6 +186,11 @@ let longPressTimeout:any;
             >
               {contact.phone || "No phone"}
             </a>
+             {isAdmin&&(
+              <p className="text-xs text-blue-500 dark:text-blue-400">
+                {contact?.assignedTo?.map((assigned) => assigned.user.name).join(", ") || "None"}
+              </p>
+               )}
           </div>
           <div className="relative">
             <select
