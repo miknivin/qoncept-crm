@@ -1,6 +1,24 @@
 import axios from "axios";
 
+
+interface User {
+  _id: string;
+  name: string;
+  email: string;
+}
+
+interface Tag {
+  user: string;
+  name: string;
+}
+
+interface AssignedTo {
+  user: User;
+  time: string; 
+}
+
 interface Contact {
+  assignedTo?: AssignedTo[];
   _id: string;
   name: string;
   email: string;
@@ -9,7 +27,7 @@ interface Contact {
   businessName?:string;
   source?: string;
   user?: { name: string; email: string };
-  tags: Array<{ user: { name: string; email: string }; name: string }>;
+  tags: Tag[];
   pipelinesActive: Array<{ pipeline_id: string; stage_id: string; order: number }>;
   createdAt: Date;
   updatedAt: Date;

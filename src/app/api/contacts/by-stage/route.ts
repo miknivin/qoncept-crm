@@ -25,6 +25,10 @@ export interface GetContactsByStageResponse {
     businessName?:string;
     user?: { name: string; email: string };
     tags: Array<{ user: { name: string; email: string }; name: string }>;
+    assignedTo?: Array<{
+      user: { name: string; email: string; _id: string };
+      time: Date;
+    }>;
     pipelinesActive: Array<{
       pipeline_id: string;
       stage_id: string;
@@ -94,6 +98,7 @@ export async function GET(req: NextRequest) {
       .select("name email phone notes user source tags businessName probability pipelinesActive createdAt updatedAt")
       .populate("user", "name email")
       .populate("tags.user", "name email")
+      .populate("assignedTo.user", "name email")
       .lean();
 
     const formattedContacts = contacts

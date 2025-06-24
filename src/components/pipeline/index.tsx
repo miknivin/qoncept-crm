@@ -20,18 +20,33 @@ import PipelineOffCanvas from "@/components/ui/drawer/PipelineOffCanvas";
 import Button from "@/components/ui/button/Button";
 import FilterIcons from "@/components/ui/flowbiteIcons/Filter";
 import { useFetchContacts } from "@/hooks/useFetchContacts";
-import { Tag } from "@/app/models/Contact";
+
+interface Tag {
+  user: string;
+  name: string;
+}
 
 interface Contact {
   _id: string;
   name: string;
   email: string;
   phone: string;
-  tag?:Tag
+  assignedTo?: AssignedTo[]; // <-- Ensure this property exists
   businessName?: string;
   probability?: number;
+  tags?: Tag[]; // Add this if you use 'contact.tags' elsewhere
 }
 
+interface User {
+  _id: string;
+  name: string;
+  email: string;
+}
+
+interface AssignedTo {
+  user: User;
+  time: string; // Use string for frontend to handle ISO date strings
+}
 interface Stage {
   _id: string;
   name: string;
@@ -91,6 +106,7 @@ export default function PipelineBody({ pipelineId }: { pipelineId: string }) {
           name: contact.name || "Unnamed",
           email: contact.email || "No email",
           businessName:contact?.businessName||"Nil",
+          assignedTo: contact?.assignedTo,
           tags: contact.tags || [],
           phone: contact.phone || "No ph no",
           probability:contact.probability||50

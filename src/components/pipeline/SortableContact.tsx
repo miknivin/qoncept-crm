@@ -27,9 +27,21 @@ interface Contact {
   email?: string;
   phone?: string;
   businessName?: string;
+  assignedTo?: AssignedTo[];
   probability?: number;
   notes?: string;
   tags?: Tag[];
+}
+
+interface User {
+  _id: string;
+  name: string;
+  email: string;
+}
+
+interface AssignedTo {
+  user: User;
+  time: string; 
 }
 
 interface SortableContactProps {
@@ -48,6 +60,9 @@ function SortableContact({ contact, data }: SortableContactProps) {
     id: `contact-${contact._id}`,
     data,
   });
+
+  console.log(contact,'contact');
+  
 
   const { user } = useSelector((state: RootState) => state.user);
   const [probability, setProbability] = useState(contact.probability?.toString() || "50");
@@ -122,6 +137,9 @@ function SortableContact({ contact, data }: SortableContactProps) {
           <a href={`tel:${contact.phone}`} className="text-xs underline text-gray-500 line-clamp-2 dark:text-gray-400">
             {contact.phone || "Nil"}
           </a>
+          <p className="text-xs text-blue-500 dark:text-blue-400">
+            {contact?.assignedTo?.map((assigned) => assigned.user.name).join(", ") || "None"}
+          </p>
           {contact?.tags && contact.tags.length > 0 && (
             contact.tags.slice(0, 2).map((tag, index) => (
               <span

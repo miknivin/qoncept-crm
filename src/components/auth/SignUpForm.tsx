@@ -33,9 +33,9 @@ export default function SignUpForm() {
       const name = `${formData.fname} ${formData.lname}`.trim();
       const payload = {
         name,
-        email: formData.email,
+        email: formData.email.trim(),
         password: formData.password,
-        phone: formData.phone,
+        phone: formData.phone.trim(),
       };
 
       await register(payload).unwrap();
