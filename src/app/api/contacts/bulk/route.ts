@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-expressions */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from 'next/server';
 import mongoose, { Types } from 'mongoose';
@@ -5,6 +6,8 @@ import dbConnect from '@/app/lib/db/connection'; // Adjust path to your database
 import Contact, {  IContact } from '@/app/models/Contact'; // Adjust path to your Contact model
 import User from '@/app/models/User'; // Adjust path to your User model
 import { authorizeRoles, isAuthenticatedUser } from '../../middlewares/auth';
+import Pipeline from '@/app/models/Pipeline';
+import Stage from '@/app/models/Stage';
 
 // Define the expected contact structure from the payload
 interface PayloadContact {
@@ -33,7 +36,8 @@ export async function POST(request: NextRequest) {
     // Authenticate and authorize the user
     const currentUser = await isAuthenticatedUser(request);
     authorizeRoles(currentUser, 'admin');
-
+    Pipeline
+    Stage
     await dbConnect();
 
     const payload: ContactPayload = await request.json();
