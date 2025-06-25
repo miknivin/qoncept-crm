@@ -38,6 +38,7 @@ export async function POST(request: NextRequest) {
     authorizeRoles(currentUser, 'admin');
     Pipeline
     Stage
+    User
     await dbConnect();
 
     const payload: ContactPayload = await request.json();
