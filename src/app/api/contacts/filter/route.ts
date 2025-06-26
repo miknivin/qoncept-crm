@@ -164,6 +164,7 @@ export async function POST(req: NextRequest) {
     const [contacts, total] = await Promise.all([
       Contact.find(searchQuery)
         .select("-activities -uid")
+        .populate("assignedTo.user", "name email")
         .skip(skip)
         .limit(limit)
         .sort({createdAt:-1})

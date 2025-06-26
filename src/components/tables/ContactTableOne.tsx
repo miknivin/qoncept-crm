@@ -282,6 +282,11 @@ const { user } = useSelector((state: RootState) => state.user);
               <th scope="col" className="px-5 py-3">
                 Tags
               </th>
+              {isAdmin&&(
+              <th scope="col" className="px-5 py-3">
+                Assigned
+              </th>
+              )}
               <th scope="col" className="px-5 py-3">
                 Created at
               </th>
@@ -298,7 +303,7 @@ const { user } = useSelector((state: RootState) => state.user);
           <tbody>
             {isLoading && (
               <tr className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200">
-                <td colSpan={6} className="px-5 py-4 text-center">
+                <td colSpan={7} className="px-5 py-4 text-center">
                   <div className="w-full flex justify-center">
                     <ShortSpinnerPrimary />
                   </div>
@@ -365,6 +370,22 @@ const { user } = useSelector((state: RootState) => state.user);
                       )}
                     </div>
                   </td>
+                  {isAdmin&&(
+                    <td className="px-5 py-4">
+                      <div className="max-w-36 line-clamp-3">
+                        {contact.assignedTo.length > 0
+                          ? contact.assignedTo
+                              .map((assignment) =>
+                                typeof assignment.user === "object" && assignment.user !== null && "name" in assignment.user
+                                  ? (assignment.user as { name: string }).name
+                                  : "Unknown"
+                              )
+                              .join(", ")
+                          : "None"}
+                      </div>
+                </td>
+                  )}
+                
                   <td className="px-5 py-4">
                     <div className="max-w-36 line-clamp-3">
                       {new Date(contact.createdAt).toLocaleDateString('en-GB', {
