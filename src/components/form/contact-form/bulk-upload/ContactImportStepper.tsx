@@ -132,10 +132,10 @@ export default function ContactImportStepper({ onClose }: ContactImportStepperPr
       setError('Please select an assign type');
       return;
     }
-    if (selectedUsers.length === 0) {
-      setError('Please select at least one user');
-      return;
-    }
+    // if (selectedUsers.length === 0) {
+    //   setError('Please select at least one user');
+    //   return;
+    // }
 
     const payload = {
       contacts: parsedContacts.map((contact) => {

@@ -129,7 +129,7 @@ export default function ContactOffCanvas({ isOpen, onClose }: ContactOffCanvasPr
   // Form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!keyword && !source && !selectedUsers[0]?._id && dateRange.startDate === dateRange.endDate) {
+    if (!keyword && !source && !selectedUsers[0]?._id) {
       alert("Please apply at least one filter");
       return;
     }
