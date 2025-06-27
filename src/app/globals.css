@@ -740,3 +740,7 @@ span.flatpickr-weekday,
   opacity: 0.8;
   cursor: grabbing; /* Changes the cursor to indicate dragging */
 }
+
+.rdrDefinedRangesWrapper{
+  display:none !important;
+}

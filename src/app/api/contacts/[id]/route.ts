@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-expressions */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from 'next/server';
 import  { Types } from 'mongoose';
@@ -5,6 +6,8 @@ import Contact from '@/app/models/Contact';
 import dbConnect from '@/app/lib/db/connection';
 import { authorizeRoles, isAuthenticatedUser } from '@/app/api/middlewares/auth';
 import User from '@/app/models/User';
+import Pipeline from '@/app/models/Pipeline';
+import Stage from '@/app/models/Stage';
 
 // Interface for request body
 interface UpdateContactRequest {
@@ -77,8 +80,9 @@ export async function PUT(
 ) {
   try {
     await dbConnect();
-    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
     User;
+    Pipeline;
+    Stage;
     let user;
     try {
       user = await isAuthenticatedUser(request);
@@ -94,7 +98,24 @@ export async function PUT(
         { status: 401 }
       );
     }
-    authorizeRoles(user, 'admin', 'team_member');
+
+    // Check user role
+    let isAdmin = false;
+    try {
+      authorizeRoles(user, 'admin');
+      isAdmin = true;
+    } catch (error) {
+      console.log("Admin authorization failed:", error);
+      try {
+        authorizeRoles(user, 'team_member');
+      } catch (error) {
+        console.log("Team member authorization failed:", error);
+        return NextResponse.json(
+          { error: "User is neither admin nor team member" },
+          { status: 401 }
+        );
+      }
+    }
 
     const { id } = await context.params;
     if (!id || !Types.ObjectId.isValid(id)) {
@@ -141,8 +162,9 @@ export async function PUT(
       );
     }
 
-    // Find the contact
-    const contact = await Contact.findOne({ _id: id, user: user._id });
+    // Find the contact based on role
+    const contactQuery = isAdmin ? { _id: id } : { _id: id, user: user._id };
+    const contact = await Contact.findOne(contactQuery);
     if (!contact) {
       return NextResponse.json(
         { success: false, message: 'Contact not found or unauthorized' },
