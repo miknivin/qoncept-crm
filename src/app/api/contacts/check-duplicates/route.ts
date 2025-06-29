@@ -1,7 +1,11 @@
+/* eslint-disable @typescript-eslint/no-unused-expressions */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from 'next/server';
 import dbConnect from '@/app/lib/db/connection';
 import Contact, { IContact } from '@/app/models/Contact';
+import User from '@/app/models/User';
+import Pipeline from '@/app/models/Pipeline';
+import Stage from '@/app/models/Stage';
 
 interface ContactPayload {
   contacts: Partial<IContact>[];
@@ -28,7 +32,9 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-
+    User
+    Pipeline
+    Stage
     await dbConnect();
 
     const existingContacts = await Contact.find({
