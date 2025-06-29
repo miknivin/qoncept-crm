@@ -7,10 +7,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Chip from "../chips/Chip";
 import { IUser } from "@/app/models/User";
 import { useGetTeamMembersQuery } from "@/app/redux/api/userApi";
-import { DateRangePicker } from "react-date-range";
+import ArrowRightIcon from "../flowbiteIcons/ArrowRight";
 import { format, parse } from "date-fns";
-import "react-date-range/dist/styles.css"; // Main style file
-import "react-date-range/dist/theme/default.css"; // Theme CSS file
+import DateRangePickerUi from "../date/DateRangePicker";
 
 interface ContactOffCanvasProps {
   isOpen: boolean;
@@ -32,12 +31,10 @@ export default function ContactOffCanvas({ isOpen, onClose }: ContactOffCanvasPr
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<IUser[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [dateRange, setDateRange] = useState({
-    startDate: new Date(),
-    endDate: new Date(),
-    key: "selection",
-  });
-  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const [dateRange, setDateRange] = useState<{
+    startDate: Date | null;
+    endDate: Date | null;
+  }>({ startDate: null, endDate: null });
 
   // Source options with label-value pairs
   const sourceOptions = [
@@ -70,16 +67,15 @@ export default function ContactOffCanvas({ isOpen, onClose }: ContactOffCanvasPr
     const assignedTo = user.role === "admin" ? filter.assignedTo || "" : "";
     const startDate = filter.createdAt?.startDate
       ? parse(filter.createdAt.startDate, "yyyy-MM-dd", new Date())
-      : new Date();
+      : null;
     const endDate = filter.createdAt?.endDate
       ? parse(filter.createdAt.endDate, "yyyy-MM-dd", new Date())
-      : new Date();
+      : null;
 
     setKeyword(keyword);
     setSource(source);
     setAssignedTo(assignedTo);
-    setDateRange({ startDate, endDate, key: "selection" });
-    // Optionally sync selectedUsers with assignedTo if needed
+    setDateRange({ startDate, endDate });
   }, [searchParams, user]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -112,7 +108,7 @@ export default function ContactOffCanvas({ isOpen, onClose }: ContactOffCanvasPr
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [isOpen, onClose, offCanvasRef]);
+  }, [isOpen, onClose]);
 
   const handleRemoveUser = (userId: string | undefined) => {
     if (userId) {
@@ -121,18 +117,16 @@ export default function ContactOffCanvas({ isOpen, onClose }: ContactOffCanvasPr
     }
   };
 
-  // Handle date range selection
-  const handleDateRangeSelect = (ranges: any) => {
-    setDateRange(ranges.selection);
+  // Handle date range selection from DateRangePickerUi
+  const handleApply = (dates: { startDate: string | null; endDate: string | null }) => {
+    const startDate = dates.startDate ? parse(dates.startDate, "M/d/yyyy", new Date()) : null;
+    const endDate = dates.endDate ? parse(dates.endDate, "M/d/yyyy", new Date()) : null;
+    setDateRange({ startDate, endDate });
   };
 
   // Form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!keyword && !source && !selectedUsers[0]?._id) {
-      alert("Please apply at least one filter");
-      return;
-    }
     setIsSubmitting(true);
     const filter: { assignedTo?: string; createdAt?: { startDate: string; endDate: string } } = {
       ...(user?.role === "admin" && selectedUsers[0]?._id && { assignedTo: selectedUsers[0]._id }),
@@ -152,7 +146,7 @@ export default function ContactOffCanvas({ isOpen, onClose }: ContactOffCanvasPr
       query.set("source", sourceLabel);
     }
     if (Object.keys(filter).length) query.set("filter", JSON.stringify(filter));
-    await router.push(`?${query.toString()}`, { scroll: false });
+    router.push(`?${query.toString()}`, { scroll: false });
     setIsSubmitting(false);
   };
 
@@ -162,7 +156,7 @@ export default function ContactOffCanvas({ isOpen, onClose }: ContactOffCanvasPr
     setSource("");
     setAssignedTo("");
     setSelectedUsers([]);
-    setDateRange({ startDate: new Date(), endDate: new Date(), key: "selection" });
+    setDateRange({ startDate: null, endDate: null });
     const query = new URLSearchParams();
     query.set("page", "1");
     query.set("limit", searchParams.get("limit") || "10");
@@ -254,7 +248,13 @@ export default function ContactOffCanvas({ isOpen, onClose }: ContactOffCanvasPr
               />
             </div>
           </div>
-
+          <div className="mb-4">
+            <DateRangePickerUi
+              onApply={handleApply}
+              label="Select date range"
+              placeholder="Select date range"
+            />
+          </div>
           <div className="mb-4">
             <label
               htmlFor="contact-source"
@@ -275,38 +275,6 @@ export default function ContactOffCanvas({ isOpen, onClose }: ContactOffCanvasPr
                 </option>
               ))}
             </select>
-          </div>
-
-          <div className="mb-4 relative">
-            <label
-              htmlFor="date-range"
-              className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-            >
-              Select date range
-            </label>
-            <input
-              type="text"
-              id="date-range"
-              className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-              value={`${format(dateRange.startDate, "MM/dd/yyyy")} - ${format(dateRange.endDate, "MM/dd/yyyy")}`}
-              readOnly
-              onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}
-              placeholder="Select date range"
-            />
-            {isDatePickerOpen && (
-              <div className="z-10 absolute mt-1 bg-white rounded-lg shadow-sm w-full max-h-[300px] overflow-auto dark:bg-gray-700">
-                <DateRangePicker
-                  ranges={[dateRange]}
-                  onChange={handleDateRangeSelect}
-                  moveRangeOnFirstSelection={false}
-                  months={1}
-                  staticRanges={[]}
-                  inputRanges={[]}
-                  direction="vertical"
-                  color="#2563eb" // Tailwind blue-600
-                />
-              </div>
-            )}
           </div>
 
           {user && user.role === "admin" && (
@@ -388,21 +356,7 @@ export default function ContactOffCanvas({ isOpen, onClose }: ContactOffCanvasPr
               onClick={handleClear}
             >
               Clear Filters
-              <svg
-                className="rtl:rotate-180 w-3.5 h-3.5 ms-2"
-                aria-hidden="true"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 14 10"
-              >
-                <path
-                  stroke="currentColor"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M1 5h12m0 0L9 1m4 4L9 9"
-                />
-              </svg>
+              <ArrowRightIcon />
             </button>
           </div>
         </form>

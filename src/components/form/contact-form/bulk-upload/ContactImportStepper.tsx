@@ -9,7 +9,7 @@ import { useGetTeamMembersQuery } from '@/app/redux/api/userApi';
 import { IContact } from '@/app/models/Contact';
 import { toast } from 'react-toastify';
 import { IUser } from '@/app/models/User';
-import { useBulkImportContactsMutation } from "@/app/redux/api/contactApi";
+import { useBulkImportContactsMutation, useCheckContactDuplicatesMutation } from "@/app/redux/api/contactApi";
 import { validateContacts } from "./helpers/validateContacts";
 
 interface ContactImportStepperProps {
@@ -17,9 +17,16 @@ interface ContactImportStepperProps {
 }
 
 interface ParsedContact {
-  [key: string]: string;
+  [key: string]: string | boolean;
 }
 
+export interface DuplicateCheckResult {
+  totalContacts: number;
+  duplicateCount: number;
+  newCount: number;
+  duplicates: { email: string; name: string; phone: string }[];
+  newContacts: { email: string; name: string; phone: string }[];
+}
 const steps = [
   { title: 'Map Fields', description: 'Map CSV/Excel headers to contact fields' },
   { title: 'Assign Contacts', description: 'Assign contacts to team members' },
@@ -36,7 +43,8 @@ export default function ContactImportStepper({ onClose }: ContactImportStepperPr
   const [selectedUsers, setSelectedUsers] = useState<IUser[]>([]);
   const [addToPipeline, setAddToPipeline] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
+  const [duplicateCheckResult, setDuplicateCheckResult] = useState<DuplicateCheckResult | null>(null);
+  const [duplicateCheckError, setDuplicateCheckError] = useState<string | null>(null);
   // Fetch team members
   const { data: teamMembers, isLoading, error: queryError } = useGetTeamMembersQuery({
     page: 1,
@@ -46,7 +54,7 @@ export default function ContactImportStepper({ onClose }: ContactImportStepperPr
 
   // Use bulk import mutation
   const [bulkImportContacts, { isLoading: isImporting }] = useBulkImportContactsMutation();
-
+    const [checkContactDuplicates, { isLoading: isCheckingDuplicates }] = useCheckContactDuplicatesMutation();
   // Pre-select all team members when data is available
   useEffect(() => {
     if (teamMembers?.users && Array.isArray(teamMembers.users)) {
@@ -106,22 +114,56 @@ export default function ContactImportStepper({ onClose }: ContactImportStepperPr
   };
 
   // Validate and proceed to the next step
-  const handleNext = () => {
+  const handleNext = async () => {
     if (activeStep === 0) {
       const requiredFields = ['name', 'email', 'phone'];
       const mappedFields = Object.values(fieldMappings);
       const hasRequiredFields = requiredFields.every((field) =>
         mappedFields.includes(field as keyof IContact)
       );
-      console.log(mappedFields, 'mapped');
 
       if (!hasRequiredFields) {
         toast.error('Please map the required fields: Name, Email and Phone');
         return;
       }
-      const contactIds = parsedContacts.map((_, index) => `contact-${index}`);
-      setSelectedContacts(contactIds);
-      setActiveStep(1);
+
+      // Prepare contacts for duplicate check
+      const contactsToCheck = parsedContacts.map((contact) => {
+        const mappedContact: Partial<IContact> = {};
+        Object.entries(fieldMappings).forEach(([header, field]) => {
+          if (field && contact[header]) {
+            mappedContact[field] = contact[header];
+          }
+        });
+        return mappedContact;
+      });
+
+      try {
+        const result = await checkContactDuplicates({ contacts: contactsToCheck }).unwrap();
+        // Update parsedContacts with isDuplicate field
+        const updatedContacts = parsedContacts.map((contact) => {
+          const isDuplicate = result.duplicates.some(
+            (dup) => {
+              const contactEmail = contact[fieldMappings.email];
+              return (
+                typeof contactEmail === "string" &&
+                dup.email.toLowerCase() === contactEmail.toLowerCase()
+              );
+            }
+          );
+          return { ...contact, isDuplicate };
+        });
+        setParsedContacts(updatedContacts);
+        setDuplicateCheckResult(result);
+        setDuplicateCheckError(null);
+        const contactIds = parsedContacts.map((_, index) => `contact-${index}`);
+        setSelectedContacts(contactIds);
+        setActiveStep(1);
+      } catch (error: any) {
+        setDuplicateCheckError(error?.data?.error || 'Failed to check duplicates');
+        console.error('Duplicate check error:', error);
+        return;
+      }
     }
   };
 
@@ -137,14 +179,15 @@ export default function ContactImportStepper({ onClose }: ContactImportStepperPr
     //   return;
     // }
 
-    const payload = {
+     const payload = {
       contacts: parsedContacts.map((contact) => {
-        const mappedContact: Partial<IContact> = {};
+        const mappedContact: Partial<IContact> & { isDuplicate?: boolean } = {};
         Object.entries(fieldMappings).forEach(([header, field]) => {
           if (field && contact[header]) {
             mappedContact[field] = contact[header];
           }
         });
+        mappedContact.isDuplicate = Boolean(contact.isDuplicate);
         return mappedContact;
       }),
       assignedUsers: selectedUsers.map((user) => user._id).filter((id): id is string => !!id),
@@ -156,7 +199,8 @@ export default function ContactImportStepper({ onClose }: ContactImportStepperPr
     if (!validateContacts(payload.contacts)) {
       return;
     }
-
+    console.log(payload)
+    debugger
     try {
       const result = await bulkImportContacts(payload).unwrap();
       toast.success(result.message);
@@ -181,10 +225,10 @@ export default function ContactImportStepper({ onClose }: ContactImportStepperPr
             {!fileName && <BulkUploadComponent onClose={onClose} onFileUpload={handleFileUpload} />}
             {fileName && (
               <>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
                   Uploaded file: {fileName}
                 </p>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
                   No of contacts: {parsedContacts.length}
                 </p>
               </>
@@ -198,6 +242,8 @@ export default function ContactImportStepper({ onClose }: ContactImportStepperPr
                 onCancel={onClose}
                 onBack={handleBack}
                 isFirstStep={activeStep === 0}
+                isCheckingDuplicates={isCheckingDuplicates}
+                error={duplicateCheckError}
               />
             )}
           </>
@@ -208,7 +254,7 @@ export default function ContactImportStepper({ onClose }: ContactImportStepperPr
             onClose={onClose}
             selectedContacts={selectedContacts}
             teamMembers={teamMembers?.users || []}
-            isLoading={isLoading}
+            isLoading={isLoading || isCheckingDuplicates}
             isSubmitLoading={isImporting}
             queryError={queryError}
             selectedUsers={selectedUsers}
@@ -220,7 +266,8 @@ export default function ContactImportStepper({ onClose }: ContactImportStepperPr
             onPipelineToggle={handlePipelineToggle}
             onSubmit={handleSubmit}
             onBack={handleBack}
-            error={error}
+            error={error || duplicateCheckError}
+            duplicateCheckResult={duplicateCheckResult}
           />
         );
       default:

@@ -156,6 +156,18 @@ interface ContactPayload {
   addToPipeline: boolean;
 }
 
+interface CheckDuplicatesRequest {
+  contacts: Partial<IContact>[];
+}
+
+interface CheckDuplicatesResponse {
+  totalContacts: number;
+  duplicateCount: number;
+  newCount: number;
+  duplicates: { email: string; name: string; phone: string }[];
+  newContacts: { email: string; name: string; phone: string }[];
+}
+
 interface BulkImportContactsResponse {
   message: string;
   contacts: ResponseContact[];
@@ -216,6 +228,14 @@ export const contactApi = createApi({
       }),
       invalidatesTags: ["Contacts"],
     }),
+    checkContactDuplicates: builder.mutation<CheckDuplicatesResponse, CheckDuplicatesRequest>({
+      query: (body) => ({
+        url: "/contacts/check-duplicates",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: [],
+    }),
     getContactById: builder.query<GetContactByIdResponse, string>({
       query: (id) => ({
         url: `/contacts/${id}`,
@@ -268,6 +288,7 @@ export const contactApi = createApi({
 export const {
   useCreateContactMutation,
   useBulkImportContactsMutation,
+  useCheckContactDuplicatesMutation,
   useGetContactsQuery,
   useUpdateContactsPipelineMutation,
   useBatchUpdateContactDragMutation,

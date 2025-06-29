@@ -1,5 +1,9 @@
+
+"use client";
+
 import { IContact } from "@/app/models/Contact";
 import Button from "@/components/ui/button/Button";
+import VeryShortSpinnerPrimary from "@/components/ui/loaders/veryShortSpinnerPrimary";
 
 interface FieldMapperProps {
   headers: string[];
@@ -9,6 +13,8 @@ interface FieldMapperProps {
   isFirstStep: boolean;
   onBack: () => void;
   onCancel: () => void;
+  isCheckingDuplicates: boolean;
+  error: string | null;
 }
 
 const contactFields: (keyof IContact)[] = [
@@ -31,12 +37,15 @@ export default function FieldMapper({
   onCancel,
   onBack,
   isFirstStep,
+  isCheckingDuplicates,
+  error,
 }: FieldMapperProps) {
   return (
     <div className="space-y-4 mt-4">
       <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200">
         Map Headers to Fields
       </h3>
+      {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {headers.map((header) => (
           <div key={header} className="mb-4">
@@ -55,7 +64,7 @@ export default function FieldMapper({
               <option value="">Select Field</option>
               {contactFields.map((field) => (
                 <option
-                  key={field} // Fixed here
+                  key={field}
                   value={field}
                   disabled={Object.values(fieldMappings).includes(field) && fieldMappings[header] !== field}
                 >
@@ -72,12 +81,11 @@ export default function FieldMapper({
             Back
           </Button>
         )}
-        
         <Button type="button" onClick={onCancel} variant="outline">
           Cancel
         </Button>
-        <Button type="button" onClick={onNext} variant="primary">
-          Next
+        <Button type="button" onClick={onNext} variant="primary" disabled={isCheckingDuplicates}>
+          {isCheckingDuplicates ? <VeryShortSpinnerPrimary /> : "Next"}
         </Button>
       </div>
     </div>

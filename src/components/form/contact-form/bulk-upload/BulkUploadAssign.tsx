@@ -7,6 +7,7 @@ import { IUser } from "@/app/models/User";
 import Chip from "@/components/ui/chips/Chip";
 import ShortSpinnerDark from "@/components/ui/loaders/ShortSpinnerDark";
 import VeryShortSpinnerPrimary from "@/components/ui/loaders/veryShortSpinnerPrimary";
+import { DuplicateCheckResult } from "./ContactImportStepper";
 
 interface BulkUploadAssignProps {
   onClose: () => void;
@@ -26,6 +27,7 @@ interface BulkUploadAssignProps {
   onSubmit: () => void;
   onBack: () => void;
   error: string | null;
+  duplicateCheckResult: DuplicateCheckResult | null;
 }
 
 export default function BulkUploadAssign({
@@ -45,6 +47,7 @@ export default function BulkUploadAssign({
   onSubmit,
   onBack,
   error,
+  duplicateCheckResult
 }: BulkUploadAssignProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -69,6 +72,11 @@ export default function BulkUploadAssign({
       <h2 className="mb-2 font-semibold text-gray-800 modal-title text-theme-xl dark:text-white/90 lg:text-2xl">
         Assign Contacts
       </h2>
+      {duplicateCheckResult && (
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+          Total Contacts: {duplicateCheckResult.totalContacts} | New Contacts: {duplicateCheckResult.newCount} | Duplicate Contacts: {duplicateCheckResult.duplicateCount}
+        </p>
+      )}
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label

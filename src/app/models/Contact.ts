@@ -84,6 +84,7 @@ const contactSchema = new Schema<IContact, ContactModel>(
     phone: {
       type: String,
       required: [true, 'Please enter phone number'],
+      unique: true,
     },
     notes: {
       type: String,

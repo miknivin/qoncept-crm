@@ -123,39 +123,43 @@ export async function POST(req: NextRequest) {
     if (filter.source) {
       searchQuery.source = filter.source;
     }
-
+    
     // Filter by createdAt date range
     if (filter.createdAt) {
-      searchQuery.createdAt = {};
-      if (filter.createdAt.startDate) {
-        try {
-          searchQuery.createdAt.$gte = new Date(filter.createdAt.startDate);
-        } catch (error) {
-          console.log(error);
-          
-          return NextResponse.json(
-            { error: "Invalid startDate format" },
-            { status: 400 }
-          );
-        }
-      }
-      if (filter.createdAt.endDate) {
-        try {
-          searchQuery.createdAt.$lte = new Date(filter.createdAt.endDate);
-        } catch (error) {
-          console.log(error);
-          
-          return NextResponse.json(
-            { error: "Invalid endDate format" },
-            { status: 400 }
-          );
-        }
-      }
-      // Remove createdAt filter if no valid dates provided
-      if (Object.keys(searchQuery.createdAt).length === 0) {
-        delete searchQuery.createdAt;
+    searchQuery.createdAt = {};
+    if (filter.createdAt.startDate) {
+      try {
+        // Set start of the day
+        const startDate = new Date(filter.createdAt.startDate);
+        startDate.setHours(0, 0, 0, 0); // Ensure start of day
+        searchQuery.createdAt.$gte = startDate;
+      } catch (error) {
+        console.log(error);
+        return NextResponse.json(
+          { error: "Invalid startDate format" },
+          { status: 400 }
+        );
       }
     }
+    if (filter.createdAt.endDate) {
+      try {
+        // Set end of the day
+        const endDate = new Date(filter.createdAt.endDate);
+        endDate.setHours(23, 59, 59, 999); // Ensure end of day
+        searchQuery.createdAt.$lte = endDate;
+      } catch (error) {
+        console.log(error);
+        return NextResponse.json(
+          { error: "Invalid endDate format" },
+          { status: 400 }
+        );
+      }
+    }
+    // Remove createdAt filter if no valid dates provided
+    if (Object.keys(searchQuery.createdAt).length === 0) {
+      delete searchQuery.createdAt;
+    }
+  }
 
     // Calculate skip for pagination
     const skip = (page - 1) * limit;
