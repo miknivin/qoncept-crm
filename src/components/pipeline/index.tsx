@@ -365,6 +365,14 @@ export default function PipelineBody({ pipelineId }: { pipelineId: string }) {
     }
   };
 
+   const hasActiveFilters = !!(
+    searchParams.get("keyword") ||
+    searchParams.get("source") ||
+    searchParams.get("assignedTo") ||
+    searchParams.get("startDate") ||
+    searchParams.get("endDate")
+  );
+
   return (
     <div className="min-h-screen rounded-2xl border border-gray-200 bg-white px-5 dark:border-gray-800 dark:bg-white/[0.03] xl:px-10 overflow-hidden">
       <div className="mx-auto w-full text-center">
@@ -391,7 +399,15 @@ export default function PipelineBody({ pipelineId }: { pipelineId: string }) {
               </h3>
               <div className="flex gap-3 items-center">
                 <Button size="sm" variant="outline" endIcon={<FilterIcons />} onClick={() => openFilter()}>
-                  Filter
+                <div className="flex justify-center items-center gap-1">
+                  {hasActiveFilters && (
+                      <span id="indicator" className="w-3 h-3 bg-emerald-500 rounded-full"></span>
+                    )}
+                  <div>
+                    Filter
+                  </div>
+                </div>
+                  
                 </Button>
                 {pendingUpdates.length > 0 && (
                   <button

@@ -39,7 +39,7 @@ const ContactTableOne: React.FC = () => {
   const [modalType, setModalType] = useState<"addToPipeline" | "assignContacts" | null>(null);
   const searchParams = useSearchParams();
   const router = useRouter();
-const { user } = useSelector((state: RootState) => state.user);
+  const { user } = useSelector((state: RootState) => state.user);
   const [params, setParams] = useState<{
     page: number;
     limit: number;
@@ -93,8 +93,7 @@ const { user } = useSelector((state: RootState) => state.user);
     query.set("limit", params.limit.toString());
     if (params.keyword) query.set("keyword", params.keyword);
     if (params.filter.source) query.set("source", params.filter.source);
-    if (Object.keys(params.filter).length)
-      query.set("filter", JSON.stringify(params.filter));
+    if (Object.keys(params.filter).length) query.set("filter", JSON.stringify(params.filter));
 
     router.push(`?${query.toString()}`, { scroll: false });
   }, [params, router]);
@@ -107,6 +106,7 @@ const { user } = useSelector((state: RootState) => state.user);
     { value: "25", label: "25" },
     { value: "50", label: "50" },
   ];
+
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setParams((prev) => ({ ...prev, keyword: e.target.value, page: 1 }));
@@ -312,14 +312,14 @@ const { user } = useSelector((state: RootState) => state.user);
             )}
             {error && (
               <tr className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200">
-                <td colSpan={6} className="px-5 py-4 text-center text-red-500">
+                <td colSpan={7} className="px-5 py-4 text-center text-red-500">
                   {getErrorMessage(error)}
                 </td>
               </tr>
             )}
             {!isLoading && !error && data?.contacts?.length === 0 && (
               <tr className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200">
-                <td colSpan={6} className="px-5 py-4 text-center">
+                <td colSpan={7} className="px-5 py-4 text-center">
                   No contacts found
                 </td>
               </tr>
