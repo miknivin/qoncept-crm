@@ -43,6 +43,8 @@ export const useFetchContacts = (
               keyword: searchParams.get("keyword") || undefined,
               source: searchParams.get("source") || undefined,
               assignedTo: searchParams.get("assignedTo") || undefined,
+              startDate:searchParams.get("startDate") || undefined,
+              endDate:searchParams.get("endDate") || undefined
             };
             // Call fetchContactsByStage with a single object argument
             const data = await fetchContactsByStage({

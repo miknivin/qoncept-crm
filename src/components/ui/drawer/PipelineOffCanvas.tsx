@@ -6,6 +6,8 @@ import Chip from "../chips/Chip";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSelector } from "react-redux";
 import { RootState } from "@/app/redux/rootReducer";
+import DateRangePickerUi from "../date/DateRangePicker";
+import { format } from "date-fns";
 
 interface OffCanvasProps {
   isOpen: boolean;
@@ -23,6 +25,8 @@ export default function PipelineOffCanvas({ isOpen, onClose }: OffCanvasProps) {
   const [keyword, setKeyword] = useState(searchParams.get("keyword") || "");
   const [source, setSource] = useState(searchParams.get("source") || "");
   const [keywordError, setKeywordError] = useState<string | null>(null);
+  const [startDate, setStartDate] = useState<string | null>(null);
+  const [endDate, setEndDate] = useState<string | null>(null);
 
   const { data: teamMembersData, isLoading } = useGetTeamMembersQuery({
     page: 1,
@@ -35,6 +39,9 @@ export default function PipelineOffCanvas({ isOpen, onClose }: OffCanvasProps) {
   useEffect(() => {
     setKeyword(searchParams.get("keyword") || "");
     setSource(searchParams.get("source") || "");
+    // Initialize startDate and endDate from searchParams
+    setStartDate(searchParams.get("startDate") || null);
+    setEndDate(searchParams.get("endDate") || null);
     const assignedTo = searchParams.get("assignedTo");
     if (assignedTo && teamMembers.length > 0) {
       const user = teamMembers.find((member) => member._id === assignedTo);
@@ -42,7 +49,7 @@ export default function PipelineOffCanvas({ isOpen, onClose }: OffCanvasProps) {
         setSelectedUsers([user]);
       }
     }
-  }, [searchParams, selectedUsers]);
+  }, [searchParams, teamMembers]);
 
   // Handle closing the off-canvas
   useEffect(() => {
@@ -97,6 +104,9 @@ export default function PipelineOffCanvas({ isOpen, onClose }: OffCanvasProps) {
   const handleRemoveUser = (userId: string | undefined) => {
     if (userId) {
       setSelectedUsers(selectedUsers.filter((user) => user._id !== userId));
+      const params = new URLSearchParams(searchParams);
+      params.delete("assignedTo");
+      router.push(`?${params.toString()}`);
     }
   };
 
@@ -123,26 +133,57 @@ export default function PipelineOffCanvas({ isOpen, onClose }: OffCanvasProps) {
     } else {
       params.delete("assignedTo");
     }
+    if (startDate) {
+      const formattedStartDate = new Date(startDate);
+      params.set("startDate", format(formattedStartDate, "yyyy-MM-dd"));
+    } else {
+      params.delete("startDate");
+    }
+    if (endDate) {
+      const formattedEndDate = new Date(endDate);
+      params.set("endDate", format(formattedEndDate, "yyyy-MM-dd"));
+    } else {
+      params.delete("endDate");
+    }
     router.push(`?${params.toString()}`);
     onClose();
   };
 
-  // Clear filters and reset form
   const handleClearFilters = () => {
     setKeyword("");
     setSource("");
     setSelectedUsers([]);
     setKeywordError(null);
+    setStartDate(null);
+    setEndDate(null);
     const params = new URLSearchParams(searchParams);
     params.delete("keyword");
     params.delete("source");
     params.delete("assignedTo");
+    params.delete("startDate");
+    params.delete("endDate");
+    router.push(`?${params.toString()}`);
+  };
+
+  const handleApply = (dates: { startDate: string | null; endDate: string | null }) => {
+    // Update URL with new startDate and endDate
+    const params = new URLSearchParams(searchParams);
+    params.delete("startDate");
+    params.delete("endDate");
+    if (dates.startDate) {
+      params.set("startDate", format(new Date(dates.startDate), "yyyy-MM-dd"));
+    }
+    if (dates.endDate) {
+      params.set("endDate", format(new Date(dates.endDate), "yyyy-MM-dd"));
+    }
     router.push(`?${params.toString()}`);
   };
 
   return (
     <>
-      {isOpen && (
+      {
+
+isOpen && (
         <div
           className="fixed inset-0 z-30 bg-black/70 transition-opacity"
           aria-hidden="true"
@@ -229,7 +270,7 @@ export default function PipelineOffCanvas({ isOpen, onClose }: OffCanvasProps) {
               )}
             </div>
           </div>
-         
+
           <div className="mb-4">
             <label
               htmlFor="countries"
@@ -250,70 +291,81 @@ export default function PipelineOffCanvas({ isOpen, onClose }: OffCanvasProps) {
               <option value="manual">Manual</option>
             </select>
           </div>
-           {user&&user.role==="admin"&&(
-            <div className="mb-4 relative">
-            <label
-              htmlFor="simple-search"
-              className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-            >
-              Search users
-            </label>
-            <input
-              type="text"
-              id="simple-search"
-              className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-              placeholder="Search users"
-              value={searchQuery}
-              onChange={handleSearchChange}
-              onFocus={() => setIsDropdownOpen(searchQuery.length > 0)}
+          <div className="mb-4">
+            <DateRangePickerUi
+              onApply={handleApply}
+              label="Select date range"
+              placeholder="Select date range"
+              startDate={startDate}
+              endDate={endDate}
+              setStartDate={setStartDate}
+              setEndDate={setEndDate}
             />
-            {selectedUsers.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-2">
-                {selectedUsers.map((user) =>
-                  user.name && user._id ? (
-                    <Chip
-                      key={user._id}
-                      text={user.name}
-                      onRemove={() => handleRemoveUser(user._id)}
-                    />
-                  ) : null
-                )}
-              </div>
-            )}
-            {isDropdownOpen && (
-              <div
-                id="dropdownDivider"
-                className="z-10 absolute mt-1 bg-white divide-y divide-gray-100 rounded-lg shadow-sm w-full dark:bg-gray-700 dark:divide-gray-600"
-              >
-                <ul
-                  className="py-2 text-sm text-gray-700 dark:text-gray-200"
-                  aria-labelledby="dropdownDividerButton"
-                >
-                  {isLoading ? (
-                    <li className="block px-4 py-2">Loading...</li>
-                  ) : teamMembers.length > 0 ? (
-                    teamMembers
-                      .filter((member) => !selectedUsers.some((user) => user._id === member._id))
-                      .map((member) => (
-                        <li key={member._id}>
-                          <button
-                            type="button"
-                            className="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white"
-                            onClick={() => handleSelectMember(member)}
-                          >
-                            {member.name}
-                          </button>
-                        </li>
-                      ))
-                  ) : (
-                    <li className="block px-4 py-2">No users found</li>
-                  )}
-                </ul>
-              </div>
-            )}
           </div>
+          {user && user.role === "admin" && (
+            <div className="mb-4 relative">
+              <label
+                htmlFor="simple-search"
+                className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+              >
+                Search users
+              </label>
+              <input
+                type="text"
+                id="simple-search"
+                className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                placeholder="Search users"
+                value={searchQuery}
+                onChange={handleSearchChange}
+                onFocus={() => setIsDropdownOpen(searchQuery.length > 0)}
+              />
+              {selectedUsers.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {selectedUsers.map((user) =>
+                    user.name && user._id ? (
+                      <Chip
+                        key={user._id}
+                        text={user.name}
+                        onRemove={() => handleRemoveUser(user._id)}
+                      />
+                    ) : null
+                  )}
+                </div>
+              )}
+              {isDropdownOpen && (
+                <div
+                  id="dropdownDivider"
+                  className="z-10 absolute mt-1 bg-white divide-y divide-gray-100 rounded-lg shadow-sm w-full dark:bg-gray-700 dark:divide-gray-600"
+                >
+                  <ul
+                    className="py-2 text-sm text-gray-700 dark:text-gray-200"
+                    aria-labelledby="dropdownDividerButton"
+                  >
+                    {isLoading ? (
+                      <li className="block px-4 py-2">Loading...</li>
+                    ) : teamMembers.length > 0 ? (
+                      teamMembers
+                        .filter((member) => !selectedUsers.some((user) => user._id === member._id))
+                        .map((member) => (
+                          <li key={member._id}>
+                            <button
+                              type="button"
+                              className="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white"
+                              onClick={() => handleSelectMember(member)}
+                            >
+                              {member.name}
+                            </button>
+                          </li>
+                        ))
+                    ) : (
+                      <li className="block px-4 py-2">No users found</li>
+                    )}
+                  </ul>
+                </div>
+              )}
+            </div>
           )}
-          
+
           <div className="grid grid-cols-2 gap-4">
             <button
               type="submit"

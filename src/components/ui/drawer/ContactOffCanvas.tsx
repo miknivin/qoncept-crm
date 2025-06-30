@@ -31,10 +31,8 @@ export default function ContactOffCanvas({ isOpen, onClose }: ContactOffCanvasPr
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<IUser[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [dateRange, setDateRange] = useState<{
-    startDate: Date | null;
-    endDate: Date | null;
-  }>({ startDate: null, endDate: null });
+  const [startDate, setStartDate] = useState<string | null>(null);
+  const [endDate, setEndDate] = useState<string | null>(null);
 
   // Source options with label-value pairs
   const sourceOptions = [
@@ -65,18 +63,21 @@ export default function ContactOffCanvas({ isOpen, onClose }: ContactOffCanvasPr
       console.error("Invalid filter param:", e);
     }
     const assignedTo = user.role === "admin" ? filter.assignedTo || "" : "";
-    const startDate = filter.createdAt?.startDate
-      ? parse(filter.createdAt.startDate, "yyyy-MM-dd", new Date())
-      : null;
-    const endDate = filter.createdAt?.endDate
-      ? parse(filter.createdAt.endDate, "yyyy-MM-dd", new Date())
-      : null;
+    const startDate = filter.createdAt?.startDate || null;
+    const endDate = filter.createdAt?.endDate || null;
 
     setKeyword(keyword);
     setSource(source);
     setAssignedTo(assignedTo);
-    setDateRange({ startDate, endDate });
-  }, [searchParams, user]);
+    setStartDate(startDate);
+    setEndDate(endDate);
+    if (assignedTo && teamMembers.length > 0) {
+      const user = teamMembers.find((member) => member._id === assignedTo);
+      if (user && !selectedUsers.some((u) => u._id === user._id)) {
+        setSelectedUsers([user]);
+      }
+    }
+  }, [searchParams, user, teamMembers]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
@@ -119,9 +120,33 @@ export default function ContactOffCanvas({ isOpen, onClose }: ContactOffCanvasPr
 
   // Handle date range selection from DateRangePickerUi
   const handleApply = (dates: { startDate: string | null; endDate: string | null }) => {
-    const startDate = dates.startDate ? parse(dates.startDate, "M/d/yyyy", new Date()) : null;
-    const endDate = dates.endDate ? parse(dates.endDate, "M/d/yyyy", new Date()) : null;
-    setDateRange({ startDate, endDate });
+    setStartDate(dates.startDate);
+    setEndDate(dates.endDate);
+
+    // Update URL with new startDate and endDate in filter
+    const filter: { assignedTo?: string; createdAt?: { startDate: string; endDate: string } } = {
+      ...(user?.role === "admin" && selectedUsers[0]?._id && { assignedTo: selectedUsers[0]._id }),
+      ...(dates.startDate && dates.endDate && {
+        createdAt: {
+          startDate: format(parse(dates.startDate, "M/d/yyyy", new Date()), "yyyy-MM-dd"),
+          endDate: format(parse(dates.endDate, "M/d/yyyy", new Date()), "yyyy-MM-dd"),
+        },
+      }),
+    };
+    const query = new URLSearchParams(searchParams);
+    query.set("page", "1");
+    query.set("limit", searchParams.get("limit") || "10");
+    if (keyword) query.set("keyword", keyword);
+    if (source) {
+      const sourceLabel = sourceOptions.find((opt) => opt.value === source)?.label || source;
+      query.set("source", sourceLabel);
+    }
+    if (Object.keys(filter).length) {
+      query.set("filter", JSON.stringify(filter));
+    } else {
+      query.delete("filter");
+    }
+    router.push(`?${query.toString()}`, { scroll: false });
   };
 
   // Form submission
@@ -130,10 +155,10 @@ export default function ContactOffCanvas({ isOpen, onClose }: ContactOffCanvasPr
     setIsSubmitting(true);
     const filter: { assignedTo?: string; createdAt?: { startDate: string; endDate: string } } = {
       ...(user?.role === "admin" && selectedUsers[0]?._id && { assignedTo: selectedUsers[0]._id }),
-      ...(dateRange.startDate && dateRange.endDate && {
+      ...(startDate && endDate && {
         createdAt: {
-          startDate: format(dateRange.startDate, "yyyy-MM-dd"),
-          endDate: format(dateRange.endDate, "yyyy-MM-dd"),
+          startDate: format(parse(startDate, "M/d/yyyy", new Date()), "yyyy-MM-dd"),
+          endDate: format(parse(endDate, "M/d/yyyy", new Date()), "yyyy-MM-dd"),
         },
       }),
     };
@@ -148,6 +173,7 @@ export default function ContactOffCanvas({ isOpen, onClose }: ContactOffCanvasPr
     if (Object.keys(filter).length) query.set("filter", JSON.stringify(filter));
     router.push(`?${query.toString()}`, { scroll: false });
     setIsSubmitting(false);
+    onClose();
   };
 
   // Clear filters
@@ -156,7 +182,8 @@ export default function ContactOffCanvas({ isOpen, onClose }: ContactOffCanvasPr
     setSource("");
     setAssignedTo("");
     setSelectedUsers([]);
-    setDateRange({ startDate: null, endDate: null });
+    setStartDate(null);
+    setEndDate(null);
     const query = new URLSearchParams();
     query.set("page", "1");
     query.set("limit", searchParams.get("limit") || "10");
@@ -253,6 +280,10 @@ export default function ContactOffCanvas({ isOpen, onClose }: ContactOffCanvasPr
               onApply={handleApply}
               label="Select date range"
               placeholder="Select date range"
+              startDate={startDate}
+              endDate={endDate}
+              setStartDate={setStartDate}
+              setEndDate={setEndDate}
             />
           </div>
           <div className="mb-4">

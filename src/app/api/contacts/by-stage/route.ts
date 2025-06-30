@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-expressions */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
@@ -5,13 +6,17 @@ import dbConnect from "@/app/lib/db/connection";
 import Contact from "@/app/models/Contact";
 import User from "@/app/models/User";
 import { isAuthenticatedUser } from "../../middlewares/auth";
+import Pipeline from "@/app/models/Pipeline";
+import Stage from "@/app/models/Stage";
 
 export interface GetContactsByStageRequest {
   pipelineId: string;
   stageId: string;
   source?: string;
   assignedTo?: string;
-  keyword?: string; // Added keyword filter
+  keyword?: string;
+  startDate?: string;
+  endDate?: string;
 }
 
 export interface GetContactsByStageResponse {
@@ -22,7 +27,7 @@ export interface GetContactsByStageResponse {
     phone: string;
     notes?: string;
     source?: string;
-    businessName?:string;
+    businessName?: string;
     user?: { name: string; email: string };
     tags: Array<{ user: { name: string; email: string }; name: string }>;
     assignedTo?: Array<{
@@ -34,8 +39,8 @@ export interface GetContactsByStageResponse {
       stage_id: string;
       order: number;
     }>;
-    value?:number;
-    probability?:number;
+    value?: number;
+    probability?: number;
     createdAt: Date;
     updatedAt: Date;
   }>;
@@ -46,15 +51,17 @@ export async function GET(req: NextRequest) {
     mongoose.model("User");
     await dbConnect();
     const user = await isAuthenticatedUser(req); // Assuming this returns user object with role
-    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
     User;
-
+    Pipeline;
+    Stage;
     const { searchParams } = new URL(req.url);
     const pipelineId = searchParams.get("pipelineId");
     const stageId = searchParams.get("stageId");
     const source = searchParams.get("source");
     const assignedTo = searchParams.get("assignedTo");
-    const keyword = searchParams.get("keyword"); // Added keyword parameter
+    const keyword = searchParams.get("keyword");
+    const startDate = searchParams.get("startDate");
+    const endDate = searchParams.get("endDate");
 
     if (!pipelineId || !stageId) {
       return NextResponse.json({ error: "pipelineId and stageId are required" }, { status: 400 });
@@ -66,6 +73,14 @@ export async function GET(req: NextRequest) {
 
     if (assignedTo && !mongoose.Types.ObjectId.isValid(assignedTo)) {
       return NextResponse.json({ error: "Invalid assignedTo user ID" }, { status: 400 });
+    }
+
+    // Validate date parameters
+    if (startDate && isNaN(Date.parse(startDate))) {
+      return NextResponse.json({ error: "Invalid startDate format" }, { status: 400 });
+    }
+    if (endDate && isNaN(Date.parse(endDate))) {
+      return NextResponse.json({ error: "Invalid endDate format" }, { status: 400 });
     }
 
     const query: any = {
@@ -92,6 +107,21 @@ export async function GET(req: NextRequest) {
         { email: keywordRegex },
         { notes: keywordRegex },
       ];
+    }
+
+    // Add date range filter for createdAt
+    if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) {
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0); // Set to start of the day (00:00:00.000)
+        query.createdAt.$gte = start;
+      }
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999); // Set to end of the day (23:59:59.999)
+        query.createdAt.$lte = end;
+      }
     }
 
     const contacts = await Contact.find(query)

@@ -1,6 +1,5 @@
 import axios from "axios";
 
-
 interface User {
   _id: string;
   name: string;
@@ -14,7 +13,7 @@ interface Tag {
 
 interface AssignedTo {
   user: User;
-  time: string; 
+  time: string;
 }
 
 interface Contact {
@@ -24,7 +23,7 @@ interface Contact {
   email: string;
   phone: string;
   notes?: string;
-  businessName?:string;
+  businessName?: string;
   source?: string;
   user?: { name: string; email: string };
   tags: Tag[];
@@ -43,6 +42,8 @@ interface FetchContactsByStageParams {
   stageId: string;
   keyword?: string;
   source?: string;
+  startDate?: string; // Updated to string | undefined
+  endDate?: string;   // Updated to string | undefined
   assignedTo?: string;
 }
 
@@ -51,17 +52,24 @@ export async function fetchContactsByStage({
   stageId,
   keyword,
   source,
+  startDate,
+  endDate,
   assignedTo,
 }: FetchContactsByStageParams): Promise<GetContactsResponse> {
   try {
+    // Validate dates before including them in the request
+    const params: { [key: string]: string } = {
+      pipelineId,
+      stageId,
+    };
+    if (keyword) params.keyword = keyword;
+    if (source) params.source = source;
+    if (assignedTo) params.assignedTo = assignedTo;
+    if (startDate && !isNaN(Date.parse(startDate))) params.startDate = startDate;
+    if (endDate && !isNaN(Date.parse(endDate))) params.endDate = endDate;
+
     const response = await axios.get("/api/contacts/by-stage", {
-      params: {
-        pipelineId,
-        stageId,
-        ...(keyword && { keyword }),
-        ...(source && { source }),
-        ...(assignedTo && { assignedTo }),
-      },
+      params,
       withCredentials: true,
     });
     return response.data;
