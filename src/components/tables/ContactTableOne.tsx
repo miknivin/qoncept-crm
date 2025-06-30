@@ -98,7 +98,7 @@ const ContactTableOne: React.FC = () => {
     router.push(`?${query.toString()}`, { scroll: false });
   }, [params, router]);
 
-  const { data, error, isLoading } = useGetContactsQuery(params);
+  const { data, error, isLoading, isFetching } = useGetContactsQuery(params);
 
   const options = [
     { value: "10", label: "10" },
@@ -301,7 +301,7 @@ const ContactTableOne: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {isLoading && (
+            {(isLoading || isFetching) && (
               <tr className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200">
                 <td colSpan={7} className="px-5 py-4 text-center">
                   <div className="w-full flex justify-center">

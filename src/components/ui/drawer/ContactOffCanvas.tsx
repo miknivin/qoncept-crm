@@ -120,41 +120,9 @@ export default function ContactOffCanvas({ isOpen, onClose }: ContactOffCanvasPr
   };
 
   // Handle date range selection from DateRangePickerUi
-  const handleApply = async (dates: { startDate: string | null; endDate: string | null }) => {
-    setIsSubmitting(true);
-    try {
-      setStartDate(dates.startDate);
-      setEndDate(dates.endDate);
-
-      // Update URL with new startDate and endDate in filter
-      const filter: { assignedTo?: string; createdAt?: { startDate: string; endDate: string } } = {
-        ...(user?.role === "admin" && selectedUsers[0]?._id && { assignedTo: selectedUsers[0]._id }),
-        ...(dates.startDate && dates.endDate && {
-          createdAt: {
-            startDate: format(parse(dates.startDate, "M/d/yyyy", new Date()), "yyyy-MM-dd"),
-            endDate: format(parse(dates.endDate, "M/d/yyyy", new Date()), "yyyy-MM-dd"),
-          },
-        }),
-      };
-      const query = new URLSearchParams(searchParams);
-      query.set("page", "1");
-      query.set("limit", searchParams.get("limit") || "10");
-      if (keyword) query.set("keyword", keyword);
-      if (source) {
-        const sourceLabel = sourceOptions.find((opt) => opt.value === source)?.label || source;
-        query.set("source", sourceLabel);
-      }
-      if (Object.keys(filter).length > 0) {
-        query.set("filter", JSON.stringify(filter));
-      } else {
-        query.delete("filter");
-      }
-      await router.push(`?${query.toString()}`, { scroll: false });
-    } catch (error) {
-      console.error("Failed to apply date filters:", error);
-    } finally {
-      setIsSubmitting(false);
-    }
+  const handleApply = (dates: { startDate: string | null; endDate: string | null }) => {
+    setStartDate(dates.startDate);
+    setEndDate(dates.endDate);
   };
 
    const isValidDate = (dateStr: string | null, formatStr: string): boolean => {

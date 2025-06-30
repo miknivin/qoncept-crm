@@ -131,7 +131,7 @@ export default function DateRangePickerUi({
 
   return (
     <div className={`relative ${containerClassName}`} ref={datepickerRef}>
-      <label className="mb-2 block text-base font-medium text-gray-800 dark:text-white">
+      <label className="mb-2 block text-sm font-medium text-gray-800 dark:text-white">
         {label}
       </label>
       <div className="relative flex items-center">
