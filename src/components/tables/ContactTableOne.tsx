@@ -32,6 +32,10 @@ export interface FilterParams {
     endDate?: string;
   };
   stage?: string;
+  updatedAt?: {
+  startDate?: string;
+  endDate?: string;
+};
 }
 
 const ContactTableOne: React.FC = () => {

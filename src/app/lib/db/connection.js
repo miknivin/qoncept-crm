@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 const MONGODB_URI =
-  process.env.NODE_ENV === "development"
+  process.env.NODE_ENV !== "development"
     ? process.env.MONGODB_URI
     : process.env.MONGODBLIVE_URI;
 

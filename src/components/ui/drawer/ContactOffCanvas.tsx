@@ -34,6 +34,8 @@ export default function ContactOffCanvas({ isOpen, onClose }: ContactOffCanvasPr
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [startDate, setStartDate] = useState<string | null>(null);
   const [endDate, setEndDate] = useState<string | null>(null);
+  const [updatedAtStartDate, setUpdatedAtStartDate] = useState<string | null>(null);
+  const [updatedAtEndDate, setUpdatedAtEndDate] = useState<string | null>(null);
   const [stage, setStage] = useState("");
   const [isNot, setIsNot] = useState(true); // State for "Not" checkbox
   const [hasUserInteracted, setHasUserInteracted] = useState(false); // Track user interaction
@@ -66,7 +68,12 @@ export default function ContactOffCanvas({ isOpen, onClose }: ContactOffCanvasPr
     const stageParam = searchParams.get("stage") || "";
     const source = sourceOptions.find((opt) => opt.label === sourceParam || opt.value === sourceParam)?.value || "";
     const filterStr = searchParams.get("filter");
-    let filter: { assignedTo?: { userId: string; isNot: boolean }[]; createdAt?: { startDate: string; endDate: string }; stage?: string } = {};
+    let filter: { 
+      assignedTo?: { userId: string; isNot: boolean }[]; 
+      createdAt?: { startDate: string; endDate: string }; 
+      updatedAt?: { startDate: string; endDate: string }; 
+      stage?: string 
+    } = {};
     try {
       if (filterStr) {
         filter = JSON.parse(filterStr);
@@ -78,6 +85,8 @@ export default function ContactOffCanvas({ isOpen, onClose }: ContactOffCanvasPr
     const assignedTo = user.role === "admin" && Array.isArray(filter.assignedTo) ? filter.assignedTo : [];
     const startDate = filter.createdAt?.startDate || null;
     const endDate = filter.createdAt?.endDate || null;
+    const updatedAtStartDate = filter.updatedAt?.startDate || null;
+    const updatedAtEndDate = filter.updatedAt?.endDate || null;
     const stage = filter.stage || stageParam || "";
 
     setKeyword(keyword);
@@ -85,6 +94,8 @@ export default function ContactOffCanvas({ isOpen, onClose }: ContactOffCanvasPr
     setStage(stage);
     setStartDate(startDate);
     setEndDate(endDate);
+    setUpdatedAtStartDate(updatedAtStartDate);
+    setUpdatedAtEndDate(updatedAtEndDate);
 
     // Only update assignedTo and selectedUsers if the user hasn't interacted
     if (!hasUserInteracted) {
@@ -147,9 +158,14 @@ export default function ContactOffCanvas({ isOpen, onClose }: ContactOffCanvasPr
   }, [isOpen, onClose, isSubmitting]);
 
   // Handle date range selection from DateRangePickerUi
-  const handleApply = (dates: { startDate: string | null; endDate: string | null }) => {
+  const handleApplyCreatedAt = (dates: { startDate: string | null; endDate: string | null }) => {
     setStartDate(dates.startDate);
     setEndDate(dates.endDate);
+  };
+
+  const handleApplyUpdatedAt = (dates: { startDate: string | null; endDate: string | null }) => {
+    setUpdatedAtStartDate(dates.startDate);
+    setUpdatedAtEndDate(dates.endDate);
   };
 
   const isValidDate = (dateStr: string | null, formatStr: string): boolean => {
@@ -167,13 +183,24 @@ export default function ContactOffCanvas({ isOpen, onClose }: ContactOffCanvasPr
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      console.log({ startDate, endDate, stage, assignedTo, action: "handleSubmit start" });
-      const filter: { assignedTo?: { userId: string; isNot: boolean }[]; createdAt?: { startDate: string; endDate: string }; stage?: string } = {
+      console.log({ startDate, endDate, updatedAtStartDate, updatedAtEndDate, stage, assignedTo, action: "handleSubmit start" });
+      const filter: { 
+        assignedTo?: { userId: string; isNot: boolean }[]; 
+        createdAt?: { startDate: string; endDate: string }; 
+        updatedAt?: { startDate: string; endDate: string }; 
+        stage?: string 
+      } = {
         ...(user?.role === "admin" && assignedTo.length > 0 && { assignedTo }),
         ...(startDate && endDate && isValidDate(startDate, "M/d/yyyy") && isValidDate(endDate, "M/d/yyyy") && {
           createdAt: {
             startDate: format(parse(startDate, "M/d/yyyy", new Date()), "yyyy-MM-dd"),
             endDate: format(parse(endDate, "M/d/yyyy", new Date()), "yyyy-MM-dd"),
+          },
+        }),
+        ...(updatedAtStartDate && updatedAtEndDate && isValidDate(updatedAtStartDate, "M/d/yyyy") && isValidDate(updatedAtEndDate, "M/d/yyyy") && {
+          updatedAt: {
+            startDate: format(parse(updatedAtStartDate, "M/d/yyyy", new Date()), "yyyy-MM-dd"),
+            endDate: format(parse(updatedAtEndDate, "M/d/yyyy", new Date()), "yyyy-MM-dd"),
           },
         }),
         ...(stage && { stage }),
@@ -214,6 +241,8 @@ export default function ContactOffCanvas({ isOpen, onClose }: ContactOffCanvasPr
     setSelectedUsers([]);
     setStartDate(null);
     setEndDate(null);
+    setUpdatedAtStartDate(null);
+    setUpdatedAtEndDate(null);
     setIsNot(true); // Reset to default
     setHasUserInteracted(false); // Reset interaction flag
     const query = new URLSearchParams();
@@ -310,13 +339,24 @@ export default function ContactOffCanvas({ isOpen, onClose }: ContactOffCanvasPr
           </div>
           <div className="mb-4">
             <DateRangePickerUi
-              onApply={handleApply}
-              label="Select date range"
+              onApply={handleApplyCreatedAt}
+              label="Select date range (Created at)"
               placeholder="Select date range"
               startDate={startDate}
               endDate={endDate}
               setStartDate={setStartDate}
               setEndDate={setEndDate}
+            />
+          </div>
+          <div className="mb-4">
+            <DateRangePickerUi
+              onApply={handleApplyUpdatedAt}
+              label="Select date range (Updated at)"
+              placeholder="Select date range"
+              startDate={updatedAtStartDate}
+              endDate={updatedAtEndDate}
+              setStartDate={setUpdatedAtStartDate}
+              setEndDate={setUpdatedAtEndDate}
             />
           </div>
           <div className="mb-4">

@@ -13,6 +13,10 @@ interface FilterBody {
     startDate?: string;
     endDate?: string;
   };
+  updatedAt?: {
+    startDate?: string;
+    endDate?: string;
+  };
   stage?: string;
 }
 
@@ -169,6 +173,43 @@ export async function POST(req: NextRequest) {
       if (Object.keys(searchQuery.createdAt).length === 0) {
         delete searchQuery.createdAt;
       }
+    }
+
+    if (filter.updatedAt) {
+      searchQuery.updatedAt = {};
+  if (filter.updatedAt.startDate) {
+    try {
+      // Set start of the day
+      const startDate = new Date(filter.updatedAt.startDate);
+      startDate.setHours(0, 0, 0, 0); // Ensure start of day
+      searchQuery.updatedAt.$gte = startDate;
+    } catch (error) {
+      console.log(error);
+      return NextResponse.json(
+        { error: "Invalid updatedAt startDate format" },
+        { status: 400 }
+      );
+    }
+  }
+
+  if (filter.updatedAt.endDate) {
+    try {
+      // Set end of the day
+      const endDate = new Date(filter.updatedAt.endDate);
+      endDate.setHours(23, 59, 59, 999); // Ensure end of day
+      searchQuery.updatedAt.$lte = endDate;
+    } catch (error) {
+      console.log(error);
+      return NextResponse.json(
+        { error: "Invalid updatedAt endDate format" },
+        { status: 400 }
+      );
+    }
+  }
+  // Remove updatedAt filter if no valid dates provided
+  if (Object.keys(searchQuery.updatedAt).length === 0) {
+    delete searchQuery.updatedAt;
+  }
     }
 
     // Filter by stage

@@ -15,7 +15,7 @@ interface DateRangePickerUiProps {
 }
 
 export default function DateRangePickerUi({
-  label = "Select Date Range",
+  label = "Select Created at Date Range",
   placeholder = "Pick a date",
   containerClassName = "",
   inputClassName = "",
