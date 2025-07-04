@@ -9,8 +9,6 @@ import { ChevronDownIcon } from "@/icons";
 import EditIcon from "../ui/flowbiteIcons/EditIcon";
 import { toast } from "react-toastify";
 import AddToPipelineIcon from "../ui/flowbiteIcons/AddToPipeline";
-// import AddTagIcon from "../ui/flowbiteIcons/AddTag";
-// import DeleteIcon from "../ui/flowbiteIcons/Delete";
 import { checkBoxClass } from "@/constants/classnames";
 import { Modal } from "../ui/modal";
 import AddToPipelineForm from "../form/contact-form/AddToPipelineForm";
@@ -31,16 +29,17 @@ export interface FilterParams {
     startDate?: string;
     endDate?: string;
   };
-  stage?: string;
   updatedAt?: {
-  startDate?: string;
-  endDate?: string;
-};
+    startDate?: string;
+    endDate?: string;
+  };
+  stage?: string;
 }
 
 const ContactTableOne: React.FC = () => {
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
   const { isOpen, openModal, closeModal } = useModal();
+  const [limit, setLimit]=useState("10")
   const [modalType, setModalType] = useState<"addToPipeline" | "assignContacts" | null>(null);
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -58,12 +57,14 @@ const ContactTableOne: React.FC = () => {
   });
 
   // Initialize params from query parameters on mount
-useEffect(() => {
+  useEffect(() => {
     const page = parseInt(searchParams.get("page") || "1", 10);
     const limit = parseInt(searchParams.get("limit") || "10", 10);
     const keyword = searchParams.get("keyword") || "";
     const source = searchParams.get("source") || "";
     const filterStr = searchParams.get("filter");
+    const limitParam = searchParams.get("limit") || "10";
+    setLimit(limitParam)
     let filter: FilterParams = {};
     try {
       if (filterStr) {
@@ -91,6 +92,7 @@ useEffect(() => {
         stage: filter.stage || undefined,
         assignedTo: Array.isArray(filter.assignedTo) ? filter.assignedTo : undefined,
         createdAt: filter.createdAt || undefined,
+        updatedAt: filter.updatedAt || undefined,
       },
     }));
   }, [searchParams]);
@@ -115,7 +117,6 @@ useEffect(() => {
     { value: "25", label: "25" },
     { value: "50", label: "50" },
   ];
-
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setParams((prev) => ({ ...prev, keyword: e.target.value, page: 1 }));
@@ -197,8 +198,9 @@ useEffect(() => {
   const isAllSelected =
     (data?.contacts?.length ?? 0) > 0 &&
     data?.contacts?.every((contact) => selectedContacts.includes(contact._id));
-  
+
   const isAdmin = user && user.role === "admin";
+
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
       <div className="mb-2 px-5 py-3 flex gap-3 justify-between">
@@ -210,51 +212,33 @@ useEffect(() => {
           className="w-full max-w-xl rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
         />
         <div className="relative flex gap-3">
-          {user&&user?.role==="admin"&&(
-          <div className="inline-flex rounded-md shadow-xs" role="group">
-            <button
-              type="button"
-              onClick={handleAddToPipeline}
-              disabled={isButtonGroupDisabled}
-              className={`px-4 py-2 text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-s-lg hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700 dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-blue-500 dark:focus:text-white ${
-                isButtonGroupDisabled ? "opacity-50 cursor-not-allowed" : ""
-              }`}
-            >
-              <AddToPipelineIcon />
-            </button>
-            {/* <button
-              type="button"
-              disabled={isButtonGroupDisabled}
-              className={`px-4 py-2 text-sm font-medium text-gray-900 bg-white border-t border-b border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700 dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-blue-500 dark:focus:text-white ${
-                isButtonGroupDisabled ? "opacity-50 cursor-not-allowed" : ""
-              }`}
-            >
-              <AddTagIcon />
-            </button> */}
-            <button
-              type="button"
-              onClick={handleAssignContacts}
-              disabled={isButtonGroupDisabled}
-              className={`px-4 py-2 text-sm font-medium text-gray-900 bg-white border border-b border-gray-200 rounded-e-lg hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700 dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-blue-500 dark:focus:text-white ${
-                isButtonGroupDisabled ? "opacity-50 cursor-not-allowed" : ""
-              }`}
-            >
-              <AssignUserIcon />
-            </button>
-            {/* <button
-              type="button"
-              disabled={isButtonGroupDisabled}
-              className={`px-4 py-2 text-sm font-medium text-gray-900 bg-red-600 border border-gray-200 rounded-e-lg hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700 dark:bg-red-800 dark:border-red-700 dark:text-white dark:hover:text-white dark:hover:bg-red-700 dark:focus:ring-blue-500 dark:focus:text-white ${
-                isButtonGroupDisabled ? "opacity-50 cursor-not-allowed" : ""
-              }`}
-            >
-              <DeleteIcon />
-            </button> */}
-          </div>
+          {user && user.role === "admin" && (
+            <div className="inline-flex rounded-md shadow-xs" role="group">
+              <button
+                type="button"
+                onClick={handleAddToPipeline}
+                disabled={isButtonGroupDisabled}
+                className={`px-4 py-2 text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-s-lg hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700 dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-blue-500 dark:focus:text-white ${
+                  isButtonGroupDisabled ? "opacity-50 cursor-not-allowed" : ""
+                }`}
+              >
+                <AddToPipelineIcon />
+              </button>
+              <button
+                type="button"
+                onClick={handleAssignContacts}
+                disabled={isButtonGroupDisabled}
+                className={`px-4 py-2 text-sm font-medium text-gray-900 bg-white border border-b border-gray-200 rounded-e-lg hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700 dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-blue-500 dark:focus:text-white ${
+                  isButtonGroupDisabled ? "opacity-50 cursor-not-allowed" : ""
+                }`}
+              >
+                <AssignUserIcon />
+              </button>
+            </div>
           )}
-   
           <Select
             options={options}
+            value={limit}
             defaultValue="10"
             placeholder="Items per page"
             onChange={handleLimitChange}
@@ -265,12 +249,14 @@ useEffect(() => {
           </span>
         </div>
       </div>
-      <div className="relative overflow-x-auto">
-    {selectedContacts&&selectedContacts.length>0&&( 
-          <h3 className="text-sm mb-1 px-5 font-semibold text-gray-800 dark:text-white/90 text-start">{selectedContacts.length}{" "}contacts selected</h3>
-          )}
+      <div className="relative overflow-x-auto max-h-[calc(110vh-200px)]">
+        {selectedContacts && selectedContacts.length > 0 && (
+          <h3 className="text-sm mb-1 px-5 font-semibold text-gray-800 dark:text-white/90 text-start">
+            {selectedContacts.length} contacts selected
+          </h3>
+        )}
         <table className="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
-          <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+          <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400 sticky top-0 z-10">
             <tr>
               {isAdmin && (
                 <th scope="col" className="px-5 py-3 w-12">
@@ -291,10 +277,10 @@ useEffect(() => {
               <th scope="col" className="px-5 py-3">
                 Tags
               </th>
-              {isAdmin&&(
-              <th scope="col" className="px-5 py-3">
-                Assigned
-              </th>
+              {isAdmin && (
+                <th scope="col" className="px-5 py-3">
+                  Assigned
+                </th>
               )}
               <th scope="col" className="px-5 py-3">
                 Created at
@@ -312,7 +298,7 @@ useEffect(() => {
           <tbody>
             {(isLoading || isFetching) && (
               <tr className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200">
-                <td colSpan={7} className="px-5 py-4 text-center">
+                <td colSpan={8} className="px-5 py-4 text-center">
                   <div className="w-full flex justify-center">
                     <ShortSpinnerPrimary />
                   </div>
@@ -321,14 +307,14 @@ useEffect(() => {
             )}
             {error && (
               <tr className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200">
-                <td colSpan={7} className="px-5 py-4 text-center text-red-500">
+                <td colSpan={8} className="px-5 py-4 text-center text-red-500">
                   {getErrorMessage(error)}
                 </td>
               </tr>
             )}
             {!isLoading && !error && data?.contacts?.length === 0 && (
               <tr className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200">
-                <td colSpan={7} className="px-5 py-4 text-center">
+                <td colSpan={8} className="px-5 py-4 text-center">
                   No contacts found
                 </td>
               </tr>
@@ -379,7 +365,7 @@ useEffect(() => {
                       )}
                     </div>
                   </td>
-                  {isAdmin&&(
+                  {isAdmin && (
                     <td className="px-5 py-4">
                       <div className="max-w-36 line-clamp-3">
                         {contact.assignedTo.length > 0
@@ -392,9 +378,8 @@ useEffect(() => {
                               .join(", ")
                           : "None"}
                       </div>
-                </td>
+                    </td>
                   )}
-                
                   <td className="px-5 py-4">
                     <div className="max-w-36 line-clamp-3">
                       {new Date(contact.createdAt).toLocaleDateString('en-GB', {
