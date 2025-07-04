@@ -111,6 +111,7 @@ interface AssignContactsRequest {
   contactIds: string[];
   userIds: string[];
   assignType: "every" | "equally" | "roundRobin";
+  isAddAsNewLead?: boolean;
 }
 
 interface AssignContactsResponse {

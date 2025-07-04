@@ -1,7 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import User from "@/app/models/User";
 import Contact from "@/app/models/Contact";
+import Pipeline from "@/app/models/Pipeline";
+import Stage from "@/app/models/Stage";
 import { authorizeRoles, isAuthenticatedUser } from "../../middlewares/auth";
 import dbConnect from "@/app/lib/db/connection";
 
@@ -10,30 +13,27 @@ interface AssignContactsRequest {
   contactIds: string[];
   userIds: string[];
   assignType: "every" | "equally" | "roundRobin";
+  isAddAsNewLead?: boolean;
 }
 
 export async function POST(req: NextRequest) {
   try {
     // Authenticate the user
     const currentUser = await isAuthenticatedUser(req);
-    authorizeRoles(currentUser, 'admin');
+    authorizeRoles(currentUser, "admin");
 
     // Parse request body
     const body: AssignContactsRequest = await req.json();
-    const { contactIds, userIds, assignType } = body;
-    console.log("Debug: Parsed request body:", { contactIds, userIds, assignType });
+    const { contactIds, userIds, assignType, isAddAsNewLead = false } = body;
 
     // Validate input
     if (!Array.isArray(contactIds) || contactIds.length === 0) {
-      console.log("Debug: Validation failed - Invalid or empty contactIds:", contactIds);
       return NextResponse.json({ error: "Invalid or empty contactIds" }, { status: 400 });
     }
     if (!Array.isArray(userIds) || userIds.length === 0) {
-      console.log("Debug: Validation failed - Invalid or empty userIds:", userIds);
       return NextResponse.json({ error: "Invalid or empty userIds" }, { status: 400 });
     }
     if (!["every", "equally", "roundRobin"].includes(assignType)) {
-      console.log("Debug: Validation failed - Invalid assignType:", assignType);
       return NextResponse.json({ error: "Invalid assignType" }, { status: 400 });
     }
 
@@ -52,6 +52,33 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "One or more contacts not found" }, { status: 404 });
     }
 
+    // Verify pipeline and stage if isAddAsNewLead is true
+    let defaultPipeline = null;
+    let defaultStage = null;
+    if (isAddAsNewLead) {
+      if (!process.env.DEFAULT_PIPELINE || !mongoose.Types.ObjectId.isValid(process.env.DEFAULT_PIPELINE)) {
+        return NextResponse.json({ error: "Invalid default pipeline ID" }, { status: 400 });
+      }
+      if (!process.env.DEFAULT_STAGE || !mongoose.Types.ObjectId.isValid(process.env.DEFAULT_STAGE)) {
+        return NextResponse.json({ error: "Invalid default stage ID" }, { status: 400 });
+      }
+
+      // Check if pipeline exists
+      defaultPipeline = await Pipeline.findById(process.env.DEFAULT_PIPELINE);
+      if (!defaultPipeline) {
+        return NextResponse.json({ error: "Default pipeline not found" }, { status: 404 });
+      }
+
+      // Check if stage exists and belongs to the pipeline
+      defaultStage = await Stage.findOne({
+        _id: process.env.DEFAULT_STAGE,
+        pipeline_id: process.env.DEFAULT_PIPELINE,
+      });
+      if (!defaultStage) {
+        return NextResponse.json({ error: "Default stage not found or does not belong to the specified pipeline" }, { status: 404 });
+      }
+    }
+
     // Start a MongoDB session for atomic updates
     const session = await mongoose.startSession();
     try {
@@ -61,13 +88,14 @@ export async function POST(req: NextRequest) {
           contactId: string;
           assignedTo: { user: string; time: Date }[];
           activity: { action: string; user: string; details: object; createdAt: Date };
+          pipelinesActive?: { pipeline_id: string; stage_id: string; order: number }[];
         }[] = [];
 
         if (assignType === "every") {
           // Assign all contacts to every user
           const assignedTo = userIds.map((userId) => ({ user: userId, time: new Date() }));
           contactIds.forEach((contactId) => {
-            updates.push({
+            const update: any = {
               contactId,
               assignedTo,
               activity: {
@@ -76,19 +104,24 @@ export async function POST(req: NextRequest) {
                 details: { userIds, assignType },
                 createdAt: new Date(),
               },
-            });
+            };
+            if (isAddAsNewLead) {
+              update.pipelinesActive = [{
+                pipeline_id: process.env.DEFAULT_PIPELINE!,
+                stage_id: process.env.DEFAULT_STAGE!,
+                order: 0,
+              }];
+            }
+            updates.push(update);
           });
         } else if (assignType === "equally") {
-          console.log("Debug: Processing 'equally' assignment");
           const contactsPerUser = Math.floor(contactIds.length / userIds.length);
-          console.log("Debug: Contacts per user:", contactsPerUser, "Total contacts:", contactIds.length, "Users:", userIds.length);
           let contactIndex = 0;
 
           // First, assign the base number of contacts to each user
           userIds.forEach((userId) => {
-            console.log("Debug: Assigning base contacts to user:", userId);
             for (let i = 0; i < contactsPerUser && contactIndex < contactIds.length; i++) {
-              updates.push({
+              const update: any = {
                 contactId: contactIds[contactIndex],
                 assignedTo: [{ user: userId, time: new Date() }],
                 activity: {
@@ -97,17 +130,22 @@ export async function POST(req: NextRequest) {
                   details: { userIds: [userId], assignType },
                   createdAt: new Date(),
                 },
-              });
-              console.log("Debug: Assigned contact", contactIds[contactIndex], "to user", userId);
+              };
+              if (isAddAsNewLead) {
+                update.pipelinesActive = [{
+                  pipeline_id: process.env.DEFAULT_PIPELINE!,
+                  stage_id: process.env.DEFAULT_STAGE!,
+                  order: 0,
+                }];
+              }
+              updates.push(update);
               contactIndex++;
             }
           });
 
-
-          console.log("Debug: Distributing remaining contacts, starting at index:", contactIndex);
           for (let i = contactIndex; i < contactIds.length; i++) {
             const userId = userIds[i % userIds.length];
-            updates.push({
+            const update: any = {
               contactId: contactIds[i],
               assignedTo: [{ user: userId, time: new Date() }],
               activity: {
@@ -116,15 +154,20 @@ export async function POST(req: NextRequest) {
                 details: { userIds: [userId], assignType },
                 createdAt: new Date(),
               },
-            });
-            console.log("Debug: Assigned remaining contact", contactIds[i], "to user", userId);
+            };
+            if (isAddAsNewLead) {
+              update.pipelinesActive = [{
+                pipeline_id: process.env.DEFAULT_PIPELINE!,
+                stage_id: process.env.DEFAULT_STAGE!,
+                order: 0,
+              }];
+            }
+            updates.push(update);
           }
-          console.log("Debug: Final updates for 'equally':", updates);
         } else if (assignType === "roundRobin") {
-          console.log("Debug: Processing 'roundRobin' assignment");
           contactIds.forEach((contactId, index) => {
             const userId = userIds[index % userIds.length];
-            updates.push({
+            const update: any = {
               contactId,
               assignedTo: [{ user: userId, time: new Date() }],
               activity: {
@@ -133,34 +176,67 @@ export async function POST(req: NextRequest) {
                 details: { userIds: [userId], assignType },
                 createdAt: new Date(),
               },
-            });
-            console.log("Debug: Assigned contact", contactId, "to user", userId);
+            };
+            if (isAddAsNewLead) {
+              update.pipelinesActive = [{
+                pipeline_id: process.env.DEFAULT_PIPELINE!,
+                stage_id: process.env.DEFAULT_STAGE!,
+                order: 0,
+              }];
+            }
+            updates.push(update);
           });
-          console.log("Debug: Final updates for 'roundRobin':", updates);
         }
 
         // Perform bulk updates
-        const bulkOps = updates.map(({ contactId, assignedTo, activity }) => ({
-          updateOne: {
-            filter: { _id: contactId },
-            update: {
-              $set: { assignedTo },
-              $push: { activities: activity },
-              $inc: { __v: 1 },
+        const bulkOps = updates.map(({ contactId, assignedTo, activity, pipelinesActive }) => {
+          const updateOp: any = {
+            updateOne: {
+              filter: { _id: contactId },
+              update: {
+                $set: { assignedTo },
+                $push: { activities: activity },
+                $inc: { __v: 1 },
+              },
             },
-          },
-        }));
+          };
+          if (isAddAsNewLead && pipelinesActive) {
+            updateOp.updateOne.update.$set.pipelinesActive = pipelinesActive;
+          }
+          return updateOp;
+        });
 
         await Contact.bulkWrite(bulkOps, { session });
+
+        // Log activity for pipeline addition if isAddAsNewLead is true
+        if (isAddAsNewLead) {
+          const pipelineActivityOps = contactIds.map((contactId) => ({
+            updateOne: {
+              filter: { _id: contactId },
+              update: {
+                $push: {
+                  activities: {
+                    action: "PIPELINE_ADDED",
+                    user: currentUser._id!,
+                    details: {
+                      pipeline_id: process.env.DEFAULT_PIPELINE!,
+                      stage_id: process.env.DEFAULT_STAGE!,
+                    },
+                    createdAt: new Date(),
+                  },
+                },
+              },
+            },
+          }));
+          await Contact.bulkWrite(pipelineActivityOps, { session });
+        }
       });
     } finally {
       session.endSession();
     }
 
     return NextResponse.json({ message: "Contacts assigned successfully" }, { status: 200 });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
-    console.error("Debug: Error assigning contacts:", error);
     return NextResponse.json(
       { error: error.message || "Failed to assign contacts" },
       { status: error.message.includes("login") ? 401 : 500 }

@@ -27,6 +27,7 @@ interface TeamMembersResponse {
 export default function AssignContactsForm({ onClose, selectedContacts }: AssignContactsFormProps) {
   const [formData, setFormData] = useState({
     assignType: "" as "" | "every" | "equally" | "roundRobin",
+    isAddAsNewLead: false, // Add isAddAsNewLead to form state
   });
   const [searchQuery, setSearchQuery] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -41,11 +42,9 @@ export default function AssignContactsForm({ onClose, selectedContacts }: Assign
   });
 
   // Mutation for assigning contacts
-  const [assignContacts, {isLoading:assignLoading}] = useAssignContactsMutation();
+  const [assignContacts, { isLoading: assignLoading }] = useAssignContactsMutation();
 
-  // Mock data for testing
-
-  // Use teamMembers.users if available, else mockUsers
+  // Use teamMembers.users if available, else empty array
   const users = teamMembers?.users && Array.isArray(teamMembers.users) ? teamMembers.users : [];
 
   const handleInputChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -53,6 +52,14 @@ export default function AssignContactsForm({ onClose, selectedContacts }: Assign
     setFormData((prev) => ({
       ...prev,
       [name]: value as "" | "every" | "equally" | "roundRobin",
+    }));
+  };
+
+  const handleToggleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, checked } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: checked,
     }));
   };
 
@@ -96,6 +103,7 @@ export default function AssignContactsForm({ onClose, selectedContacts }: Assign
           .filter((user) => user._id !== undefined)
           .map((user) => user._id!),
         assignType: formData.assignType,
+        isAddAsNewLead: formData.isAddAsNewLead, // Include isAddAsNewLead in payload
       }).unwrap();
       toast.success("Contacts assigned successfully");
       onClose();
@@ -197,13 +205,28 @@ export default function AssignContactsForm({ onClose, selectedContacts }: Assign
             </div>
           )}
         </div>
+        <div>
+          <label className="inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              name="isAddAsNewLead"
+              checked={formData.isAddAsNewLead}
+              onChange={handleToggleChange}
+              className="sr-only peer"
+            />
+            <div className="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600 dark:peer-checked:bg-blue-600" />
+            <span className="ms-3 text-sm font-medium text-gray-900 dark:text-gray-300">
+              Add to pipeline as new lead
+            </span>
+          </label>
+        </div>
         {error && <p className="text-red-500 text-sm">{error}</p>}
         <div className="flex justify-end space-x-2">
           <Button type="button" onClick={onClose} variant="outline">
             Cancel
           </Button>
           <Button type="submit" disabled={assignLoading} variant="primary">
-            {assignLoading?<ShortSpinnerDark/>:"Assign"}
+            {assignLoading ? <ShortSpinnerDark /> : "Assign"}
           </Button>
         </div>
       </form>

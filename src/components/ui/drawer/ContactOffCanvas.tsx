@@ -37,7 +37,7 @@ export default function ContactOffCanvas({ isOpen, onClose }: ContactOffCanvasPr
   const [updatedAtStartDate, setUpdatedAtStartDate] = useState<string | null>(null);
   const [updatedAtEndDate, setUpdatedAtEndDate] = useState<string | null>(null);
   const [stage, setStage] = useState("");
-  const [isNot, setIsNot] = useState(true); // State for "Not" checkbox
+  const [isNot, setIsNot] = useState(false); // State for "Not" checkbox
   const [hasUserInteracted, setHasUserInteracted] = useState(false); // Track user interaction
 
   const { data: pipelineData, isLoading: isPipelineLoading } = useGetPipelineByIdQuery(
@@ -83,10 +83,19 @@ export default function ContactOffCanvas({ isOpen, onClose }: ContactOffCanvasPr
       console.error("Invalid filter param:", e);
     }
     const assignedTo = user.role === "admin" && Array.isArray(filter.assignedTo) ? filter.assignedTo : [];
-    const startDate = filter.createdAt?.startDate || null;
-    const endDate = filter.createdAt?.endDate || null;
-    const updatedAtStartDate = filter.updatedAt?.startDate || null;
-    const updatedAtEndDate = filter.updatedAt?.endDate || null;
+    // Parse dates to ensure consistent format (M/d/yyyy for display)
+    const startDate = filter.createdAt?.startDate 
+      ? format(parse(filter.createdAt.startDate, "yyyy-MM-dd", new Date()), "M/d/yyyy") 
+      : null;
+    const endDate = filter.createdAt?.endDate 
+      ? format(parse(filter.createdAt.endDate, "yyyy-MM-dd", new Date()), "M/d/yyyy") 
+      : null;
+    const updatedAtStartDate = filter.updatedAt?.startDate 
+      ? format(parse(filter.updatedAt.startDate, "yyyy-MM-dd", new Date()), "M/d/yyyy") 
+      : null;
+    const updatedAtEndDate = filter.updatedAt?.endDate 
+      ? format(parse(filter.updatedAt.endDate, "yyyy-MM-dd", new Date()), "M/d/yyyy") 
+      : null;
     const stage = filter.stage || stageParam || "";
 
     setKeyword(keyword);
