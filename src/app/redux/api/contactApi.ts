@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { IContact } from "@/app/models/Contact";
+import { FilterParams } from "@/components/tables/ContactTableOne";
 
 
 export interface ResponseActivity {
@@ -36,11 +37,7 @@ interface FilterContactsResponse {
   pagination: Pagination;
 }
 
-interface FilterParams {
-  assignedTo?: string;
-  pipelineNames?: string[];
-  tags?: string[];
-}
+
 
 interface FilterContactsRequest {
   page?: number;

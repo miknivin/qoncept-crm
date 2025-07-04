@@ -5,14 +5,15 @@ import mongoose, { FilterQuery } from "mongoose";
 import { authorizeRoles, isAuthenticatedUser } from "../../middlewares/auth";
 
 interface FilterBody {
-  assignedTo?: string;
+  assignedTo?: { userId: string; isNot: boolean }[];
   pipelineNames?: string[];
   tags?: string[];
-  source?: string; // Added source filter
+  source?: string;
   createdAt?: {
-    startDate?: string; // ISO date string for start of range
-    endDate?: string;   // ISO date string for end of range
-  }; // Added createdAt filter
+    startDate?: string;
+    endDate?: string;
+  };
+  stage?: string;
 }
 
 type ResponseContact = Omit<IContact, "activities" | "uid">;
@@ -78,23 +79,31 @@ export async function POST(req: NextRequest) {
 
     // Restrict team_member to their own contacts
     if (!isAdmin) {
-      // For team_member, ensure assignedTo.user matches user._id
-      if (filter.assignedTo && filter.assignedTo !== user!._id?.toString()) {
+      searchQuery["assignedTo.user"] = user._id;
+      // Team members cannot use assignedTo filter
+      if (filter.assignedTo && filter.assignedTo.length > 0) {
         return NextResponse.json(
           { error: "Team members can only view their own assigned contacts" },
           { status: 403 }
         );
       }
-      searchQuery["assignedTo.user"] = user._id;
-    } else if (filter.assignedTo) {
-      // For admin, allow assignedTo filter if valid
-      if (mongoose.Types.ObjectId.isValid(filter.assignedTo)) {
-        searchQuery["assignedTo.user"] = new mongoose.Types.ObjectId(filter.assignedTo);
-      } else {
-        return NextResponse.json(
-          { error: "Invalid assignedTo ID" },
-          { status: 400 }
-        );
+    } else if (filter.assignedTo && filter.assignedTo.length > 0) {
+      // For admin, process assignedTo as an array with isNot logic
+      const includeUsers = filter.assignedTo
+        .filter((a) => !a.isNot && mongoose.Types.ObjectId.isValid(a.userId))
+        .map((a) => new mongoose.Types.ObjectId(a.userId));
+      const excludeUsers = filter.assignedTo
+        .filter((a) => a.isNot && mongoose.Types.ObjectId.isValid(a.userId))
+        .map((a) => new mongoose.Types.ObjectId(a.userId));
+
+      if (includeUsers.length > 0 || excludeUsers.length > 0) {
+        searchQuery["assignedTo.user"] = {};
+        if (includeUsers.length > 0) {
+          searchQuery["assignedTo.user"].$in = includeUsers;
+        }
+        if (excludeUsers.length > 0) {
+          searchQuery["assignedTo.user"].$nin = excludeUsers;
+        }
       }
     }
 
@@ -123,43 +132,56 @@ export async function POST(req: NextRequest) {
     if (filter.source) {
       searchQuery.source = filter.source;
     }
-    
+
     // Filter by createdAt date range
     if (filter.createdAt) {
-    searchQuery.createdAt = {};
-    if (filter.createdAt.startDate) {
-      try {
-        // Set start of the day
-        const startDate = new Date(filter.createdAt.startDate);
-        startDate.setHours(0, 0, 0, 0); // Ensure start of day
-        searchQuery.createdAt.$gte = startDate;
-      } catch (error) {
-        console.log(error);
+      searchQuery.createdAt = {};
+      if (filter.createdAt.startDate) {
+        try {
+          // Set start of the day
+          const startDate = new Date(filter.createdAt.startDate);
+          startDate.setHours(0, 0, 0, 0); // Ensure start of day
+          searchQuery.createdAt.$gte = startDate;
+        } catch (error) {
+          console.log(error);
+          return NextResponse.json(
+            { error: "Invalid startDate format" },
+            { status: 400 }
+          );
+        }
+      }
+
+      if (filter.createdAt.endDate) {
+        try {
+          // Set end of the day
+          const endDate = new Date(filter.createdAt.endDate);
+          endDate.setHours(23, 59, 59, 999); // Ensure end of day
+          searchQuery.createdAt.$lte = endDate;
+        } catch (error) {
+          console.log(error);
+          return NextResponse.json(
+            { error: "Invalid endDate format" },
+            { status: 400 }
+          );
+        }
+      }
+      // Remove createdAt filter if no valid dates provided
+      if (Object.keys(searchQuery.createdAt).length === 0) {
+        delete searchQuery.createdAt;
+      }
+    }
+
+    // Filter by stage
+    if (filter.stage) {
+      if (mongoose.Types.ObjectId.isValid(filter.stage)) {
+        searchQuery["pipelinesActive.stage_id"] = new mongoose.Types.ObjectId(filter.stage);
+      } else {
         return NextResponse.json(
-          { error: "Invalid startDate format" },
+          { error: "Invalid stage ID" },
           { status: 400 }
         );
       }
     }
-    if (filter.createdAt.endDate) {
-      try {
-        // Set end of the day
-        const endDate = new Date(filter.createdAt.endDate);
-        endDate.setHours(23, 59, 59, 999); // Ensure end of day
-        searchQuery.createdAt.$lte = endDate;
-      } catch (error) {
-        console.log(error);
-        return NextResponse.json(
-          { error: "Invalid endDate format" },
-          { status: 400 }
-        );
-      }
-    }
-    // Remove createdAt filter if no valid dates provided
-    if (Object.keys(searchQuery.createdAt).length === 0) {
-      delete searchQuery.createdAt;
-    }
-  }
 
     // Calculate skip for pagination
     const skip = (page - 1) * limit;
@@ -171,7 +193,7 @@ export async function POST(req: NextRequest) {
         .populate("assignedTo.user", "name email")
         .skip(skip)
         .limit(limit)
-        .sort({createdAt:-1})
+        .sort({ createdAt: -1 })
         .lean() as Promise<ResponseContact[]>,
       Contact.countDocuments(searchQuery),
     ]);

@@ -183,6 +183,8 @@ export default function DateRangePickerUi({
         >
           <div className="flex items-center justify-between px-5">
             <button
+              type="button"
+              role="button"
               className="rounded-md p-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
               onClick={() => setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth() - 1)))}
             >
@@ -204,6 +206,8 @@ export default function DateRangePickerUi({
               {currentDate.toLocaleString("default", { month: "long" })} {currentDate.getFullYear()}
             </div>
             <button
+             type="button"
+              role="button"
               className="rounded-md p-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
               onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))}
             >
@@ -232,12 +236,16 @@ export default function DateRangePickerUi({
           <div className="mt-2 grid grid-cols-7 gap-y-0.5 px-5">{renderCalendar()}</div>
           <div className="mt-2 flex justify-end space-x-2.5 border-t border-gray-300 dark:border-gray-600 p-5">
             <button
+             type="button"
+              role="button"
               className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-center text-gray-900 bg-white border border-gray-200 rounded-lg focus:outline-none hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-100 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700"
               onClick={handleCancel}
             >
               Cancel
             </button>
             <button
+              type="button"
+              role="button"
               className="px-4 py-2 flex items-center justify-center text-sm font-medium text-center text-white bg-blue-700 rounded-lg hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800"
               onClick={handleApply}
             >

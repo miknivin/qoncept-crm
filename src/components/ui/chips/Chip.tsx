@@ -3,14 +3,17 @@ import React from 'react';
 interface ChipProps {
   text: string;
   onRemove: () => void;
-  disabled?:boolean;
+  disabled?: boolean;
+  isNot?: boolean;
 }
 
-const Chip: React.FC<ChipProps> = ({ text, onRemove, disabled }) => {
+const Chip: React.FC<ChipProps> = ({ text, onRemove, disabled, isNot }) => {
   return (
     <span
       id={`badge-dismiss-${text}`}
-      className="inline-flex items-center px-2 py-1 me-2 text-sm font-medium text-gray-800 bg-gray-100 rounded-sm dark:bg-gray-700 dark:text-gray-300"
+      className={`inline-flex items-center px-2 py-1 me-2 text-sm font-medium text-gray-800 rounded-sm dark:text-gray-300 ${
+        isNot ? 'bg-error-200 dark:bg-error-800' : 'bg-gray-100 dark:bg-gray-700'
+      }`}
       aria-description={`press enter to edit ${text}`}
     >
       {text}

@@ -11,6 +11,7 @@ import { useGetTeamMembersQuery } from "@/app/redux/api/userApi";
 import ArrowRightIcon from "../flowbiteIcons/ArrowRight";
 import { format, parse, isValid } from "date-fns";
 import DateRangePickerUi from "../date/DateRangePicker";
+import { useGetPipelineByIdQuery } from "@/app/redux/api/pipelineApi";
 
 interface ContactOffCanvasProps {
   isOpen: boolean;
@@ -26,13 +27,21 @@ export default function ContactOffCanvas({ isOpen, onClose }: ContactOffCanvasPr
   // Form state
   const [keyword, setKeyword] = useState("");
   const [source, setSource] = useState("");
-  const [assignedTo, setAssignedTo] = useState("");
+  const [assignedTo, setAssignedTo] = useState<{ userId: string; isNot: boolean }[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<IUser[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [startDate, setStartDate] = useState<string | null>(null);
   const [endDate, setEndDate] = useState<string | null>(null);
+  const [stage, setStage] = useState("");
+  const [isNot, setIsNot] = useState(true); // State for "Not" checkbox
+  const [hasUserInteracted, setHasUserInteracted] = useState(false); // Track user interaction
+
+  const { data: pipelineData, isLoading: isPipelineLoading } = useGetPipelineByIdQuery(
+    process.env.NEXT_PUBLIC_DEFAULT_PIPELINE || ""
+  );
+  const stages = pipelineData?.pipeline?.stages || [];
 
   // Source options with label-value pairs
   const sourceOptions = [
@@ -54,30 +63,44 @@ export default function ContactOffCanvas({ isOpen, onClose }: ContactOffCanvasPr
     if (!user) return;
     const keyword = searchParams.get("keyword") || "";
     const sourceParam = searchParams.get("source") || "";
+    const stageParam = searchParams.get("stage") || "";
     const source = sourceOptions.find((opt) => opt.label === sourceParam || opt.value === sourceParam)?.value || "";
     const filterStr = searchParams.get("filter");
-    let filter: { assignedTo?: string; createdAt?: { startDate: string; endDate: string } } = {};
+    let filter: { assignedTo?: { userId: string; isNot: boolean }[]; createdAt?: { startDate: string; endDate: string }; stage?: string } = {};
     try {
-      if (filterStr) filter = JSON.parse(filterStr);
+      if (filterStr) {
+        filter = JSON.parse(filterStr);
+        console.log({ filterStr, filter, action: "parsed filter in useEffect" });
+      }
     } catch (e) {
       console.error("Invalid filter param:", e);
     }
-    const assignedTo = user.role === "admin" ? filter.assignedTo || "" : "";
+    const assignedTo = user.role === "admin" && Array.isArray(filter.assignedTo) ? filter.assignedTo : [];
     const startDate = filter.createdAt?.startDate || null;
     const endDate = filter.createdAt?.endDate || null;
+    const stage = filter.stage || stageParam || "";
 
     setKeyword(keyword);
     setSource(source);
-    setAssignedTo(assignedTo);
+    setStage(stage);
     setStartDate(startDate);
     setEndDate(endDate);
-    if (assignedTo && teamMembers.length > 0) {
-      const user = teamMembers.find((member) => member._id === assignedTo);
-      if (user && !selectedUsers.some((u) => u._id === user._id)) {
-        setSelectedUsers([user]);
+
+    // Only update assignedTo and selectedUsers if the user hasn't interacted
+    if (!hasUserInteracted) {
+      setAssignedTo(assignedTo);
+      if (Array.isArray(assignedTo) && assignedTo.length > 0 && teamMembers.length > 0) {
+        const selected = teamMembers.filter((member) =>
+          assignedTo.some((a) => a.userId === member._id)
+        );
+        setSelectedUsers(selected);
+        console.log({ selected, assignedTo, teamMembers, action: "set selectedUsers in useEffect" });
+      } else {
+        setSelectedUsers([]);
+        console.log({ assignedTo, teamMembers, action: "set empty selectedUsers in useEffect" });
       }
     }
-  }, [searchParams, user, teamMembers]);
+  }, [searchParams, user, teamMembers, hasUserInteracted]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
@@ -86,11 +109,22 @@ export default function ContactOffCanvas({ isOpen, onClose }: ContactOffCanvasPr
 
   const handleSelectMember = (member: IUser) => {
     if (member._id && !selectedUsers.some((user) => user._id === member._id)) {
-      setSelectedUsers([member]);
-      setAssignedTo(member._id || "");
+      setSelectedUsers([...selectedUsers, member]);
+      setAssignedTo([...assignedTo, { userId: member._id, isNot }]);
+      setHasUserInteracted(true); // Mark user interaction
+      console.log({ selectedUser: member, isNot, selectedUsers: [...selectedUsers, member], assignedTo: [...assignedTo, { userId: member._id, isNot }], action: "handleSelectMember" });
     }
     setSearchQuery("");
     setIsDropdownOpen(false);
+  };
+
+  const handleRemoveUser = (userId: string | undefined) => {
+    if (userId) {
+      setSelectedUsers(selectedUsers.filter((user) => user._id !== userId));
+      setAssignedTo(assignedTo.filter((a) => a.userId !== userId));
+      setHasUserInteracted(true); // Mark user interaction
+      console.log({ userId, action: "handleRemoveUser" });
+    }
   };
 
   // Handle clicking outside to close
@@ -100,7 +134,7 @@ export default function ContactOffCanvas({ isOpen, onClose }: ContactOffCanvasPr
         offCanvasRef.current &&
         !offCanvasRef.current.contains(event.target as Node) &&
         isOpen &&
-        !isSubmitting // Prevent closing during submission
+        !isSubmitting
       ) {
         onClose();
       }
@@ -112,20 +146,13 @@ export default function ContactOffCanvas({ isOpen, onClose }: ContactOffCanvasPr
     };
   }, [isOpen, onClose, isSubmitting]);
 
-  const handleRemoveUser = (userId: string | undefined) => {
-    if (userId) {
-      setSelectedUsers(selectedUsers.filter((user) => user._id !== userId));
-      setAssignedTo("");
-    }
-  };
-
   // Handle date range selection from DateRangePickerUi
   const handleApply = (dates: { startDate: string | null; endDate: string | null }) => {
     setStartDate(dates.startDate);
     setEndDate(dates.endDate);
   };
 
-   const isValidDate = (dateStr: string | null, formatStr: string): boolean => {
+  const isValidDate = (dateStr: string | null, formatStr: string): boolean => {
     if (!dateStr) return false;
     try {
       const parsedDate = parse(dateStr, formatStr, new Date());
@@ -136,19 +163,20 @@ export default function ContactOffCanvas({ isOpen, onClose }: ContactOffCanvasPr
   };
 
   // Form submission
-   const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      console.log({ startDate, endDate, action: "handleSubmit start" });
-      const filter: { assignedTo?: string; createdAt?: { startDate: string; endDate: string } } = {
-        ...(user?.role === "admin" && selectedUsers[0]?._id && { assignedTo: selectedUsers[0]._id }),
+      console.log({ startDate, endDate, stage, assignedTo, action: "handleSubmit start" });
+      const filter: { assignedTo?: { userId: string; isNot: boolean }[]; createdAt?: { startDate: string; endDate: string }; stage?: string } = {
+        ...(user?.role === "admin" && assignedTo.length > 0 && { assignedTo }),
         ...(startDate && endDate && isValidDate(startDate, "M/d/yyyy") && isValidDate(endDate, "M/d/yyyy") && {
           createdAt: {
             startDate: format(parse(startDate, "M/d/yyyy", new Date()), "yyyy-MM-dd"),
             endDate: format(parse(endDate, "M/d/yyyy", new Date()), "yyyy-MM-dd"),
           },
         }),
+        ...(stage && { stage }),
       };
       const query = new URLSearchParams();
       query.set("page", "1");
@@ -157,6 +185,10 @@ export default function ContactOffCanvas({ isOpen, onClose }: ContactOffCanvasPr
       if (source) {
         const sourceLabel = sourceOptions.find((opt) => opt.value === source)?.label || source;
         query.set("source", sourceLabel);
+      }
+      if (stage) {
+        const stageName = stages.find((s) => s._id === stage)?.name || stage;
+        query.set("stage", stageName);
       }
       if (Object.keys(filter).length > 0) {
         query.set("filter", JSON.stringify(filter));
@@ -177,10 +209,13 @@ export default function ContactOffCanvas({ isOpen, onClose }: ContactOffCanvasPr
   const handleClear = () => {
     setKeyword("");
     setSource("");
-    setAssignedTo("");
+    setStage("");
+    setAssignedTo([]);
     setSelectedUsers([]);
     setStartDate(null);
     setEndDate(null);
+    setIsNot(true); // Reset to default
+    setHasUserInteracted(false); // Reset interaction flag
     const query = new URLSearchParams();
     query.set("page", "1");
     query.set("limit", searchParams.get("limit") || "10");
@@ -233,7 +268,7 @@ export default function ContactOffCanvas({ isOpen, onClose }: ContactOffCanvasPr
           </svg>
         </button>
         <p className="mb-6 text-sm text-gray-500 dark:text-gray-400">
-          Filter contacts by source, assigned user, date range, or other criteria.
+          Filter contacts by source, stage, assigned user, date range, or other criteria.
         </p>
 
         <form onSubmit={handleSubmit}>
@@ -286,6 +321,28 @@ export default function ContactOffCanvas({ isOpen, onClose }: ContactOffCanvasPr
           </div>
           <div className="mb-4">
             <label
+              htmlFor="contact-stage"
+              className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+            >
+              Select stage
+            </label>
+            <select
+              id="contact-stage"
+              className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+              value={stage}
+              onChange={(e) => setStage(e.target.value)}
+              disabled={isSubmitting || isPipelineLoading}
+            >
+              <option value="">Choose a stage</option>
+              {stages.map((stage) => (
+                <option key={stage._id} value={stage._id}>
+                  {stage.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="mb-4">
+            <label
               htmlFor="contact-source"
               className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
             >
@@ -309,12 +366,26 @@ export default function ContactOffCanvas({ isOpen, onClose }: ContactOffCanvasPr
 
           {user && user.role === "admin" && (
             <div className="mb-4 relative">
-              <label
-                htmlFor="simple-search"
-                className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-              >
-                Search users
-              </label>
+              <div className="flex justify-between mb-2">
+                <label
+                  htmlFor="simple-search"
+                  className="block text-sm font-medium text-gray-900 dark:text-white"
+                >
+                  Search users
+                </label>
+                <label className="inline-flex items-center cursor-pointer">
+                  <span className="me-1 text-sm font-medium text-gray-900 dark:text-gray-300">
+                    Not
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={isNot}
+                    className="sr-only peer"
+                    onChange={(e) => setIsNot(e.target.checked)}
+                  />
+                  <div className="relative w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600 dark:peer-checked:bg-blue-600" />
+                </label>
+              </div>
               <input
                 type="text"
                 id="simple-search"
@@ -335,6 +406,7 @@ export default function ContactOffCanvas({ isOpen, onClose }: ContactOffCanvasPr
                         text={user.name}
                         onRemove={() => handleRemoveUser(user._id)}
                         disabled={isSubmitting}
+                        isNot={assignedTo.find((a) => a.userId === user._id)?.isNot || false}
                       />
                     ) : null
                   )}
@@ -343,7 +415,7 @@ export default function ContactOffCanvas({ isOpen, onClose }: ContactOffCanvasPr
               {isDropdownOpen && (
                 <div
                   id="dropdownDivider"
-                  className="z-10 absolute mt-1 bg-white divide-y divide-gray-100 rounded-lg shadow-sm w-full dark:bg-gray-700 dark:divide-gray-600"
+                  className="z-50 absolute mt-1 bg-white divide-y divide-gray-100 rounded-lg shadow-sm w-full dark:bg-gray-700 dark:divide-gray-600"
                 >
                   <ul
                     className="py-2 text-sm text-gray-700 dark:text-gray-200"

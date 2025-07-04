@@ -22,8 +22,8 @@ import AssignUserIcon from "../ui/flowbiteIcons/Assign";
 import { RootState } from '@/app/redux/rootReducer';
 import { useSelector } from "react-redux";
 
-interface FilterParams {
-  assignedTo?: string;
+export interface FilterParams {
+  assignedTo?: { userId: string; isNot: boolean }[];
   pipelineNames?: string[];
   tags?: string[];
   source?: string;
@@ -31,6 +31,7 @@ interface FilterParams {
     startDate?: string;
     endDate?: string;
   };
+  stage?: string;
 }
 
 const ContactTableOne: React.FC = () => {
@@ -53,7 +54,7 @@ const ContactTableOne: React.FC = () => {
   });
 
   // Initialize params from query parameters on mount
-  useEffect(() => {
+useEffect(() => {
     const page = parseInt(searchParams.get("page") || "1", 10);
     const limit = parseInt(searchParams.get("limit") || "10", 10);
     const keyword = searchParams.get("keyword") || "";
@@ -61,7 +62,9 @@ const ContactTableOne: React.FC = () => {
     const filterStr = searchParams.get("filter");
     let filter: FilterParams = {};
     try {
-      if (filterStr) filter = JSON.parse(filterStr);
+      if (filterStr) {
+        filter = JSON.parse(filterStr);
+      }
     } catch (e) {
       console.error("Invalid filter param:", e);
     }
@@ -81,6 +84,8 @@ const ContactTableOne: React.FC = () => {
         ...prev.filter,
         ...filter,
         source: source || filter.source || undefined,
+        stage: filter.stage || undefined,
+        assignedTo: Array.isArray(filter.assignedTo) ? filter.assignedTo : undefined,
         createdAt: filter.createdAt || undefined,
       },
     }));
@@ -93,8 +98,8 @@ const ContactTableOne: React.FC = () => {
     query.set("limit", params.limit.toString());
     if (params.keyword) query.set("keyword", params.keyword);
     if (params.filter.source) query.set("source", params.filter.source);
+    if (params.filter.stage) query.set("stage", params.filter.stage);
     if (Object.keys(params.filter).length) query.set("filter", JSON.stringify(params.filter));
-
     router.push(`?${query.toString()}`, { scroll: false });
   }, [params, router]);
 
