@@ -1,5 +1,6 @@
 import mongoose, { Document, Schema, Model, Types, model, ClientSession } from 'mongoose';
 import ActivityArchive from './ActivityArchive';
+import { IContactResponse } from './ContactResponse';
 
 // Subdocument interfaces
 export interface AssignedTo {
@@ -28,7 +29,9 @@ export interface Activity {
     | 'NOTE_UPDATED'
     | 'PIPELINE_ADDED'
     | 'PIPELINE_STAGE_UPDATED'
-    | 'ASSIGNED_TO_UPDATED';
+    | 'ASSIGNED_TO_UPDATED'
+    | 'CONTACT_RESPONSE_ADDED'
+    | 'CONTACT_RESPONSE_UPDATED';
   user: Types.ObjectId;
   details: Record<string, unknown>;
   createdAt: Date;
@@ -47,6 +50,7 @@ export interface IContact extends Document {
   uid?: number;
   businessName?:string;
   activities: Types.DocumentArray<Activity>;
+  contactResponses: Types.ObjectId[] | IContactResponse[];
   createdAt: Date;
   updatedAt: Date;
   source?: string;
@@ -156,6 +160,8 @@ const contactSchema = new Schema<IContact, ContactModel>(
             'PIPELINE_ADDED',
             'PIPELINE_STAGE_UPDATED',
             'ASSIGNED_TO_UPDATED',
+            'CONTACT_RESPONSE_ADDED',
+            'CONTACT_RESPONSE_UPDATED',
           ],
         },
         user: {
@@ -173,6 +179,13 @@ const contactSchema = new Schema<IContact, ContactModel>(
         },
       },
     ],
+    contactResponses: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'ContactResponse',
+        default: [],
+      },
+    ],
   },
   { timestamps: true }
 );
@@ -182,7 +195,7 @@ contactSchema.path('assignedTo').default([]);
 contactSchema.path('pipelinesActive').default([]);
 contactSchema.path('tags').default([]);
 contactSchema.path('activities').default([]);
-
+contactSchema.path('contactResponses').default([]);
 // Validate pipeline_id and stage_id before saving
 contactSchema.pre('save', async function (next) {
   try {
@@ -229,6 +242,7 @@ contactSchema.methods.logActivity = async function (
   details: Record<string, unknown> = {},
   session?: ClientSession
 ) {
+  // Log the activity
   this.activities.push({
     action,
     user: userId,
@@ -237,7 +251,6 @@ contactSchema.methods.logActivity = async function (
   });
   await this.save({ session });
 };
-
 // Static method to upsert contact
 contactSchema.statics.upsertContact = async function (contactData: Partial<IContact>, userId: Types.ObjectId) {
   const isNewContact = !(await this.exists({ email: contactData.email }));
@@ -268,6 +281,7 @@ contactSchema.index({
 contactSchema.index({ 'pipelinesActive.pipeline_id': 1 });
 contactSchema.index({ 'pipelinesActive.stage_id': 1 });
 contactSchema.index({ 'activities.createdAt': -1 });
+contactSchema.index({ 'contactResponses': 1 });
 
 let Contact: ContactModel;
 try {

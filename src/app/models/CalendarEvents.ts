@@ -39,6 +39,11 @@ const CalendarEventSchema: Schema = new Schema(
         enum: ["Danger", "Success", "Primary", "Warning"],
       },
     },
+    contactResponse: {
+      type: Schema.Types.ObjectId,
+      ref: "ContactResponse",
+      default: null,
+    },
   },
   {
     timestamps: true, 

@@ -137,6 +137,15 @@ interface UpdateContactNotesResponse {
   contact: ResponseContact;
 }
 
+interface CreateCalendarEventRequest {
+  title: string;
+  start: string;
+  end?: string;
+  allDay?: boolean;
+  extendedProps: { calendar: string };
+  contactResponse?: string;
+}
+
 export interface Tag {
   user: string;
   name: string;
@@ -172,13 +181,98 @@ interface BulkImportContactsResponse {
   failed: { contact: any; error: string }[];
 }
 
+interface CreateContactResponseResponse {
+  message: string;
+}
+
+interface CreateContactResponseResponse {
+  message: string;
+  id:string;
+}
+
+interface ContactResponseItem {
+  _id: string;
+  contact: string;
+  activity:
+    | "HAD_CONVERSATION"
+    | "CALLED_NOT_PICKED"
+    | "CALLED_INVALID"
+    | "CALLED_SWITCHED_OFF"
+    | "WHATSAPP_COMMUNICATED"
+    | "ONLINE_MEETING_SCHEDULED"
+    | "OFFLINE_MEETING_SCHEDULED"
+    | "ONLINE_MEETING_CONFIRMED"
+    | "OFFLINE_MEETING_CONFIRMED"
+    | "PROPOSAL_SHARED"
+    | "PAYMENT_DONE_ADVANCE"
+    | "PAYMENT_DONE_PENDING"
+    | "FULL_PAYMENT_DONE"
+    | "PAYMENT_DONE_MONTHLY"
+    | "OTHER";
+  note?: string;
+  date?:string;
+  meetingScheduledDate?:any;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface UpdateContactResponseRequest {
+  contactId: string;
+  responseId: string;
+  activity: ContactResponseItem["activity"];
+  note?: string;
+}
+
+interface UpdateContactResponseResponse {
+  message: string;
+}
+
+type GetContactResponsesResponse = ContactResponseItem[];
+
+interface CreateContactResponseRequest {
+  contactId: string;
+  meetingScheduledDate:any;
+  activity: ContactResponseItem["activity"];
+  note?: string;
+}
+
+interface GetContactResponseByIdResponse {
+  message: string;
+  data: ContactResponseItem;
+}
+
+interface CalendarEventResponse {
+  id: string;
+  title: string;
+  start: string;
+  end: string | null;
+  allDay: boolean;
+  extendedProps: { calendar: string };
+  contactResponse: string | null;
+}
+
+interface CalendarEventByResponseIdResponse {
+  message: string;
+  data: CalendarEventResponse;
+}
+
+interface UpdateCalendarEventRequest {
+  title?: string;
+  start?: string;
+  end?: string;
+  allDay?: boolean;
+  extendedProps?: { calendar: string };
+  contactResponse?: string;
+}
+
+
 export const contactApi = createApi({
   reducerPath: "contactApi",
   baseQuery: fetchBaseQuery({
     baseUrl: "/api",
     credentials: "include",
   }),
-  tagTypes: ["Contacts"],
+  tagTypes: ["Contacts", "ContactResponses","CalendarEvents"],
   endpoints: (builder) => ({
     createContact: builder.mutation<ContactResponse, ContactRequest>({
       query: (body) => ({
@@ -280,6 +374,75 @@ export const contactApi = createApi({
       }),
       providesTags: (result, error, id) => [{ type: "Contacts", id }],
     }),
+    createContactResponse: builder.mutation<CreateContactResponseResponse, CreateContactResponseRequest>({
+      query: ({ contactId, ...body }) => ({
+        url: `/contacts/${contactId}/response`,
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: (result, error, { contactId }) => [
+        { type: "Contacts", id: contactId },
+        { type: "ContactResponses", id: contactId },
+      ],
+    }),
+    updateContactResponse: builder.mutation<UpdateContactResponseResponse, UpdateContactResponseRequest>({
+      query: ({ contactId, responseId, ...body }) => ({
+        url: `/contacts/${contactId}/response/${responseId}`,
+        method: "PUT",
+        body,
+      }),
+      invalidatesTags: (result, error, { contactId }) => [
+        { type: "Contacts", id: contactId },
+        { type: "ContactResponses", id: contactId },
+      ],
+    }),
+    getContactResponses: builder.query<GetContactResponsesResponse, string>({
+      query: (contactId) => ({
+        url: `/contacts/${contactId}/response`,
+        method: "GET",
+      }),
+      providesTags: (result, error, contactId) => [
+        { type: "ContactResponses", id: contactId },
+      ],
+    }),
+    getContactResponseById: builder.query<GetContactResponseByIdResponse, { contactId: string; responseId: string }>({
+      query: ({ contactId, responseId }) => ({
+        url: `/contacts/${contactId}/response/${responseId}`,
+        method: "GET",
+      }),
+      providesTags: (result, error, { contactId }) => [
+        { type: "ContactResponses", id: contactId },
+      ],
+    }),
+    createCalendarEvent: builder.mutation<CalendarEventResponse, CreateCalendarEventRequest>({
+      query: (body) => ({
+        url: "/calendar/meeting",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: (result, error, { contactResponse }) => [
+        { type: "CalendarEvents", id: contactResponse || "LIST" },
+      ],
+    }),
+    updateCalendarEventByResponseId: builder.mutation<CalendarEventByResponseIdResponse, { responseId: string; event: UpdateCalendarEventRequest }>({
+      query: ({ responseId, event }) => ({
+        url: `/calendar/meeting/${responseId}`,
+        method: "PUT",
+        body: event,
+      }),
+      invalidatesTags: (result, error, { responseId }) => [
+        { type: "CalendarEvents", id: responseId },
+      ],
+    }),
+    getCalendarEventByResponseId: builder.query<CalendarEventByResponseIdResponse, string>({
+      query: (responseId) => ({
+        url: `/calendar/meeting/${responseId}`,
+        method: "GET",
+      }),
+      providesTags: (result, error, responseId) => [
+        { type: "CalendarEvents", id: responseId },
+      ],
+    }),
   }),
 });
 
@@ -296,4 +459,11 @@ export const {
   useUpdateProbabilityMutation,
   useUpdateContactNotesMutation,
   useGetContactNotesAndTagsQuery,
+  useCreateContactResponseMutation,
+  useUpdateContactResponseMutation,
+  useGetContactResponsesQuery,
+  useGetContactResponseByIdQuery,
+  useCreateCalendarEventMutation,
+  useUpdateCalendarEventByResponseIdMutation,
+  useGetCalendarEventByResponseIdQuery,
 } = contactApi;

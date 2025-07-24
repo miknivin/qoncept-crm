@@ -8,6 +8,7 @@ import { authorizeRoles, isAuthenticatedUser } from '@/app/api/middlewares/auth'
 import User from '@/app/models/User';
 import Pipeline from '@/app/models/Pipeline';
 import Stage from '@/app/models/Stage';
+import ContactResponse from '@/app/models/ContactResponse';
 
 // Interface for request body
 interface UpdateContactRequest {
@@ -26,6 +27,7 @@ export async function GET(
     await dbConnect();
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions
     User
+    ContactResponse
     let user;
     try {
       user = await isAuthenticatedUser(request);
@@ -52,6 +54,7 @@ export async function GET(
     const contact = await Contact.findById(id)
       .populate('assignedTo.user', 'name')
       .populate('tags.user', 'name')
+      .populate('contactResponses','activity note meetingScheduledDate')
       .populate('user', 'name')
       .populate('activities.user', 'name')
       .lean();

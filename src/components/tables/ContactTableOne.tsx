@@ -25,6 +25,7 @@ export interface FilterParams {
   pipelineNames?: string[];
   tags?: string[];
   source?: string;
+  activities?: { value: string; isNot: boolean }[];
   createdAt?: {
     startDate?: string;
     endDate?: string;
@@ -39,7 +40,7 @@ export interface FilterParams {
 const ContactTableOne: React.FC = () => {
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
   const { isOpen, openModal, closeModal } = useModal();
-  const [limit, setLimit]=useState("10")
+  const [limit, setLimit] = useState("10");
   const [modalType, setModalType] = useState<"addToPipeline" | "assignContacts" | null>(null);
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -62,9 +63,11 @@ const ContactTableOne: React.FC = () => {
     const limit = parseInt(searchParams.get("limit") || "10", 10);
     const keyword = searchParams.get("keyword") || "";
     const source = searchParams.get("source") || "";
+    const stage = searchParams.get("stage") || "";
     const filterStr = searchParams.get("filter");
     const limitParam = searchParams.get("limit") || "10";
-    setLimit(limitParam)
+    setLimit(limitParam);
+
     let filter: FilterParams = {};
     try {
       if (filterStr) {
@@ -89,7 +92,8 @@ const ContactTableOne: React.FC = () => {
         ...prev.filter,
         ...filter,
         source: source || filter.source || undefined,
-        stage: filter.stage || undefined,
+        activities: Array.isArray(filter.activities) ? filter.activities : undefined,
+        stage: stage || filter.stage || undefined,
         assignedTo: Array.isArray(filter.assignedTo) ? filter.assignedTo : undefined,
         createdAt: filter.createdAt || undefined,
         updatedAt: filter.updatedAt || undefined,
@@ -390,8 +394,37 @@ const ContactTableOne: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-5 py-4">
-                    <div className="max-w-36 line-clamp-3">
-                      {contact.notes || "No notes"}
+                    <div className="max-w-36 whitespace-normal break-words line-clamp-3">
+                      {contact.contactResponses && contact.contactResponses.length > 0 ? (
+                        (() => {
+                          const response = contact.contactResponses[0];
+                          if (
+                            response &&
+                            typeof response === "object" &&
+                            "activity" in response &&
+                            "note" in response
+                          ) {
+                            return (
+                              <>
+                                {response.activity}:{response.note}
+                                {"meetingScheduledDate" in response && response.meetingScheduledDate && (
+                                  <>
+                                    , meeting@
+                                    {new Date(response.meetingScheduledDate).toLocaleDateString('en-GB', {
+                                      day: '2-digit',
+                                      month: '2-digit',
+                                      year: '2-digit',
+                                    })}
+                                  </>
+                                )}
+                              </>
+                            );
+                          }
+                          return contact.notes || "No notes";
+                        })()
+                      ) : (
+                        contact.notes || "No notes"
+                      )}
                     </div>
                   </td>
                   {isAdmin && (

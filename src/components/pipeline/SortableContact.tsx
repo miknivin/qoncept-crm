@@ -10,11 +10,12 @@ import VeryShortSpinnerPrimary from "../ui/loaders/veryShortSpinnerPrimary";
 import { useModal } from "@/hooks/useModal";
 import { Modal } from "@/components/ui/modal";
 import QRCodeModalContent from "@/components/qr-code/QRCodeModalContent";
-import NotesAndTagsForm from "./NotesAndTagForm";
+// import NotesAndTagsForm from "./NotesAndTagForm";
 import RedirectIcon from "@/components/ui/flowbiteIcons/Redirect";
 import Link from "next/link";
 import { useSelector } from "react-redux";
 import { RootState } from "@/app/redux/rootReducer";
+import ContactResponseTabs from "./ContactResponseTab";
 
 interface Tag {
   user: string;
@@ -168,7 +169,7 @@ function SortableContact({ contact, data }: SortableContactProps) {
                   openQRModal();
                 }
               }}
-              className={`inline-flex items-center px-2 py-2 text-sm font-medium text-gray-900 bg-transparent border border-gray-900 rounded-s-lg hover:bg-gray-900 hover:text-white focus:z-10 focus:ring-2 focus:ring-gray-500 focus:bg-gray-900 focus:text-white dark:border-white dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:bg-gray-700 ${
+              className={`inline-flex items-center px-2 py-2 text-sm font-medium text-gray-900 bg-transparent border border-gray-900 rounded-s-lg hover:bg-gray-200 hover:text-white focus:z-10 focus:ring-2 focus:ring-gray-500 focus:bg-gray-900 focus:text-white dark:border-white dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:bg-gray-700 ${
                 !contact.phone ? "opacity-50 cursor-not-allowed" : ""
               }`}
               aria-label={`Call ${contact.name || "contact"}`}
@@ -180,7 +181,7 @@ function SortableContact({ contact, data }: SortableContactProps) {
               role="button"
               onClick={handleEmailClick}
               disabled={!contact.email}
-              className={`inline-flex items-center px-2 py-2 text-sm font-medium text-gray-900 bg-transparent border-t border-b border-gray-900 hover:bg-gray-900 hover:text-white focus:z-10 focus:ring-2 focus:ring-gray-500 focus:bg-gray-900 focus:text-white dark:border-white dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:bg-gray-700 ${
+              className={`inline-flex items-center px-2 py-2 text-sm font-medium text-gray-900 bg-transparent border-t border-b border-gray-900 hover:bg-gray-200 hover:text-white focus:z-10 focus:ring-2 focus:ring-gray-500 focus:bg-gray-900 focus:text-white dark:border-white dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:bg-gray-700 ${
                 !contact.email ? "opacity-50 cursor-not-allowed" : ""
               } ${isAdmin ? "" : "border-r"}`} // Add border-r if not admin
             >
@@ -189,7 +190,7 @@ function SortableContact({ contact, data }: SortableContactProps) {
             <button
               type="button"
               onClick={openNotesModal}
-              className={`inline-flex items-center px-2 py-2 text-sm border-l font-medium text-gray-900 bg-transparent border-t border-b border-gray-900 hover:bg-gray-900 hover:text-white focus:z-10 focus:ring-2 focus:ring-gray-500 focus:bg-gray-900 focus:text-white dark:border-white dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:bg-gray-700 ${
+              className={`inline-flex items-center px-2 py-2 text-sm border-l font-medium text-gray-900 bg-transparent border-t border-b border-gray-900 hover:bg-gray-200 hover:text-white focus:z-10 focus:ring-2 focus:ring-gray-500 focus:bg-gray-900 focus:text-white dark:border-white dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:bg-gray-700 ${
                 isAdmin ? "" : "border-r rounded-e-lg"}`} // Add border-r and rounded-e-lg if not admin
               aria-label={`View notes and tags for ${contact.name || "contact"}`}
             >
@@ -198,7 +199,7 @@ function SortableContact({ contact, data }: SortableContactProps) {
             {isAdmin && (
               <Link
                 href={`/contacts/${contact._id || "684fbbf3a1b0e8eda0c7cfa4"}`}
-                className="inline-flex items-center px-2 py-2 text-sm font-medium text-gray-900 bg-transparent border border-gray-900 rounded-e-lg hover:bg-gray-900 hover:text-white focus:z-10 focus:ring-2 focus:ring-gray-500 focus:bg-gray-900 focus:text-white dark:border-white dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:bg-gray-700"
+                className="inline-flex items-center px-2 py-2 text-sm font-medium text-gray-900 bg-transparent border border-gray-900 rounded-e-lg hover:bg-gray-200 hover:text-white focus:z-10 focus:ring-2 focus:ring-gray-500 focus:bg-gray-900 focus:text-white dark:border-white dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:bg-gray-700"
               >
                 <RedirectIcon />
               </Link>
@@ -229,8 +230,8 @@ function SortableContact({ contact, data }: SortableContactProps) {
       <Modal isOpen={isQRModalOpen} onClose={closeQRModal} className="max-w-[400px] p-6">
         <QRCodeModalContent contact={contact} onClose={closeQRModal} />
       </Modal>
-      <Modal isOpen={isNotesModalOpen} onClose={closeNotesModal} className="max-w-[400px] p-6">
-        <NotesAndTagsForm contact={contact} onClose={closeNotesModal} />
+      <Modal isOpen={isNotesModalOpen} onClose={closeNotesModal} className="max-w-[600px] p-6">
+        <ContactResponseTabs contact={contact} onClose={closeNotesModal} />
       </Modal>
     </div>
   );

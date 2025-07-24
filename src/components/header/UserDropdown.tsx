@@ -1,6 +1,4 @@
 "use client";
-import Image from "next/image";
-
 import React, { useState } from "react";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import { useSelector } from "react-redux";
@@ -11,7 +9,7 @@ import { useLogoutMutation } from "@/app/redux/api/authApi";
 export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const { user } = useSelector((state: RootState) => state.user);
-  const [logout] = useLogoutMutation(); // Use the logout mutation
+  const [logout] = useLogoutMutation();
   const router = useRouter();
 
   function toggleDropdown(e: React.MouseEvent<HTMLButtonElement, MouseEvent>) {
@@ -25,13 +23,22 @@ export default function UserDropdown() {
 
   async function handleLogout() {
     try {
-      await logout().unwrap(); // Call the logout mutation
-      closeDropdown(); // Close the dropdown
-      router.push("/signin"); // Redirect to sign-in page
+      await logout().unwrap();
+      closeDropdown();
+      router.push("/signin");
     } catch (error) {
       console.error("Failed to logout:", error);
     }
   }
+
+  // Get the first letter of first and last names, or fallback to '?'
+  const nameParts = user?.name ? user.name.trim().split(/\s+/) : [];
+  const initials =
+    nameParts.length >= 2
+      ? `${nameParts[0].charAt(0).toUpperCase()}${nameParts[nameParts.length - 1].charAt(0).toUpperCase()}`
+      : nameParts.length === 1
+      ? nameParts[0].charAt(0).toUpperCase()
+      : "?";
 
   return (
     <div className="relative">
@@ -39,13 +46,8 @@ export default function UserDropdown() {
         onClick={toggleDropdown}
         className="flex items-center text-gray-700 dark:text-gray-400 dropdown-toggle"
       >
-        <span className="mr-3 overflow-hidden rounded-full h-11 w-11">
-          <Image
-            width={44}
-            height={44}
-            src="/images/user/owner.jpg"
-            alt="User"
-          />
+        <span className="mr-3 overflow-hidden rounded-full h-10 w-10 flex items-center justify-center bg-blue-200 dark:bg-blue-400 text-gray-700 dark:text-gray-800 font-medium text-lg">
+          {initials}
         </span>
 
         <span className="block mr-1 font-medium text-theme-sm">{user?.name}</span>
