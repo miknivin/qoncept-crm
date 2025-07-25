@@ -24,15 +24,33 @@ export async function GET(req: NextRequest) {
     const page = parseInt(url.searchParams.get('page') || '1', 10);
     const limit = parseInt(url.searchParams.get('limit') || '10', 10);
     const skip = (page - 1) * limit;
-
+const search = url.searchParams.get('search') || '';
     let leaveRequests;
     let total;
-
+    const searchRegex = new RegExp(search, 'i');
     if (user.role === 'admin') {
 
       authorizeRoles(user, 'admin');
-      total = await LeaveRequest.countDocuments();
-      leaveRequests = await LeaveRequest.find()
+      const query = search
+
+        ? {
+
+            $or: [
+
+              { employeeName: searchRegex },
+
+              { leaveType: searchRegex },
+
+              { reason: searchRegex },
+
+            ],
+
+          }
+
+        : {};
+      total = await LeaveRequest.countDocuments(query);
+
+      leaveRequests = await LeaveRequest.find(query)
         .populate('employeeId', 'name email')
         .populate('approverId', 'name email')
         .skip(skip)
@@ -41,8 +59,28 @@ export async function GET(req: NextRequest) {
     } else {
       // Non-admins can only fetch their own leave requests
       authorizeRoles(user, 'user', 'employee', 'team_member');
-      total = await LeaveRequest.countDocuments({ employeeId: user._id });
-      leaveRequests = await LeaveRequest.find({ employeeId: user._id })
+      
+const query = {
+
+        employeeId: user._id,
+
+        ...(search && {
+
+          $or: [
+
+            { employeeName: searchRegex },
+
+            { leaveType: searchRegex },
+
+            { reason: searchRegex },
+
+          ],
+
+        }),
+
+      };
+      total = await LeaveRequest.countDocuments(query);
+      leaveRequests = await LeaveRequest.find(query)
         .populate('employeeId', 'name email')
         .populate('approverId', 'name email')
         .skip(skip)
