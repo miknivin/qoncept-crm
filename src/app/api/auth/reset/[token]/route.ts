@@ -12,17 +12,17 @@ interface ResetPasswordRequest {
   confirmPassword: string;
 }
 
-// Define interface for route context
-interface RouteContext {
+// Define interface for route parameters
+interface RouteParams {
   params: {
     token: string;
   };
 }
 
-export async function PUT(req: NextRequest, context: RouteContext) {
+export async function PUT(req: NextRequest, { params }: RouteParams) {
   try {
     await dbConnect();
-    const { token } = context.params; // No need to await params; it's synchronous
+    const { token } = params; // No need to await params; it's synchronous
 
     let body: ResetPasswordRequest;
     try {
