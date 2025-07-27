@@ -5,18 +5,18 @@ import { authorizeRoles, isAuthenticatedUser } from '@/app/api/middlewares/auth'
 import Contact from '@/app/models/Contact';
 
 // Async function to simulate awaiting params
-const getParams = async (params: { contactId: string; responseId: string }): Promise<{ contactId: string; responseId: string }> => {
-  return Promise.resolve(params); // Simulate async params retrieval
-};
+// const getParams = async (params: { contactId: string; responseId: string }): Promise<{ contactId: string; responseId: string }> => {
+//   return Promise.resolve(params); // Simulate async params retrieval
+// };
 
-const getParams2 = async (params: { responseId: string }): Promise<{ responseId: string }> => {
-  return Promise.resolve(params); // Simulate async params retrieval
-};
+// const getParams2 = async (params: { responseId: string }): Promise<{ responseId: string }> => {
+//   return Promise.resolve(params); // Simulate async params retrieval
+// };
 
 // Update an existing ContactResponse
 export async function PUT(
   request: NextRequest,
-  context: { params: { contactId: string; responseId: string } }
+  context: { params: Promise<{ contactId: string; responseId: string }> }
 ): Promise<NextResponse> {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -27,7 +27,7 @@ export async function PUT(
     authorizeRoles(user, 'admin', 'team_member');
 
     // Await params
-    const { contactId, responseId } = await getParams(context.params);
+   const { contactId, responseId } = await context.params;
 
     const { activity, note, meetingScheduledDate } = await request.json();
 
@@ -120,7 +120,7 @@ export async function PUT(
 
 export async function GET(
   request: NextRequest,
-  context: { params: { responseId: string } }
+  context: { params: Promise< { responseId: string } }
 ): Promise<NextResponse> {
   try {
     // Authenticate user and check roles
@@ -128,7 +128,7 @@ export async function GET(
     authorizeRoles(user, 'admin', 'team_member');
 
     // Await params
-    const { responseId } = await getParams2(context.params);
+    const { responseId } = await context.params;
 
     // Validate responseId
     if (!mongoose.Types.ObjectId.isValid(responseId)) {
