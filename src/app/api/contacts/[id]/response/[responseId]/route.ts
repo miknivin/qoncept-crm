@@ -120,7 +120,7 @@ export async function PUT(
 
 export async function GET(
   request: NextRequest,
-  context: { params: Promise< { responseId: string } }
+  context: { params: Promise< { responseId: string }> }
 ): Promise<NextResponse> {
   try {
     // Authenticate user and check roles
