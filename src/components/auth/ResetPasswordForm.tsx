@@ -1,4 +1,5 @@
 "use client";
+import { useForgotPasswordMutation } from "@/app/redux/api/authApi";
 import Input from "@/components/form/input/InputField";
 import Label from "@/components/form/Label";
 import Button from "@/components/ui/button/Button";
@@ -18,18 +19,26 @@ export default function ResetPasswordForm() {
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [forgotPassword] = useForgotPasswordMutation();
   const router = useRouter();
   const isAuthenticated = useSelector((state: RootState) => state.userSlice?.isAuthenticated);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    // Placeholder for form submission logic
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
+
+    try {
+      await forgotPassword({ email }).unwrap();
       toast.success("Password reset link sent to your email");
-    }, 1000);
+      setEmail(""); // Clear the email input after success
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      setError(error?.data?.error || "Failed to send reset link. Please try again.");
+      toast.error("Failed to send reset link");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
     useEffect(() => {

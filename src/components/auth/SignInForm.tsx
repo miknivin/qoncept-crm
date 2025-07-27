@@ -6,7 +6,7 @@ import Label from "@/components/form/Label";
 import Button from "@/components/ui/button/Button";
 import { EyeCloseIcon, EyeIcon } from "@/icons";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import React, { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { toast } from "react-toastify";
@@ -26,7 +26,18 @@ export default function SignInForm() {
 
   const [login, { isLoading }] = useLoginMutation();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const isAuthenticated = useSelector((state: RootState) => state.userSlice?.isAuthenticated);
+
+  useEffect(() => {
+    const page = searchParams.get("page");
+    const token = searchParams.get("token");
+    if (page === "forget-password" && token) {
+      console.log("inside");
+      
+      router.push(`/signin/forgot-password?token=${token}`);
+    }
+  }, [searchParams, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -162,7 +173,7 @@ export default function SignInForm() {
                     </span>
                   </div>
                   <Link
-                    href="/reset-password"
+                    href="/forgot-password"
                     className="text-sm text-brand-500 hover:text-brand-600 dark:text-brand-400"
                   >
                     Forgot password?

@@ -1,11 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use server";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import User from "@/app/models/User";
-
 import dbConnect from "@/app/lib/db/connection";
 import sendToken from "@/app/api/utils/sendToken";
-import { createHash } from "crypto"; // Explicit import for type safety
+import { createHash } from "crypto";
 
 // Define interface for request body
 interface ResetPasswordRequest {
@@ -13,16 +12,23 @@ interface ResetPasswordRequest {
   confirmPassword: string;
 }
 
-export async function PUT(req: Request, { params }: { params: { token: string } }) {
+// Define interface for route context
+interface RouteContext {
+  params: {
+    token: string;
+  };
+}
+
+export async function PUT(req: NextRequest, context: RouteContext) {
   try {
     await dbConnect();
-    const { token } = params;
+    const { token } = context.params; // No need to await params; it's synchronous
 
     let body: ResetPasswordRequest;
     try {
-      body = await req.json();
-    } catch (error:any) {
-        console.log(error);
+      body = await req.json(); // Await the request body, as req.json() is a Promise
+    } catch (error: any) {
+      console.error("JSON parsing error:", error);
       return NextResponse.json(
         { error: "Invalid JSON in request body" },
         { status: 400 }
@@ -47,7 +53,7 @@ export async function PUT(req: Request, { params }: { params: { token: string } 
     const user = await User.findOne({
       resetPasswordToken,
       resetPasswordExpire: { $gt: Date.now() },
-    }) ;
+    });
 
     if (!user) {
       return NextResponse.json(

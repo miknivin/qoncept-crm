@@ -9,13 +9,14 @@ import { useUpdateProbabilityMutation } from "@/app/redux/api/contactApi";
 import VeryShortSpinnerPrimary from "@/components/ui/loaders/veryShortSpinnerPrimary";
 import { useModal } from "@/hooks/useModal";
 import { Modal } from "@/components/ui/modal";
-import NotesAndTagsForm from "../../pipeline/NotesAndTagForm";
+// import NotesAndTagsForm from "../../pipeline/NotesAndTagForm";
 import { toast } from "react-toastify";
 import DragGripIcon from "@/components/ui/flowbiteIcons/DragGrip";
 import Link from "next/link";
 import RedirectIcon from "@/components/ui/flowbiteIcons/Redirect";
 import { useSelector } from "react-redux";
 import { RootState } from "@/app/redux/rootReducer";
+import ContactResponseTabs from "@/components/pipeline/ContactResponseTab";
 
 interface Tag {
   user: string;
@@ -303,7 +304,7 @@ let longPressTimeout:any;
         </div>
       </div>
       <Modal isOpen={isNotesModalOpen} onClose={closeNotesModal} className="max-w-[400px] p-6">
-        <NotesAndTagsForm contact={contact} onClose={closeNotesModal} />
+        <ContactResponseTabs contact={contact} onClose={closeNotesModal} />
       </Modal>
     </div>
   );

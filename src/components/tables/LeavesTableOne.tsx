@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import BasicPagination from "../ui/pagination/BasicPagination";
 import ShortSpinnerPrimary from "../ui/loaders/ShortSpinnerPrimary";
 import Select from "../form/Select";
@@ -11,6 +11,7 @@ import Badge from "../ui/badge/Badge";
 import { useModal } from "@/hooks/useModal";
 import { Modal } from "../ui/modal";
 import EditLeaveForm from "../form/leave-form/EditLeave";
+import { toast } from "react-toastify";
 
 const LeavesTableOne: React.FC = () => {
   const { isOpen, openModal, closeModal } = useModal();
@@ -19,7 +20,8 @@ const LeavesTableOne: React.FC = () => {
   const [search, setSearch] = useState("");
   const [selectedLeaveId, setSelectedLeaveId] = useState<string | null>(null);
 
-  const { data, error, isLoading } = useGetLeavesQuery({ page, limit, search });
+  const { data, error, isLoading,isFetching } = useGetLeavesQuery({ page, limit, search });
+
 
   // Format date or date-time based on durationType
   const formatDate = (date: Date, includeTime: boolean): string => {
@@ -74,6 +76,23 @@ const LeavesTableOne: React.FC = () => {
     setSelectedLeaveId(null);
     closeModal();
   };
+
+  useEffect(() => {
+    if (isFetching) {
+      toast.loading("Fetching leave requests...", {
+        toastId: "leaves-fetching",
+        position: "top-right",
+        autoClose: false,
+      });
+    } else {
+      toast.dismiss("leaves-fetching");
+    }
+
+    // Cleanup toast on component unmount
+    return () => {
+      toast.dismiss("leaves-fetching");
+    };
+  }, [isFetching]);
 
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">

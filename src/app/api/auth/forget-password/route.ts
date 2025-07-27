@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import User from "@/app/models/User";
 import dbConnect from "@/app/lib/db/connection";
+import { sendPasswordResetEmail } from "../../utils/sendResetPasswordEmail";
 export async function POST(req:NextRequest) {
   try {
     await dbConnect();
@@ -25,7 +26,7 @@ export async function POST(req:NextRequest) {
 
     const resetToken = user.getResetPasswordToken();
     await user.save();
-
+    await sendPasswordResetEmail(email, resetToken);
     return NextResponse.json({
       success: true,
       resetToken,
