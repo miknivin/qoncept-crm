@@ -12,10 +12,10 @@ interface ResetPasswordRequest {
   confirmPassword: string;
 }
 
-export async function PUT(req: NextRequest, { params }: { params: Record<string, string> }) {
+export async function PUT(req: NextRequest, context: { params: Promise<{ token: string }> }) {
   try {
     await dbConnect();
-    const { token } = params; // No need to await params; it's synchronous
+    const { token } = await context.params; // Await the params Promise
 
     let body: ResetPasswordRequest;
     try {
