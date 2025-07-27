@@ -8,14 +8,13 @@ export const metadata: Metadata = {
   description: "",
 };
 
-// Define the props type explicitly
+// Use a type that aligns with Next.js's searchParams
 interface PageProps {
-  searchParams: { token?: string };
+  searchParams: Record<string, string | string[] | undefined>;
 }
 
-// No need for an async getToken function since searchParams is synchronous
 export default function Page({ searchParams }: PageProps) {
-  const token = searchParams.token; // Directly access token (synchronous)
+  const token = searchParams.token as string | undefined; // Type assertion to access token
 
   return token ? <ResetPasswordConfirmForm /> : <ResetPasswordForm />;
 }
