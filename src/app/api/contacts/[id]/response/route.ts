@@ -4,13 +4,13 @@ import ContactResponse from '@/app/models/ContactResponse';
 import { authorizeRoles, isAuthenticatedUser } from '@/app/api/middlewares/auth';
 import Contact from '@/app/models/Contact';
 
-const getParams = async (params: { id: string }): Promise<{ id: string }> => {
-  return Promise.resolve(params); // Simulate async params retrieval
-};
+// const getParams = async (params: { id: string }): Promise<{ id: string }> => {
+//   return Promise.resolve(params); // Simulate async params retrieval
+// };
 
 export async function POST(
   request: NextRequest,
-  context: { params: { id: string } }
+  context: { params: Promise< { id: string } >}
 ) {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -18,7 +18,7 @@ export async function POST(
     const user = await isAuthenticatedUser(request);
     authorizeRoles(user, 'admin', 'team_member');
 
-    const { id } = await getParams(context.params);
+    const { id } = await context.params;
     const { activity, note, meetingScheduledDate } = await request.json();
     console.log(meetingScheduledDate);
     
@@ -94,7 +94,7 @@ export async function POST(
 
 export async function GET(
   request: NextRequest,
-  context: { params: { id: string } }
+  context: { params:Promise <{ id: string }> }
 ): Promise<NextResponse> {
   try {
     // Authenticate user and check roles
@@ -102,7 +102,7 @@ export async function GET(
     authorizeRoles(user, 'admin', 'team_member');
 
     // Await params
-    const { id } = await getParams(context.params);
+    const { id } = await context.params;
 
     // Validate contactId
     if (!mongoose.Types.ObjectId.isValid(id)) {
