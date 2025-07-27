@@ -7,10 +7,10 @@ import dbConnect from '@/app/lib/db/connection';
 import CalendarEvent from '@/app/models/CalendarEvents';
 
 
-export async function PUT(request: NextRequest, context: { params: { id: string } }) {
+export async function PUT(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     await dbConnect();
-    const { id } = context.params;
+    const { id } = await context.params;
     const event: Partial<ICalendarEvent> & { contactResponse?: string } = await request.json();
 
     const user = await isAuthenticatedUser(request);
@@ -71,10 +71,10 @@ export async function PUT(request: NextRequest, context: { params: { id: string 
 }
 
 // GET: Retrieve a CalendarEvent by ID
-export async function GET(request: NextRequest, context: { params: { id: string } }) {
+export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     await dbConnect();
-    const { id } = context.params;
+    const { id } = await context.params;
 
     // Authenticate user and check roles
     const user = await isAuthenticatedUser(request);
