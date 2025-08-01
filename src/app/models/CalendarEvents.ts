@@ -2,14 +2,15 @@ import mongoose, { Schema } from "mongoose";
 
 // Define the interface for the CalendarEvent document
 interface ICalendarEvent  {
-    _id?: mongoose.Types.ObjectId;
-    title: string;
+  _id?: mongoose.Types.ObjectId;
+  title: string;
   start: string;
   end?: string;
   allDay?: boolean;
   extendedProps: {
     calendar: string;
   };
+  user?:string;
 }
 
 // Define the Mongoose schema
@@ -44,6 +45,11 @@ const CalendarEventSchema: Schema = new Schema(
       ref: "ContactResponse",
       default: null,
     },
+     user: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: false,
+    },
   },
   {
     timestamps: true, 
@@ -52,6 +58,6 @@ const CalendarEventSchema: Schema = new Schema(
 
 // Export the model, ensuring it’s only created once
 const CalendarEvent = mongoose.models.CalendarEvent ||
-  mongoose.model<ICalendarEvent>("CalendarEvent", CalendarEventSchema);
+mongoose.model<ICalendarEvent>("CalendarEvent", CalendarEventSchema);
 
 export default CalendarEvent

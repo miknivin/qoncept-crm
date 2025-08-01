@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import CalendarEvent from "@/app/models/CalendarEvents";
 import dbConnect from "@/app/lib/db/connection";
+import { isAuthenticatedUser } from "../middlewares/auth";
 
 // Interface for CalendarEvent to ensure type safety
 interface ICalendarEvent {
@@ -12,6 +13,7 @@ interface ICalendarEvent {
   extendedProps: {
     calendar: string;
   };
+  user?: string;
 }
 
 export async function GET() {
@@ -36,6 +38,12 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     await dbConnect();
+    const user = await isAuthenticatedUser(request);
+    
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const event: ICalendarEvent = await request.json();
 
     // Validate required fields
@@ -49,6 +57,7 @@ export async function POST(request: NextRequest) {
       end: event.end || event.start,
       allDay: event.allDay ?? true,
       extendedProps: { calendar: event.extendedProps.calendar },
+      user: user._id, // Add authenticated user's ID
     });
 
     const savedEvent = await newEvent.save();
@@ -60,6 +69,7 @@ export async function POST(request: NextRequest) {
       end: savedEvent.end,
       allDay: savedEvent.allDay,
       extendedProps: savedEvent.extendedProps,
+      user: savedEvent.user.toString(),
     };
 
     return NextResponse.json(responseEvent, { status: 201 });
@@ -73,6 +83,12 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     await dbConnect();
+    const user = await isAuthenticatedUser(request);
+    
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const event: ICalendarEvent = await request.json();
 
     // Validate required fields
@@ -89,6 +105,7 @@ export async function PUT(request: NextRequest) {
         end: event.end || event.start,
         allDay: event.allDay ?? true,
         extendedProps: { calendar: event.extendedProps.calendar },
+        user: user._id, // Update with authenticated user's ID
       },
       { new: true, runValidators: true }
     );
@@ -97,12 +114,23 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "Event not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ message: "Event updated successfully" }, { status: 200 });
+    const responseEvent = {
+      id: updatedEvent._id.toString(),
+      title: updatedEvent.title,
+      start: updatedEvent.start,
+      end: updatedEvent.end,
+      allDay: updatedEvent.allDay,
+      extendedProps: updatedEvent.extendedProps,
+      user: updatedEvent.user.toString(),
+    };
+
+    return NextResponse.json(responseEvent, { status: 200 });
   } catch (error) {
     console.error("Error updating event:", error);
     return NextResponse.json({ error: "Failed to update event" }, { status: 500 });
   }
 }
+
 
 // DELETE: Delete an event by _id
 export async function DELETE(request: NextRequest) {

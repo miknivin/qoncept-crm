@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import { useCreateContactMutation } from "@/app/redux/api/contactApi";
 import Button from "@/components/ui/button/Button";
@@ -7,27 +8,36 @@ import { useState } from "react";
 import { useSelector } from "react-redux";
 import { RootState } from '@/app/redux/rootReducer';
 import { toast } from "react-toastify";
+import { useGetPipelineByIdQuery } from "@/app/redux/api/pipelineApi";
 
 interface AddContactFormProps {
   onClose: () => void;
 }
 
 export default function AddContactForm({ onClose }: AddContactFormProps) {
-  const {user} = useSelector((state:RootState)=> state.user)
+  const { user } = useSelector((state: RootState) => state.user);
+  const { data: pipelineData } = useGetPipelineByIdQuery(
+    process.env.NEXT_PUBLIC_DEFAULT_PIPELINE || ""
+  );
+  const stages = pipelineData?.pipeline?.stages || [];
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     phone: "",
     notes: "",
-    userId: user?user._id: "",
+    userId: user ? user._id : "",
     tags: [] as string[],
+    stage: stages.length > 0 ? stages[0]._id : "", // Set first stage as default
   });
   const [tagInput, setTagInput] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [tagError, setTagError] = useState<string | null>(null);
   const [createContact, { isLoading }] = useCreateContactMutation();
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
@@ -35,7 +45,7 @@ export default function AddContactForm({ onClose }: AddContactFormProps) {
   const handleTagAdd = (value: string) => {
     const trimmedValue = value.trim();
     if (formData.tags.includes(trimmedValue)) {
-      setTagError(`Tag "${trimmedValue}" already exists.`); // Set error for duplicate tag
+      setTagError(`Tag "${trimmedValue}" already exists.`);
       return;
     }
     if (trimmedValue && !formData.tags.includes(trimmedValue)) {
@@ -56,7 +66,10 @@ export default function AddContactForm({ onClose }: AddContactFormProps) {
     setError(null);
 
     try {
-      const response = await createContact({ ...formData, userId: formData.userId || "" }).unwrap();
+      const response = await createContact({
+        ...formData,
+        userId: formData.userId || "",
+      }).unwrap();
       console.log("Contact created:", response.contact);
       setFormData({
         name: "",
@@ -65,12 +78,12 @@ export default function AddContactForm({ onClose }: AddContactFormProps) {
         notes: "",
         userId: formData.userId,
         tags: [],
+        stage: stages.length > 0 ? stages[0]._id : "", // Reset to first stage
       });
       setTagInput("");
       onClose();
-      toast.success("Contact added successfully")
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (err:any) {
+      toast.success("Contact added successfully");
+    } catch (err: any) {
       setError(err.data?.error || "Failed to create contact");
     }
   };
@@ -132,6 +145,32 @@ export default function AddContactForm({ onClose }: AddContactFormProps) {
             required
           />
         </div>
+        {/* Stage Select Field */}
+        <div>
+          <label
+            htmlFor="stage"
+            className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400"
+          >
+            Stage
+          </label>
+          <select
+            id="stage"
+            name="stage"
+            value={formData.stage}
+            onChange={handleInputChange}
+            className="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800"
+            required
+          >
+            <option value="" disabled>
+              Select a stage
+            </option>
+            {stages.map((stage: any) => (
+              <option key={stage._id} value={stage._id}>
+                {stage.name}
+              </option>
+            ))}
+          </select>
+        </div>
         <div>
           <label
             htmlFor="tags"
@@ -153,15 +192,13 @@ export default function AddContactForm({ onClose }: AddContactFormProps) {
               id="tags"
               type="text"
               value={tagInput}
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              onChange={(e:any) => setTagInput(e.target.value)}
+              onChange={(e) => setTagInput(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   e.preventDefault();
                   if (tagInput.trim()) {
                     handleTagAdd(tagInput);
                   }
-        
                 }
               }}
               onBlur={() => {
@@ -198,7 +235,7 @@ export default function AddContactForm({ onClose }: AddContactFormProps) {
             Cancel
           </Button>
           <Button type="submit" variant="primary" disabled={isLoading}>
-            {isLoading ? <ShortSpinnerDark/> : "Save Contact"}
+            {isLoading ? <ShortSpinnerDark /> : "Save Contact"}
           </Button>
         </div>
       </form>

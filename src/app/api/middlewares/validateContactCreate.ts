@@ -9,6 +9,7 @@ export interface ExtendedNextRequest extends NextRequest {
     userId: string;
     notes?: string;
     tags?:[];
+    stage?:string;
   };
 }
 
