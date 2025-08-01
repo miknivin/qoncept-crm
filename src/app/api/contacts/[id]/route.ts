@@ -25,7 +25,6 @@ export async function GET(
 ) {
   try {
     await dbConnect();
-    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
     User
     ContactResponse
     let user;

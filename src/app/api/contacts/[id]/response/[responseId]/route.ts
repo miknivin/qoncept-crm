@@ -1,8 +1,12 @@
+/* eslint-disable @typescript-eslint/no-unused-expressions */
 import { NextRequest, NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import ContactResponse from '@/app/models/ContactResponse';
 import { authorizeRoles, isAuthenticatedUser } from '@/app/api/middlewares/auth';
 import Contact from '@/app/models/Contact';
+import Pipeline from '@/app/models/Pipeline';
+import Stage from '@/app/models/Stage';
+import CalendarEvent from '@/app/models/CalendarEvents';
 
 // Async function to simulate awaiting params
 // const getParams = async (params: { contactId: string; responseId: string }): Promise<{ contactId: string; responseId: string }> => {
@@ -23,6 +27,9 @@ export async function PUT(
 
   try {
     // Authenticate user and check roles
+    Pipeline
+    Stage
+    CalendarEvent
     const user = await isAuthenticatedUser(request);
     authorizeRoles(user, 'admin', 'team_member');
 
@@ -124,6 +131,9 @@ export async function GET(
 ): Promise<NextResponse> {
   try {
     // Authenticate user and check roles
+    Pipeline
+    Stage
+    CalendarEvent
     const user = await isAuthenticatedUser(request);
     authorizeRoles(user, 'admin', 'team_member');
 

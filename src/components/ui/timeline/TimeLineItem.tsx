@@ -1,6 +1,7 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
+import axios from 'axios';
 import { ResponseActivity } from './../../../app/redux/api/contactApi';
 
 interface TimelineItemProps {
@@ -24,7 +25,7 @@ const formatValue = (value: any, indent: number = 0): string => {
     if (value.length === 0) return '[]';
     return value.map((item) => `${indentStr}- ${formatValue(item, indent + 1)}`).join('\n');
   } else if (typeof value === 'object') {
-    const entries = Object.entries(value);
+    const entries = Object.entries(value).filter(([key]) => key !== 'contactResponseId');
     if (entries.length === 0) return '{}';
     return entries
       .map(([key, val]) => `${indentStr}${formatKey(key)}: ${formatValue(val, indent + 1)}`)
@@ -58,6 +59,9 @@ const formatDetails = (activity: ResponseActivity): string => {
 };
 
 const TimelineItem: React.FC<TimelineItemProps> = ({ activity }) => {
+  const [preContent, setPreContent] = useState(formatDetails(activity));
+  const [isLoading, setIsLoading] = useState(false);
+
   const formatTime = (date: string) => {
     const now = new Date();
     const activityDate = new Date(date);
@@ -94,6 +98,54 @@ const TimelineItem: React.FC<TimelineItemProps> = ({ activity }) => {
     }
   };
 
+  const handleObjectIdClick = async (event: React.MouseEvent<HTMLPreElement>) => {
+    const text = event.currentTarget.innerText;
+    const objectIdRegex = /^[0-9a-fA-F]{24}$/;
+    const lines = text.split('\n');
+
+    let currentKey = '';
+    for (const line of lines) {
+      const keyMatch = line.match(/^(\w+(?:\s\w+)*):\s*/);
+      if (keyMatch) {
+        currentKey = keyMatch[1];
+      }
+
+      const objectIdMatch = line.match(/(?:-\s*)?([0-9a-fA-F]{24})/);
+      if (objectIdMatch && currentKey) {
+        const objectId = objectIdMatch[1];
+        if (objectIdRegex.test(objectId)) {
+          console.log(`Clicked ObjectId: ${objectId}, Key: ${currentKey}`);
+          setIsLoading(true);
+          try {
+            const response = await axios.get('/api/lookup', {
+              params: {
+                objectId,
+                key: currentKey,
+              },
+            });
+            const data = response.data;
+            if (data.name && currentKey.toLowerCase().includes('user ids')) {
+              const updatedLines = lines.map((l) => {
+                if (l.startsWith(`${currentKey}:`)) {
+                  return `user name: ${data.name}: ${l.split(':').slice(1).join(':').trim()}`;
+                }
+                return l;
+              });
+              setPreContent(updatedLines.join('\n'));
+            }
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          } catch (error: any) {
+            console.error('Axios error:', error);
+            const errorMessage = error.response?.data?.error || 'Failed to fetch user details';
+            alert(`Error: ${errorMessage}`);
+          } finally {
+            setIsLoading(false);
+          }
+        }
+      }
+    }
+  };
+
   return (
     <li className="mb-10 ms-6">
       <span className="absolute flex items-center justify-center w-6 h-6 bg-blue-100 rounded-full -start-3 ring-8 ring-white dark:ring-gray-900 dark:bg-blue-900">
@@ -124,9 +176,19 @@ const TimelineItem: React.FC<TimelineItemProps> = ({ activity }) => {
           {activity.action !== 'PIPELINE_ADDED' && activity.action !== 'CONTACT_CREATED' && activity.details && (
             <div
               id="details"
-              className="p-3 text-xs italic font-normal text-gray-500 border border-gray-200 rounded-lg bg-gray-50 dark:bg-gray-600 dark:border-gray-500 dark:text-gray-300 mt-3"
+              className="p-3 text-xs italic font-normal text-gray-500 border border-gray-200 rounded-lg bg-gray-50 dark:bg-gray-600 dark:border-gray-500 dark:text-gray-300 mt-3 relative"
             >
-              <pre className='whitespace-break-spaces'>{formatDetails(activity)}</pre>
+              <pre
+                className="whitespace-break-spaces cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-500"
+                onClick={handleObjectIdClick}
+              >
+                {preContent}
+              </pre>
+              {isLoading && (
+                <div className="absolute inset-0 flex items-center justify-center bg-gray-50/50 dark:bg-gray-600/50">
+                  <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              )}
             </div>
           )}
         </div>

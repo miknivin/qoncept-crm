@@ -1,8 +1,12 @@
+/* eslint-disable @typescript-eslint/no-unused-expressions */
 import { NextRequest, NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import ContactResponse from '@/app/models/ContactResponse';
 import { authorizeRoles, isAuthenticatedUser } from '@/app/api/middlewares/auth';
 import Contact from '@/app/models/Contact';
+import Pipeline from '@/app/models/Pipeline';
+import CalendarEvent from '@/app/models/CalendarEvents';
+import Stage from '@/app/models/Stage';
 
 // const getParams = async (params: { id: string }): Promise<{ id: string }> => {
 //   return Promise.resolve(params); // Simulate async params retrieval
@@ -15,6 +19,9 @@ export async function POST(
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
+    Pipeline
+    Stage
+    CalendarEvent
     const user = await isAuthenticatedUser(request);
     authorizeRoles(user, 'admin', 'team_member');
 
@@ -98,6 +105,9 @@ export async function GET(
 ): Promise<NextResponse> {
   try {
     // Authenticate user and check roles
+    Pipeline
+    Stage
+    CalendarEvent
     const user = await isAuthenticatedUser(request);
     authorizeRoles(user, 'admin', 'team_member');
 
