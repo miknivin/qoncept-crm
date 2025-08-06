@@ -7,6 +7,7 @@ import Contact from '@/app/models/Contact';
 import Pipeline from '@/app/models/Pipeline';
 import Stage from '@/app/models/Stage';
 import CalendarEvent from '@/app/models/CalendarEvents';
+import dbConnect from '@/app/lib/db/connection';
 
 // Async function to simulate awaiting params
 // const getParams = async (params: { contactId: string; responseId: string }): Promise<{ contactId: string; responseId: string }> => {
@@ -30,6 +31,7 @@ export async function PUT(
     Pipeline
     Stage
     CalendarEvent
+    await dbConnect()
     const user = await isAuthenticatedUser(request);
     authorizeRoles(user, 'admin', 'team_member');
 
@@ -134,6 +136,7 @@ export async function GET(
     Pipeline
     Stage
     CalendarEvent
+    await dbConnect();
     const user = await isAuthenticatedUser(request);
     authorizeRoles(user, 'admin', 'team_member');
 

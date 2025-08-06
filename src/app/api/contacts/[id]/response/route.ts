@@ -7,6 +7,8 @@ import Contact from '@/app/models/Contact';
 import Pipeline from '@/app/models/Pipeline';
 import CalendarEvent from '@/app/models/CalendarEvents';
 import Stage from '@/app/models/Stage';
+import User from '@/app/models/User';
+import dbConnect from '@/app/lib/db/connection';
 
 // const getParams = async (params: { id: string }): Promise<{ id: string }> => {
 //   return Promise.resolve(params); // Simulate async params retrieval
@@ -22,6 +24,8 @@ export async function POST(
     Pipeline
     Stage
     CalendarEvent
+    User
+    await dbConnect()
     const user = await isAuthenticatedUser(request);
     authorizeRoles(user, 'admin', 'team_member');
 
@@ -108,6 +112,7 @@ export async function GET(
     Pipeline
     Stage
     CalendarEvent
+    await dbConnect()
     const user = await isAuthenticatedUser(request);
     authorizeRoles(user, 'admin', 'team_member');
 
