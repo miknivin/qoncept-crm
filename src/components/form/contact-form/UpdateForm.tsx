@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { ResponseContact, useUpdateContactMutation } from '@/app/redux/api/contactApi';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
-import Chip from '@/components/ui/chips/Chip';
 
 interface UpdateContactFormProps {
   contact: ResponseContact;
@@ -15,8 +14,7 @@ interface ContactFormData {
   email: string;
   phone: string;
   notes?: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  tags: { name: string; user?: any }[];
+  businessName?: string;
 }
 
 const UpdateContactForm: React.FC<UpdateContactFormProps> = ({ contact }) => {
@@ -27,10 +25,9 @@ const UpdateContactForm: React.FC<UpdateContactFormProps> = ({ contact }) => {
     email: '',
     phone: '',
     notes: '',
-    tags: [],
+    businessName: '',
   });
-  const [tagInput, setTagInput] = useState('');
-  const [tagError, setTagError] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
   // Pre-populate form with contact data
   useEffect(() => {
@@ -40,7 +37,7 @@ const UpdateContactForm: React.FC<UpdateContactFormProps> = ({ contact }) => {
         email: contact.email,
         phone: contact.phone,
         notes: contact.notes || '',
-        tags: contact.tags,
+        businessName: contact.businessName || '',
       });
     }
   }, [contact]);
@@ -50,44 +47,17 @@ const UpdateContactForm: React.FC<UpdateContactFormProps> = ({ contact }) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleTagAdd = (tag: string) => {
-    const trimmedTag = tag.trim();
-    if (!trimmedTag) {
-      setTagError('Tag cannot be empty');
-      return;
-    }
-    if (formData.tags.some((t) => t.name === trimmedTag)) {
-      setTagError('Tag already exists');
-      return;
-    }
-    // Backend will set the user field for tags
-    setFormData((prev) => ({
-      ...prev,
-      tags: [...prev.tags, { name: trimmedTag, user: '' }], // user will be set in backend
-    }));
-    setTagInput('');
-    setTagError('');
-  };
-
-  const handleTagRemove = (tagName: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      tags: prev.tags.filter((t) => t.name !== tagName),
-    }));
-    setTagError('');
-  };
-
   const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setError(null);
     try {
-      // Remove user field from tags before sending, as backend will set it
       const payload = {
         id: contact._id,
         name: formData.name,
         email: formData.email,
         phone: formData.phone,
         notes: formData.notes,
-        tags: formData.tags.map((tag) => ({ name: tag.name })), // Send only name
+        businessName: formData.businessName,
       };
       const result = await updateContact(payload).unwrap();
       if (result.success) {
@@ -99,6 +69,7 @@ const UpdateContactForm: React.FC<UpdateContactFormProps> = ({ contact }) => {
       console.error('Error updating contact:', error);
       const errorMessage = error.data?.message || 'Failed to update contact';
       const errorDetails = error?.data?.errors?.join(', ') || '';
+      setError(errorDetails ? `${errorMessage}: ${errorDetails}` : errorMessage);
       toast.error(errorDetails ? `${errorMessage}: ${errorDetails}` : errorMessage);
     }
   };
@@ -158,43 +129,19 @@ const UpdateContactForm: React.FC<UpdateContactFormProps> = ({ contact }) => {
       </div>
       <div>
         <label
-          htmlFor="tags"
+          htmlFor="businessName"
           className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-white"
         >
-          Tags (Optional)
+          Business Name
         </label>
-        <div
-          className="dark:bg-dark-900 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus-within:border-brand-800"
-          role="group"
-          aria-label="Enter tags"
-        >
-          <div className="flex flex-wrap gap-2 mb-2">
-            {formData.tags.map((tag) => (
-              <Chip key={tag.name} text={tag.name} onRemove={() => handleTagRemove(tag.name)} />
-            ))}
-          </div>
-          <input
-            id="tags"
-            type="text"
-            value={tagInput}
-            onChange={(e) => setTagInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && tagInput.trim()) {
-                e.preventDefault();
-                handleTagAdd(tagInput);
-              }
-            }}
-            onBlur={() => {
-              if (tagInput.trim()) {
-                handleTagAdd(tagInput);
-              }
-            }}
-            placeholder="Add a tag..."
-            className="w-full outline-none text-sm text-gray-800 bg-transparent placeholder:text-gray-400 dark:text-white/90 dark:placeholder:text-white/30"
-            aria-label="Add new tag"
-          />
-          {tagError && <p className="text-red-500 text-sm mt-1">{tagError}</p>}
-        </div>
+        <input
+          type="text"
+          id="businessName"
+          name="businessName"
+          value={formData.businessName}
+          onChange={handleInputChange}
+          className="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800"
+        />
       </div>
       <div>
         <label
@@ -212,6 +159,7 @@ const UpdateContactForm: React.FC<UpdateContactFormProps> = ({ contact }) => {
           rows={4}
         />
       </div>
+      {error && <p className="text-red-500 text-sm">{error}</p>}
       <button
         type="submit"
         disabled={isUpdating}

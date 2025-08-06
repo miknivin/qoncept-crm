@@ -17,6 +17,7 @@ interface UpdateContactRequest {
   phone: string;
   notes?: string;
   tags?: { name: string }[];
+  businessName?: string;
 }
 
 export async function GET(
@@ -145,6 +146,9 @@ export async function PUT(
     if (body.notes !== undefined && (typeof body.notes !== 'string' || body.notes.length > 5000)) {
       errors.push('Notes must be a string and not exceed 5000 characters if provided');
     }
+    if (body.businessName !== undefined && (typeof body.businessName !== 'string' || body.businessName.length > 200)) {
+      errors.push('Business name must be a string and not exceed 200 characters if provided');
+    }
     if (
       body.tags !== undefined &&
       (!Array.isArray(body.tags) ||
@@ -209,7 +213,7 @@ export async function PUT(
     contact.email = body.email;
     contact.phone = body.phone;
     contact.notes = body.notes ?? '';
-
+    contact.businessName=body.businessName??''
     // Clear existing tags and add new ones
     contact.tags.splice(0, contact.tags.length);
     if (body.tags) {

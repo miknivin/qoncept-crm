@@ -2,7 +2,6 @@
 "use client";
 import { useCreateContactMutation } from "@/app/redux/api/contactApi";
 import Button from "@/components/ui/button/Button";
-import Chip from "@/components/ui/chips/Chip";
 import ShortSpinnerDark from "@/components/ui/loaders/ShortSpinnerDark";
 import { useState } from "react";
 import { useSelector } from "react-redux";
@@ -20,19 +19,19 @@ export default function AddContactForm({ onClose }: AddContactFormProps) {
     process.env.NEXT_PUBLIC_DEFAULT_PIPELINE || ""
   );
   const stages = pipelineData?.pipeline?.stages || [];
-
+  const defaultStage = stages.find((stage: any) => stage.order === 1)?._id || 
+                      (stages.length > 0 ? stages[0]._id : "");
+  
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     phone: "",
     notes: "",
     userId: user ? user._id : "",
-    tags: [] as string[],
-    stage: stages.length > 0 ? stages[0]._id : "", // Set first stage as default
+    businessName: "",
+    stage: defaultStage,
   });
-  const [tagInput, setTagInput] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [tagError, setTagError] = useState<string | null>(null);
   const [createContact, { isLoading }] = useCreateContactMutation();
 
   const handleInputChange = (
@@ -42,23 +41,14 @@ export default function AddContactForm({ onClose }: AddContactFormProps) {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleTagAdd = (value: string) => {
-    const trimmedValue = value.trim();
-    if (formData.tags.includes(trimmedValue)) {
-      setTagError(`Tag "${trimmedValue}" already exists.`);
-      return;
+  // Function to generate a unique random email
+  const generateRandomEmail = () => {
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    let randomStr = '';
+    for (let i = 0; i < 12; i++) {
+      randomStr += chars[Math.floor(Math.random() * chars.length)];
     }
-    if (trimmedValue && !formData.tags.includes(trimmedValue)) {
-      setFormData((prev) => ({ ...prev, tags: [...prev.tags, trimmedValue] }));
-      setTagInput("");
-    }
-  };
-
-  const handleTagRemove = (tag: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      tags: prev.tags.filter((t) => t !== tag),
-    }));
+    return `contact-${randomStr}@example.com`;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -66,8 +56,12 @@ export default function AddContactForm({ onClose }: AddContactFormProps) {
     setError(null);
 
     try {
+      // If no email is provided, generate a random unique email
+      const emailToSubmit = formData.email.trim() || generateRandomEmail();
+
       const response = await createContact({
         ...formData,
+        email: emailToSubmit,
         userId: formData.userId || "",
       }).unwrap();
       console.log("Contact created:", response.contact);
@@ -77,10 +71,9 @@ export default function AddContactForm({ onClose }: AddContactFormProps) {
         phone: "",
         notes: "",
         userId: formData.userId,
-        tags: [],
-        stage: stages.length > 0 ? stages[0]._id : "", // Reset to first stage
+        businessName: "",
+        stage: stages.length > 0 ? stages[0]._id : "",
       });
-      setTagInput("");
       onClose();
       toast.success("Contact added successfully");
     } catch (err: any) {
@@ -116,7 +109,7 @@ export default function AddContactForm({ onClose }: AddContactFormProps) {
             htmlFor="email"
             className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400"
           >
-            Email
+            Email (Optional)
           </label>
           <input
             type="email"
@@ -125,7 +118,6 @@ export default function AddContactForm({ onClose }: AddContactFormProps) {
             value={formData.email}
             onChange={handleInputChange}
             className="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800"
-            required
           />
         </div>
         <div>
@@ -145,7 +137,22 @@ export default function AddContactForm({ onClose }: AddContactFormProps) {
             required
           />
         </div>
-        {/* Stage Select Field */}
+        <div>
+          <label
+            htmlFor="businessName"
+            className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400"
+          >
+            Business Name
+          </label>
+          <input
+            type="text"
+            id="businessName"
+            name="businessName"
+            value={formData.businessName}
+            onChange={handleInputChange}
+            className="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800"
+          />
+        </div>
         <div>
           <label
             htmlFor="stage"
@@ -170,48 +177,6 @@ export default function AddContactForm({ onClose }: AddContactFormProps) {
               </option>
             ))}
           </select>
-        </div>
-        <div>
-          <label
-            htmlFor="tags"
-            className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400"
-          >
-            Tags (Optional)
-          </label>
-          <div
-            className="dark:bg-dark-900 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus-within:border-brand-800"
-            role="group"
-            aria-label="Enter tags"
-          >
-            <div className="flex flex-wrap gap-2 mb-2">
-              {formData.tags.map((tag) => (
-                <Chip key={tag} text={tag} onRemove={() => handleTagRemove(tag)} />
-              ))}
-            </div>
-            <input
-              id="tags"
-              type="text"
-              value={tagInput}
-              onChange={(e) => setTagInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  if (tagInput.trim()) {
-                    handleTagAdd(tagInput);
-                  }
-                }
-              }}
-              onBlur={() => {
-                if (tagInput.trim()) {
-                  handleTagAdd(tagInput);
-                }
-              }}
-              placeholder="Add a tag..."
-              className="w-full outline-none text-sm text-gray-800 bg-transparent placeholder:text-gray-400 dark:text-white/90 dark:placeholder:text-white/30"
-              aria-label="Add new tag"
-            />
-            {tagError && <p className="text-red-500 text-sm mt-1">{tagError}</p>}
-          </div>
         </div>
         <div>
           <label

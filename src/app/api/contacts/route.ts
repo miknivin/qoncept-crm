@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     const user = await isAuthenticatedUser(req);
     console.log(user);
 
-    const { name, email, phone, notes, userId, tags = [], stage } = (req as ExtendedNextRequest).validatedBody!;
+    const { name, email, phone, notes, userId, tags = [], stage, businessName } = (req as ExtendedNextRequest).validatedBody!;
 
     const tagSubdocuments = tags
       ? tags.map((tagName: string) => ({
@@ -45,6 +45,7 @@ export async function POST(req: NextRequest) {
       phone,
       notes,
       user: new mongoose.Types.ObjectId(userId),
+      businessName,
       tags: tagSubdocuments,
       assignedTo, // Include assignedTo in contactData
     };

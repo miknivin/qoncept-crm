@@ -8,6 +8,7 @@ export interface ExtendedNextRequest extends NextRequest {
     phone: string;
     userId: string;
     notes?: string;
+    businessName?:string;
     tags?:[];
     stage?:string;
   };
