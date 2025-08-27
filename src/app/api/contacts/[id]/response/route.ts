@@ -10,28 +10,25 @@ import Stage from '@/app/models/Stage';
 import User from '@/app/models/User';
 import dbConnect from '@/app/lib/db/connection';
 
-// const getParams = async (params: { id: string }): Promise<{ id: string }> => {
-//   return Promise.resolve(params); // Simulate async params retrieval
-// };
-
 export async function POST(
   request: NextRequest,
   context: { params: Promise< { id: string } >}
 ) {
+  Pipeline
+  Stage
+  CalendarEvent
+  User
+  Contact
+  await dbConnect()
   const session = await mongoose.startSession();
+  
   session.startTransaction();
   try {
-    Pipeline
-    Stage
-    CalendarEvent
-    User
-    await dbConnect()
     const user = await isAuthenticatedUser(request);
     authorizeRoles(user, 'admin', 'team_member');
 
     const { id } = await context.params;
     const { activity, note, meetingScheduledDate } = await request.json();
-    console.log(meetingScheduledDate);
     
     // Validate inputs
     if (!mongoose.Types.ObjectId.isValid(id)) {
