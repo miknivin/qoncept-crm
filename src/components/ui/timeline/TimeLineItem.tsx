@@ -46,7 +46,7 @@ const formatDetails = (activity: ResponseActivity): string => {
     case 'ASSIGNED_TO_UPDATED':
       return `user ids: ${formatValue(details.userIds)}\nassign type: ${details.assignType}`;
     case 'TAG_ADDED':
-      return `added tags: ${formatValue(details.addedTags)}`;
+      return `added tags: ${formatValue(details.addedTags ||details.tagName)}`;
     case 'TAG_REMOVED':
       return `removed tags: ${formatValue(details.removedTags)}`;
     case 'CONTACT_UPDATED':
@@ -59,6 +59,7 @@ const formatDetails = (activity: ResponseActivity): string => {
 };
 
 const TimelineItem: React.FC<TimelineItemProps> = ({ activity }) => {
+  
   const [preContent, setPreContent] = useState(formatDetails(activity));
   const [isLoading, setIsLoading] = useState(false);
 

@@ -27,7 +27,6 @@ async function dbConnect() {
   // If no promise exists, create one
   if (!cached.promise) {
     const opts = {
-      // useNewUrlParser and useUnifiedTopology are deprecated but included for compatibility
       serverSelectionTimeoutMS: 5000, // Fail fast if server isn’t found (5s)
       connectTimeoutMS: 15000, // Max time to establish connection (10s)
     };

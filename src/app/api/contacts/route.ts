@@ -117,7 +117,8 @@ export async function POST(req: NextRequest) {
         assignedUserId: user._id,
       });
     }
-
+    console.log(tags,'tag');
+    
     // Log TAG_ADDED activities for each tag
     if (tags && tags.length > 0) {
       for (const tagName of tags) {
