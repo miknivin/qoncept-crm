@@ -72,14 +72,22 @@ export async function POST(
     });
     await contactResponse.save({ session });
     contact.contactResponses.push(contactResponse._id);
-    await contact.save({ session }); 
-    // Log activity
-    await contact.logActivity(
-      'CONTACT_RESPONSE_ADDED',
-      new mongoose.Types.ObjectId(user._id),
-      { activity, note, contactResponseId: contactResponse._id },
-      session
-    );
+    
+    await contact.save({ session });
+    setImmediate(() => {
+      contact.logActivity(
+        'CONTACT_RESPONSE_ADDED',
+        new mongoose.Types.ObjectId(user._id),
+        { activity, note, contactResponseId: contactResponse._id },
+        session
+      ).catch((error) => {
+        console.error('Error in logActivity:', error);
+        // Note: Cannot abort transaction here as it's already committed
+      });
+    });
+
+    // Save the contact document once, after all modifications
+
 
     await session.commitTransaction();
     session.endSession();

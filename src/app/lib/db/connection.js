@@ -28,7 +28,7 @@ async function dbConnect() {
   if (!cached.promise) {
     const opts = {
       serverSelectionTimeoutMS: 5000, // Fail fast if server isn’t found (5s)
-      connectTimeoutMS: 15000, // Max time to establish connection (10s)
+      connectTimeoutMS: 30000, // Max time to establish connection (10s)
     };
 
     console.log(
