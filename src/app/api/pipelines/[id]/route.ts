@@ -42,6 +42,7 @@ const validatePipelineUpdate = (data: unknown) => {
 export async function PUT(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   const session = await mongoose.startSession();
   try {
+    await dbConnect();
     session.startTransaction();
 
     const user = await isAuthenticatedUser(request);
@@ -50,7 +51,7 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
     }
 
     authorizeRoles(user, 'admin');
-    await dbConnect();
+
 
     const pipelineId =   (await context.params).id; 
 
