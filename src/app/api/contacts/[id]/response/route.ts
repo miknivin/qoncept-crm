@@ -12,24 +12,27 @@ import dbConnect from '@/app/lib/db/connection';
 
 export async function POST(
   request: NextRequest,
-  context: { params: Promise< { id: string } >}
+  context: { params: Promise<{ id: string }> }
 ) {
-  Pipeline
-  Stage
-  CalendarEvent
-  User
-  Contact
-  await dbConnect()
-  const session = await mongoose.startSession();
-  
-  session.startTransaction();
+  let session: mongoose.ClientSession | null = null; // Declare session outside try-catch
+
   try {
+    Pipeline;
+    Stage;
+    CalendarEvent;
+    User;
+    Contact;
+    await dbConnect();
+
+    session = await mongoose.startSession(); // Initialize session
+    session.startTransaction();
+
     const user = await isAuthenticatedUser(request);
     authorizeRoles(user, 'admin', 'team_member');
 
     const { id } = await context.params;
     const { activity, note, meetingScheduledDate } = await request.json();
-    
+
     // Validate inputs
     if (!mongoose.Types.ObjectId.isValid(id)) {
       await session.abortTransaction();
@@ -72,22 +75,21 @@ export async function POST(
     });
     await contactResponse.save({ session });
     contact.contactResponses.push(contactResponse._id);
-    
+
     await contact.save({ session });
     setImmediate(() => {
-      contact.logActivity(
-        'CONTACT_RESPONSE_ADDED',
-        new mongoose.Types.ObjectId(user._id),
-        { activity, note, contactResponseId: contactResponse._id },
-        session
-      ).catch((error) => {
-        console.error('Error in logActivity:', error);
-        // Note: Cannot abort transaction here as it's already committed
-      });
+      contact
+        .logActivity(
+          'CONTACT_RESPONSE_ADDED',
+          new mongoose.Types.ObjectId(user._id),
+          { activity, note, contactResponseId: contactResponse._id },
+          session ?? undefined
+        )
+        .catch((error) => {
+          console.error('Error in logActivity:', error);
+          // Note: Cannot abort transaction here as it's already committed
+        });
     });
-
-    // Save the contact document once, after all modifications
-
 
     await session.commitTransaction();
     session.endSession();
@@ -98,8 +100,11 @@ export async function POST(
     );
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
-    await session.abortTransaction();
-    session.endSession();
+    if (session) {
+      // Only attempt to abort and end session if it was created
+      await session.abortTransaction();
+      session.endSession();
+    }
     return NextResponse.json(
       { message: 'Server error', error: (error as Error).message },
       { status: error.message.includes('login') || error.message.includes('Not allowed') ? 401 : 500 }

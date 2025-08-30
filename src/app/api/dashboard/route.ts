@@ -22,6 +22,7 @@ interface DashboardResponse {
 export async function GET(req: NextRequest) {
   try {
     // Authenticate user
+
     const user = await isAuthenticatedUser(req);
     if (!user) {
       return NextResponse.json(
@@ -43,7 +44,7 @@ export async function GET(req: NextRequest) {
 
     // Connect to database
     await dbConnect();
-
+    
     // Define stage IDs for closed contacts
     const closedStageIds = [
       '682da76db5aab2e983c8863d',

@@ -15,10 +15,11 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    await dbConnect();
+     await dbConnect();
+    
+    
     const user = await isAuthenticatedUser(req);
-    console.log(user);
-
+ 
     const { name, email, phone, notes, userId, tags = [], stage, businessName } = (req as ExtendedNextRequest).validatedBody!;
 
     const tagSubdocuments = tags

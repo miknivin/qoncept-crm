@@ -53,8 +53,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    await dbConnect();
-
+     await dbConnect();
+    
     // Parse query parameters
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get("page") || "1");
