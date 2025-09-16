@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useGetPipelineByIdQuery } from "@/app/redux/api/pipelineApi";
 import ShortSpinnerPrimary from "@/components/ui/loaders/ShortSpinnerPrimary";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragOverlay } from "@dnd-kit/core";
@@ -153,20 +153,20 @@ export default function PipelineBody({ pipelineId }: { pipelineId: string }) {
     return () => clearInterval(timer);
   }, [pendingUpdates, isSaving]);
 
-  const saveToBackend = async () => {
-    if (pendingUpdates.length === 0 || isSaving) return;
-    setIsSaving(true);
-    try {
-      await batchUpdateContactDrag({ updates: pendingUpdates }).unwrap();
-      await clearIndexedDB();
-      setPendingUpdates([]);
-      toast.success("Contact updates saved successfully");
-    } catch (error) {
-      toast.error("Failed to save contact updates");
-    } finally {
-      setIsSaving(false);
-    }
-  };
+const saveToBackend = useCallback(async () => {
+  if (pendingUpdates.length === 0 || isSaving) return;
+  setIsSaving(true);
+  try {
+    await batchUpdateContactDrag({ updates: pendingUpdates }).unwrap();
+    await clearIndexedDB();
+    setPendingUpdates([]);
+    toast.success("Contact updates saved successfully");
+  } catch (error) {
+    toast.error("Failed to save contact updates");
+  } finally {
+    setIsSaving(false);
+  }
+}, [batchUpdateContactDrag, pendingUpdates]);
 
   // Merge new updates with existing ones, keeping only the latest per contact
   const mergeUpdates = (newUpdates: BatchUpdate[], prevUpdates: BatchUpdate[]): BatchUpdate[] => {
@@ -188,75 +188,47 @@ export default function PipelineBody({ pipelineId }: { pipelineId: string }) {
   };
 
   // Handle navigation warnings
-  useEffect(() => {
-    const handleBeforePopState = async () => {
-      console.log('before pop');
-      
-      if (hasUnsavedChanges) {
-        const result = await Swal.fire({
-          title: "Unsaved Changes",
-          text: "You have unsaved contact changes. Do you want to save them before leaving?",
-          icon: "warning",
-          showCancelButton: true,
-          confirmButtonText: "Save",
-          cancelButtonText: "Discard",
-        });
-
-        if (result.isConfirmed) {
-          await saveToBackend();
-          return true;
-        } else {
-          await clearIndexedDB();
-          setPendingUpdates([]);
-          return true;
-        }
-      }
+useEffect(() => {
+  const handleBeforePopState = async () => {
+    console.log('before pop');
+    
+    if (hasUnsavedChanges) {
+      await saveToBackend(); // Execute saveToBackend directly
       return true;
-    };
+    }
+    return true;
+  };
 
-    // Track route changes via pathname/searchParams
-    const handleRouteChange = async () => {
-      if (hasUnsavedChanges) {
-        const result = await Swal.fire({
-          title: "Unsaved Changes",
-          text: "You have unsaved contact changes. Do you want to save them before leaving?",
-          icon: "warning",
-          showCancelButton: true,
-          confirmButtonText: "Save",
-          cancelButtonText: "Discard",
-        });
+  // Track route changes via pathname/searchParams
+  const handleRouteChange = async () => {
+    console.log('route changed');
+    
+    if (hasUnsavedChanges) {
+      await saveToBackend(); // Execute saveToBackend directly
+    }
+  };
 
-        if (result.isConfirmed) {
-          await saveToBackend();
-        } else {
-          await clearIndexedDB();
-          setPendingUpdates([]);
-        }
-      }
-    };
+  // Handle browser back/forward
+  window.history.pushState(null, "", window.location.href);
+  window.onpopstate = async (event) => {
+    event.preventDefault();
+    const canNavigate = await handleBeforePopState();
+    if (canNavigate) {
+      window.history.back();
+    } else {
+      window.history.pushState(null, "", window.location.href);
+    }
+  };
 
-    // Handle browser back/forward
-    window.history.pushState(null, "", window.location.href);
-    window.onpopstate = async (event) => {
-      event.preventDefault();
-      const canNavigate = await handleBeforePopState();
-      if (canNavigate) {
-        window.history.back();
-      } else {
-        window.history.pushState(null, "", window.location.href);
-      }
-    };
-
-    // Handle client-side navigation
-    const previousPath = pathname + searchParams.toString();
-    return () => {
-      if (previousPath !== pathname + searchParams.toString()) {
-        handleRouteChange();
-      }
-      window.onpopstate = null;
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasUnsavedChanges, pathname, searchParams]);
+  // Handle client-side navigation
+  const previousPath = pathname + searchParams.toString();
+  return () => {
+    if (previousPath !== pathname + searchParams.toString()) {
+      handleRouteChange();
+    }
+    window.onpopstate = null;
+  };
+}, [hasUnsavedChanges, pathname, searchParams, saveToBackend]); // Added saveToBackend to dependencies
 
   const sensors = useSensors(
     useSensor(PointerSensor),

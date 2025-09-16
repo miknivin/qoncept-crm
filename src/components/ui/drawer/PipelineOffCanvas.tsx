@@ -1,7 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import { IUser } from "@/app/models/User";
 import { useGetTeamMembersQuery } from "@/app/redux/api/userApi";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Chip from "../chips/Chip";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSelector } from "react-redux";
@@ -9,9 +10,15 @@ import { RootState } from "@/app/redux/rootReducer";
 import DateRangePickerUi from "../date/DateRangePicker";
 import { format } from "date-fns";
 
+
 interface OffCanvasProps {
   isOpen: boolean;
   onClose: () => void;
+}
+
+interface SelectedUser {
+  _id: string;
+  isNot: boolean;
 }
 
 export default function PipelineOffCanvas({ isOpen, onClose }: OffCanvasProps) {
@@ -21,7 +28,8 @@ export default function PipelineOffCanvas({ isOpen, onClose }: OffCanvasProps) {
   const searchParams = useSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [selectedUsers, setSelectedUsers] = useState<IUser[]>([]);
+  const [selectedUsers, setSelectedUsers] = useState<SelectedUser[]>([]);
+  const [isNotFilter, setIsNotFilter] = useState(false);
   const [keyword, setKeyword] = useState(searchParams.get("keyword") || "");
   const [source, setSource] = useState(searchParams.get("source") || "");
   const [keywordError, setKeywordError] = useState<string | null>(null);
@@ -34,22 +42,32 @@ export default function PipelineOffCanvas({ isOpen, onClose }: OffCanvasProps) {
     search: searchQuery,
   });
 
-  const teamMembers: IUser[] = teamMembersData?.users || [];
+  const teamMembers = useMemo(() => {
+  const members = teamMembersData?.users || [];
+  console.log(members,'memo members');
+  
+  return members;
+}, [teamMembersData]);
 
   useEffect(() => {
     setKeyword(searchParams.get("keyword") || "");
     setSource(searchParams.get("source") || "");
-    // Initialize startDate and endDate from searchParams
     setStartDate(searchParams.get("startDate") || null);
     setEndDate(searchParams.get("endDate") || null);
     const assignedTo = searchParams.get("assignedTo");
-    if (assignedTo && teamMembers.length > 0) {
-      const user = teamMembers.find((member) => member._id === assignedTo);
-      if (user && !selectedUsers.some((u) => u._id === user._id)) {
-        setSelectedUsers([user]);
+    if (assignedTo) {
+      try {
+        const parsedUsers: SelectedUser[] = JSON.parse(assignedTo);
+        if (Array.isArray(parsedUsers)) {
+          setSelectedUsers(parsedUsers);
+        }
+      } catch (error) {
+        console.error("Failed to parse assignedTo:", error);
       }
+    } else {
+      setSelectedUsers([]);
     }
-  }, [searchParams, teamMembers]);
+  }, [searchParams]);
 
   // Handle closing the off-canvas
   useEffect(() => {
@@ -93,21 +111,34 @@ export default function PipelineOffCanvas({ isOpen, onClose }: OffCanvasProps) {
     setIsDropdownOpen(e.target.value.length > 0);
   };
 
-  const handleSelectMember = (member: IUser) => {
-    if (!selectedUsers.some((user) => user._id === member._id)) {
-      setSelectedUsers([member]); // Allow only one user for assignedTo
-    }
-    setSearchQuery("");
-    setIsDropdownOpen(false);
-  };
+const handleSelectMember = (member: IUser) => {
+  if (!member._id) {
+    console.warn("Attempted to select member with undefined _id:", member);
+    return;
+  }
+  if (!selectedUsers.some((user) => user._id === member._id)) {
+    setSelectedUsers((prev) => {
+      const newUsers = [{ _id: member._id!, isNot: isNotFilter }, ...prev];
+      console.log("Updated selectedUsers:", newUsers);
+      return newUsers;
+    });
+  } else {
+    console.log("Member already selected:", member._id);
+  }
+  setSearchQuery("");
+  setIsDropdownOpen(false);
+};
 
-  const handleRemoveUser = (userId: string | undefined) => {
-    if (userId) {
-      setSelectedUsers(selectedUsers.filter((user) => user._id !== userId));
-      const params = new URLSearchParams(searchParams);
+  const handleRemoveUser = (userId: string) => {
+    const newSelectedUsers = selectedUsers.filter((user) => user._id !== userId);
+    setSelectedUsers(newSelectedUsers);
+    const params = new URLSearchParams(searchParams);
+    if (newSelectedUsers.length > 0) {
+      params.set("assignedTo", JSON.stringify(newSelectedUsers));
+    } else {
       params.delete("assignedTo");
-      router.push(`?${params.toString()}`);
     }
+    router.push(`?${params.toString()}`);
   };
 
   const handleApplyFilters = () => {
@@ -128,8 +159,8 @@ export default function PipelineOffCanvas({ isOpen, onClose }: OffCanvasProps) {
     } else {
       params.delete("source");
     }
-    if (selectedUsers.length > 0 && selectedUsers[0]._id) {
-      params.set("assignedTo", selectedUsers[0]._id);
+    if (selectedUsers.length > 0) {
+      params.set("assignedTo", JSON.stringify(selectedUsers));
     } else {
       params.delete("assignedTo");
     }
@@ -153,6 +184,7 @@ export default function PipelineOffCanvas({ isOpen, onClose }: OffCanvasProps) {
     setKeyword("");
     setSource("");
     setSelectedUsers([]);
+    setIsNotFilter(false);
     setKeywordError(null);
     setStartDate(null);
     setEndDate(null);
@@ -166,7 +198,6 @@ export default function PipelineOffCanvas({ isOpen, onClose }: OffCanvasProps) {
   };
 
   const handleApply = (dates: { startDate: string | null; endDate: string | null }) => {
-    // Update URL with new startDate and endDate
     const params = new URLSearchParams(searchParams);
     params.delete("startDate");
     params.delete("endDate");
@@ -181,9 +212,7 @@ export default function PipelineOffCanvas({ isOpen, onClose }: OffCanvasProps) {
 
   return (
     <>
-      {
-
-isOpen && (
+      {isOpen && (
         <div
           className="fixed inset-0 z-30 bg-black/70 transition-opacity"
           aria-hidden="true"
@@ -304,12 +333,26 @@ isOpen && (
           </div>
           {user && user.role === "admin" && (
             <div className="mb-4 relative">
-              <label
-                htmlFor="simple-search"
-                className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-              >
-                Search users
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label
+                  htmlFor="simple-search"
+                  className="text-sm font-medium text-gray-900 dark:text-white"
+                >
+                  Search users
+                </label>
+                <label className="inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isNotFilter}
+                    onChange={(e) => setIsNotFilter(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600 dark:peer-checked:bg-blue-600"></div>
+                  <span className="ms-3 text-sm font-medium text-gray-900 dark:text-gray-300">
+                    Exclude users
+                  </span>
+                </label>
+              </div>
               <input
                 type="text"
                 id="simple-search"
@@ -320,18 +363,27 @@ isOpen && (
                 onFocus={() => setIsDropdownOpen(searchQuery.length > 0)}
               />
               {selectedUsers.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {selectedUsers.map((user) =>
-                    user.name && user._id ? (
-                      <Chip
-                        key={user._id}
-                        text={user.name}
-                        onRemove={() => handleRemoveUser(user._id)}
-                      />
-                    ) : null
+              <div className="mt-2 flex flex-wrap gap-2">
+                {selectedUsers.map((user) => {
+                  const teamMember = teamMembers.find((member) => member._id === user._id);
+                  return teamMember ? (
+                        <Chip
+                          key={user._id}
+                          isNot={user.isNot}
+                          text={`${teamMember.name}`}
+                          onRemove={() => handleRemoveUser(user._id)}
+                        />
+                      ) : (
+                        <Chip
+                          key={user._id}
+                          isNot={user.isNot}
+                          text={user.isNot ? "Not Unknown User" : "Unknown User"}
+                          onRemove={() => handleRemoveUser(user._id)}
+                        />
+                      );
+                    })}
+              </div>
                   )}
-                </div>
-              )}
               {isDropdownOpen && (
                 <div
                   id="dropdownDivider"

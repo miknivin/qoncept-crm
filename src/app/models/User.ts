@@ -20,6 +20,7 @@ export interface IUser {
   resetPasswordExpire?: Date;
   createdAt?: Date;
   updatedAt?: Date;
+  isNot?:boolean;
   signupMethod: 'OTP' | 'Email/Password' | 'OAuth';
   getJwtToken: () => string;
   comparePassword: (enteredPassword: string) => Promise<boolean>;

@@ -19,6 +19,7 @@ const Chip: React.FC<ChipProps> = ({ text, onRemove, disabled, isNot }) => {
       {text}
       <button
         type="button"
+        role='button'
         disabled={disabled || false}
         className="inline-flex items-center p-1 ms-2 text-sm text-gray-400 bg-transparent rounded-xs hover:bg-gray-200 hover:text-gray-900 dark:hover:bg-gray-600 dark:hover:text-gray-300"
         data-dismiss-target={`#badge-dismiss-${text}`}

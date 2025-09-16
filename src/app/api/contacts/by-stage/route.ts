@@ -13,7 +13,7 @@ export interface GetContactsByStageRequest {
   pipelineId: string;
   stageId: string;
   source?: string;
-  assignedTo?: string;
+  assignedTo?: Array<{ _id: string; isNot: boolean }>;
   keyword?: string;
   startDate?: string;
   endDate?: string;
@@ -58,7 +58,7 @@ export async function GET(req: NextRequest) {
     const pipelineId = searchParams.get("pipelineId");
     const stageId = searchParams.get("stageId");
     const source = searchParams.get("source");
-    const assignedTo = searchParams.get("assignedTo");
+    const assignedToParam = searchParams.get("assignedTo");
     const keyword = searchParams.get("keyword");
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
@@ -71,8 +71,26 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Invalid pipelineId or stageId" }, { status: 400 });
     }
 
-    if (assignedTo && !mongoose.Types.ObjectId.isValid(assignedTo)) {
-      return NextResponse.json({ error: "Invalid assignedTo user ID" }, { status: 400 });
+    let assignedTo: Array<{ _id: string; isNot: boolean }> = [];
+    if (assignedToParam) {
+      try {
+        assignedTo = JSON.parse(assignedToParam);
+        if (!Array.isArray(assignedTo)) {
+          return NextResponse.json({ error: "assignedTo must be an array" }, { status: 400 });
+        }
+        // Validate each _id in the array
+        for (const item of assignedTo) {
+          if (!item._id || !mongoose.Types.ObjectId.isValid(item._id)) {
+            return NextResponse.json({ error: `Invalid user ID in assignedTo: ${item._id}` }, { status: 400 });
+          }
+          if (typeof item.isNot !== "boolean") {
+            return NextResponse.json({ error: `Invalid isNot value for user ID: ${item._id}` }, { status: 400 });
+          }
+        }
+      } catch (error) {
+        console.log(error)
+        return NextResponse.json({ error: "Invalid assignedTo format" }, { status: 400 });
+      }
     }
 
     // Validate date parameters
@@ -88,12 +106,28 @@ export async function GET(req: NextRequest) {
       "pipelinesActive.stage_id": stageId,
     };
 
-    // If user is a team_member, restrict to contacts assigned to them
+    // Handle assignedTo filtering
     if (user.role === "team_member") {
-      query["assignedTo.user"] = new mongoose.Types.ObjectId(user._id); // Assuming user._id is the user's ID
-    } else if (assignedTo) {
-      // For non-team_member roles (e.g., admin), allow filtering by assignedTo if provided
-      query["assignedTo.user"] = new mongoose.Types.ObjectId(assignedTo);
+      // Restrict to contacts assigned to the authenticated user
+      query["assignedTo.user"] = new mongoose.Types.ObjectId(user._id);
+    } else if (assignedTo.length > 0) {
+      // For non-team_member roles (e.g., admin), apply assignedTo filters
+      const includeIds = assignedTo
+        .filter((item) => !item.isNot)
+        .map((item) => new mongoose.Types.ObjectId(item._id));
+      const excludeIds = assignedTo
+        .filter((item) => item.isNot)
+        .map((item) => new mongoose.Types.ObjectId(item._id));
+
+      if (includeIds.length > 0 || excludeIds.length > 0) {
+        query["assignedTo.user"] = {};
+        if (includeIds.length > 0) {
+          query["assignedTo.user"].$in = includeIds;
+        }
+        if (excludeIds.length > 0) {
+          query["assignedTo.user"].$nin = excludeIds;
+        }
+      }
     }
 
     if (source) {
