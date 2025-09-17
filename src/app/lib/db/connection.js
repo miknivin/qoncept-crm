@@ -27,7 +27,7 @@ async function dbConnect() {
   // If no promise exists, create one
   if (!cached.promise) {
     const opts = {
-      maxPoolSize: 10,
+      maxPoolSize: 15,
       serverSelectionTimeoutMS: 8000, // Fail fast if server isn’t found (5s)
       connectTimeoutMS: 30000, // Max time to establish connection (10s)
     };
