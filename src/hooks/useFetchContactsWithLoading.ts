@@ -55,6 +55,8 @@ export const useFetchContactsWithLoading = (
               keyword: searchParams.get("keyword") || undefined,
               source: searchParams.get("source") || undefined,
               assignedTo: searchParams.get("assignedTo") || undefined,
+              startDate: searchParams.get("startDate") || undefined, // Added
+              endDate: searchParams.get("endDate") || undefined,
             };
             const data = await fetchContactsByStage({
               pipelineId,

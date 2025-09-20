@@ -15,7 +15,7 @@ import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { useBatchUpdateContactDragMutation } from "@/app/redux/api/contactApi";
 import { get, set, del } from "idb-keyval";
 import useAutoSave from "@/hooks/useAutoSave";
-
+import { useSearchParams } from "next/navigation";
 interface Tag {
   user: string;
   name: string;
@@ -70,7 +70,15 @@ export default function MobilePipelineBody({ pipelineId }: { pipelineId: string 
   const [selectedStage, setSelectedStage] = useState<string>(process.env.NEXT_PUBLIC_DEFAULT_STAGE|| "682da76db5aab2e983c88636");
   const [pendingUpdates, setPendingUpdates] = useState<BatchUpdate[]>([]);
   const { contactQueries, isLoading: isContactsLoading, refetch } = useFetchContactsWithLoading(pipelineId, localStages);
+  const searchParams = useSearchParams()
 
+  const hasActiveFilters = !!(
+  searchParams.get("keyword") ||
+  searchParams.get("source") ||
+  searchParams.get("assignedTo") ||
+  searchParams.get("startDate") ||
+  searchParams.get("endDate")
+);
   // Sync localStages when data changes
   useEffect(() => {
     if (data?.pipeline?.stages) {
@@ -306,7 +314,12 @@ useEffect(() => {
                   endIcon={<FilterIcons />}
                   onClick={openFilter}
                 >
-                  Filter
+                  <div className="flex justify-center items-center gap-1">
+                    {hasActiveFilters && (
+                      <span id="indicator" className="w-3 h-3 bg-emerald-500 rounded-full"></span>
+                    )}
+                    <div>Filter</div>
+                  </div>
                 </Button>
                 
               </div>
