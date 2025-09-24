@@ -14,7 +14,7 @@ export async function POST(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
-  let session: mongoose.ClientSession | null = null; // Declare session outside try-catch
+  let session: mongoose.ClientSession | null = null;
 
   try {
     Pipeline;
@@ -24,9 +24,11 @@ export async function POST(
     Contact;
     await dbConnect();
 
-    session = await mongoose.startSession(); // Initialize session
+    // Start session
+    session = await mongoose.startSession();
     session.startTransaction();
 
+    // Authenticate and authorize user
     const user = await isAuthenticatedUser(request);
     authorizeRoles(user, 'admin', 'team_member');
 
@@ -35,80 +37,86 @@ export async function POST(
 
     // Validate inputs
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      await session.abortTransaction();
-      session.endSession();
-      return NextResponse.json({ message: 'Invalid contact ID' }, { status: 400 });
+      throw new Error('Invalid contact ID');
     }
 
     if (!activity || typeof activity !== 'string') {
-      await session.abortTransaction();
-      session.endSession();
-      return NextResponse.json({ message: 'Activity type is required' }, { status: 400 });
+      throw new Error('Activity type is required');
     }
 
     let validatedMeetingScheduledDate: Date | null = null;
     if (meetingScheduledDate) {
       const parsedDate = new Date(meetingScheduledDate);
       if (isNaN(parsedDate.getTime())) {
-        await session.abortTransaction();
-        session.endSession();
-        return NextResponse.json({ message: 'Invalid meetingScheduledDate' }, { status: 400 });
+        throw new Error('Invalid meetingScheduledDate');
       }
       validatedMeetingScheduledDate = parsedDate;
+    }
+
+    // Validate note (optional, ensure it's a string if provided)
+    if (note && typeof note !== 'string') {
+      throw new Error('Note must be a string');
     }
 
     // Check if contact exists
     const contact = await Contact.findById(id).session(session);
     if (!contact) {
-      await session.abortTransaction();
-      session.endSession();
-      return NextResponse.json({ message: 'Contact not found' }, { status: 404 });
+      throw new Error('Contact not found');
     }
 
-    // Create ContactResponse and get its _id
+    // Create ContactResponse
     const contactResponse = new ContactResponse({
       contact: id,
       activity,
-      note: note || '',
+      note: note || '', // Note is optional, default to empty string if not provided
       meetingScheduledDate: validatedMeetingScheduledDate || null,
       createdAt: new Date(),
     });
+
+    // Save ContactResponse and update contact
     await contactResponse.save({ session });
     contact.contactResponses.push(contactResponse._id);
-
     await contact.save({ session });
+
+    // Commit transaction
+    await session.commitTransaction();
+
+    // Log activity asynchronously without blocking response
     setImmediate(() => {
-      contact
-        .logActivity(
-          'CONTACT_RESPONSE_ADDED',
-          new mongoose.Types.ObjectId(user._id),
-          { activity, note, contactResponseId: contactResponse._id },
-          session ?? undefined
+        contact.logActivity(
+              'CONTACT_RESPONSE_ADDED',
+              new mongoose.Types.ObjectId(user._id),
+              { activity, note, contactResponseId: contactResponse._id },
+              undefined // No session, as transaction is already committed
         )
         .catch((error) => {
           console.error('Error in logActivity:', error);
-          // Note: Cannot abort transaction here as it's already committed
+          // Non-blocking: logActivity failure does not affect response
         });
     });
-
-    await session.commitTransaction();
-    session.endSession();
 
     return NextResponse.json(
       { message: 'ContactResponse created successfully', id: contactResponse._id.toString() },
       { status: 201 }
     );
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
+  } catch (error: unknown) {
+    console.error('Error in POST /contact-response:', error);
+
     if (session) {
-      // Only attempt to abort and end session if it was created
       await session.abortTransaction();
+    }
+
+    const err = error as Error;
+    const statusCode = err.message.includes('login') || err.message.includes('Not allowed') ? 401 : 500;
+
+    return NextResponse.json(
+      { message: 'Server error', error: err.message },
+      { status: statusCode }
+    );
+  } finally {
+    if (session) {
       session.endSession();
     }
-    return NextResponse.json(
-      { message: 'Server error', error: (error as Error).message },
-      { status: error.message.includes('login') || error.message.includes('Not allowed') ? 401 : 500 }
-    );
   }
 }
 
