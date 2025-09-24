@@ -146,7 +146,7 @@ function SortableContact({ contact, data }: SortableContactProps) {
             contact.tags.slice(0, 2).map((tag, index) => (
               <span
                 key={index}
-                className="bg-blue-100 text-blue-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded-sm dark:bg-gray-700 dark:text-blue-400 border border-blue-400"
+                className="bg-blue-100 text-blue-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded-sm dark:bg-gray-700 dark:text-blue-400 border border-blue-400 break-words"
               >
                 {tag.name}
               </span>
