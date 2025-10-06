@@ -22,6 +22,7 @@ export async function POST(
     CalendarEvent;
     User;
     Contact;
+    ContactResponse;
     await dbConnect();
 
     // Start session
