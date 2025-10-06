@@ -30,11 +30,14 @@ export default function ContactByIdHeader({ contactId }: ContactByIdWrapperProps
 
   // Determine redirect path
   const defaultPipeline = process.env.NEXT_PUBLIC_DEFAULT_PIPELINE || "default-pipeline-id";
-  const redirectPath = fromPipeline === "true"
+  const redirectPathname = fromPipeline === "true"
     ? isMobile
       ? `/pipelines/mobile/${defaultPipeline}`
       : `/pipelines/${defaultPipeline}`
     : "/contacts";
+
+  const currentQuery = Object.fromEntries(searchParams);
+  const newQuery = { ...currentQuery };
 
   return (
     <div className="flex justify-between w-full px-6 flex-row-reverse">
@@ -42,7 +45,10 @@ export default function ContactByIdHeader({ contactId }: ContactByIdWrapperProps
         #{contactId.slice(-6)}
       </h3>
       <Link
-        href={redirectPath}
+         href={{
+          pathname: redirectPathname,
+          query: newQuery,
+        }}
         className="text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-gray-800 dark:hover:bg-gray-700 dark:focus:ring-gray-700 dark:border-gray-700"
         aria-label={fromPipeline === "true" ? "Go back to pipeline" : "Go back to contacts"}
       >

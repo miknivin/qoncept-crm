@@ -17,6 +17,7 @@ import RedirectIcon from "@/components/ui/flowbiteIcons/Redirect";
 import { useSelector } from "react-redux";
 import { RootState } from "@/app/redux/rootReducer";
 import ContactResponseTabs from "@/components/pipeline/ContactResponseTab";
+import { useSearchParams } from "next/navigation";
 
 interface Tag {
   user: string;
@@ -73,7 +74,7 @@ function MobileContactCard({ contact, stages, onStageChange, selectedStageFromPa
     id: `contact-${contact._id}`,
     data: { stageId: contact.stageId },
   });
-
+  const searchParams = useSearchParams();
   const [probability, setProbability] = useState(contact.probability?.toString() || "50");
   const [initialProbability, setInitialProbability] = useState(contact.probability?.toString() || "50");
   const [selectedStage, setSelectedStage] = useState(contact.stageId || "");
@@ -87,18 +88,22 @@ function MobileContactCard({ contact, stages, onStageChange, selectedStageFromPa
     transition,
     opacity: transform ? 0.8 : 1,
   };
+  const currentQuery = Object.fromEntries(searchParams);
+  const newQuery = {
+    ...currentQuery,
+    fromPipeline: true,
+  };
+  const handlePhoneClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault(); 
 
-const handlePhoneClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-  e.preventDefault(); 
 
+    if (longPress || !contact.phone) {
+      return;
+    }
 
-  if (longPress || !contact.phone) {
-    return;
-  }
-
-  const sanitizedPhone = contact.phone.replace(/[^+\d]/g, ''); 
-  window.location.href = `tel:${sanitizedPhone}`;
-};
+    const sanitizedPhone = contact.phone.replace(/[^+\d]/g, ''); 
+    window.location.href = `tel:${sanitizedPhone}`;
+  };
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let longPressTimeout:any;
   const handleTouchStart = () => {
@@ -275,7 +280,7 @@ let longPressTimeout:any;
             <Link
               href={{
                 pathname: `/contacts/${contact._id || "684fbbf3a1b0e8eda0c7cfa4"}`,
-                query: { fromPipeline: true },
+                query: newQuery,
               }}
               className="flex items-center px-3 py-1 text-sm font-medium text-gray-900 bg-transparent border border-gray-300 rounded-md hover:bg-gray-100 dark:border-gray-600 dark:text-white dark:hover:bg-gray-700"
             >

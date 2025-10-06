@@ -16,6 +16,7 @@ import Link from "next/link";
 import { useSelector } from "react-redux";
 import { RootState } from "@/app/redux/rootReducer";
 import ContactResponseTabs from "./ContactResponseTab";
+import { useSearchParams } from "next/navigation"; // Add this import
 
 interface Tag {
   user: string;
@@ -62,7 +63,7 @@ function SortableContact({ contact, data }: SortableContactProps) {
     data,
   });
 
-
+  const searchParams = useSearchParams();
   const { user } = useSelector((state: RootState) => state.user);
   const [probability, setProbability] = useState(contact.probability?.toString() || "50");
   const [updateProbability, { isLoading }] = useUpdateProbabilityMutation();
@@ -115,6 +116,12 @@ function SortableContact({ contact, data }: SortableContactProps) {
 
   // Determine if the user is an admin
   const isAdmin = user && user.role === "admin";
+
+  const currentQuery = Object.fromEntries(searchParams);
+  const newQuery = {
+    ...currentQuery,
+    fromPipeline: true,
+  };
 
   return (
     <div
@@ -198,9 +205,9 @@ function SortableContact({ contact, data }: SortableContactProps) {
 
               <Link
                 href={{
-                  pathname: `/contacts/${contact._id || "684fbbf3a1b0e8eda0c7cfa4"}`,
-                  query: { fromPipeline: true },
-                }}
+                pathname: `/contacts/${contact._id || "684fbbf3a1b0e8eda0c7cfa4"}`,
+                query: newQuery, // Use merged query parameters
+              }}
                 className="inline-flex items-center px-2 py-2 text-sm font-medium text-gray-900 bg-transparent border border-gray-900 rounded-e-lg hover:bg-gray-200 hover:text-white focus:z-10 focus:ring-2 focus:ring-gray-500 focus:bg-gray-900 focus:text-white dark:border-white dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:bg-gray-700"
               >
                 <RedirectIcon />
