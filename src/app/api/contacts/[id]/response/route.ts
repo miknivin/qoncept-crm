@@ -130,6 +130,7 @@ export async function GET(
     Pipeline
     Stage
     CalendarEvent
+    User
     await dbConnect()
     const user = await isAuthenticatedUser(request);
     authorizeRoles(user, 'admin', 'team_member');

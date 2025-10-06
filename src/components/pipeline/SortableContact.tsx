@@ -181,7 +181,7 @@ function SortableContact({ contact, data }: SortableContactProps) {
               role="button"
               onClick={handleEmailClick}
               disabled={!contact.email}
-              className={`inline-flex items-center px-2 py-2 text-sm font-medium text-gray-900 bg-transparent border-t border-b border-gray-900 hover:bg-gray-200 hover:text-white focus:z-10 focus:ring-2 focus:ring-gray-500 focus:bg-gray-900 focus:text-white dark:border-white dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:bg-gray-700 ${
+              className={`inline-flex items-center border-r px-2 py-2 text-sm font-medium text-gray-900 bg-transparent border-t border-b border-gray-900 hover:bg-gray-200 hover:text-white focus:z-10 focus:ring-2 focus:ring-gray-500 focus:bg-gray-900 focus:text-white dark:border-white dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:bg-gray-700 ${
                 !contact.email ? "opacity-50 cursor-not-allowed" : ""
               } ${isAdmin ? "" : "border-r"}`} // Add border-r if not admin
             >
@@ -190,20 +190,21 @@ function SortableContact({ contact, data }: SortableContactProps) {
             <button
               type="button"
               onClick={openNotesModal}
-              className={`inline-flex items-center px-2 py-2 text-sm border-l font-medium text-gray-900 bg-transparent border-t border-b border-gray-900 hover:bg-gray-200 hover:text-white focus:z-10 focus:ring-2 focus:ring-gray-500 focus:bg-gray-900 focus:text-white dark:border-white dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:bg-gray-700 ${
-                isAdmin ? "" : "border-r rounded-e-lg"}`} // Add border-r and rounded-e-lg if not admin
+              className="inline-flex items-center px-2 py-2 text-sm font-medium text-gray-900 bg-transparent border-t border-b  border-gray-900  hover:bg-gray-200 hover:text-white focus:z-10 focus:ring-2 focus:ring-gray-500 focus:bg-gray-900 focus:text-white dark:border-white dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:bg-gray-700"
               aria-label={`View notes and tags for ${contact.name || "contact"}`}
             >
               <NotesIcon />
             </button>
-            {isAdmin && (
+
               <Link
-                href={`/contacts/${contact._id || "684fbbf3a1b0e8eda0c7cfa4"}`}
+                href={{
+                  pathname: `/contacts/${contact._id || "684fbbf3a1b0e8eda0c7cfa4"}`,
+                  query: { fromPipeline: true },
+                }}
                 className="inline-flex items-center px-2 py-2 text-sm font-medium text-gray-900 bg-transparent border border-gray-900 rounded-e-lg hover:bg-gray-200 hover:text-white focus:z-10 focus:ring-2 focus:ring-gray-500 focus:bg-gray-900 focus:text-white dark:border-white dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:bg-gray-700"
               >
                 <RedirectIcon />
               </Link>
-            )}
           </div>
           <div className="flex justify-between flex-row-reverse items-center gap-3 w-full">
             <label

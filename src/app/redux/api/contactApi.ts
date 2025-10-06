@@ -190,7 +190,7 @@ interface CreateContactResponseResponse {
   id:string;
 }
 
-interface ContactResponseItem {
+export interface ContactResponseItem {
   _id: string;
   contact: string;
   activity:
