@@ -15,7 +15,6 @@ export async function POST(
   context: { params: Promise<{ id: string }> }
 ) {
   let session: mongoose.ClientSession | null = null;
-
   try {
     Pipeline;
     Stage;
@@ -24,27 +23,23 @@ export async function POST(
     Contact;
     ContactResponse;
     await dbConnect();
-
     // Start session
     session = await mongoose.startSession();
     session.startTransaction();
-
     // Authenticate and authorize user
     const user = await isAuthenticatedUser(request);
     authorizeRoles(user, 'admin', 'team_member');
-
     const { id } = await context.params;
     const { activity, note, meetingScheduledDate } = await request.json();
-
     // Validate inputs
     if (!mongoose.Types.ObjectId.isValid(id)) {
+      console.log(id,'id');
+      
       throw new Error('Invalid contact ID');
     }
-
     if (!activity || typeof activity !== 'string') {
       throw new Error('Activity type is required');
     }
-
     let validatedMeetingScheduledDate: Date | null = null;
     if (meetingScheduledDate) {
       const parsedDate = new Date(meetingScheduledDate);
@@ -53,18 +48,15 @@ export async function POST(
       }
       validatedMeetingScheduledDate = parsedDate;
     }
-
     // Validate note (optional, ensure it's a string if provided)
     if (note && typeof note !== 'string') {
       throw new Error('Note must be a string');
     }
-
     // Check if contact exists
     const contact = await Contact.findById(id).session(session);
     if (!contact) {
       throw new Error('Contact not found');
     }
-
     // Create ContactResponse
     const contactResponse = new ContactResponse({
       contact: id,
@@ -74,42 +66,29 @@ export async function POST(
       createdAt: new Date(),
     });
 
-    // Save ContactResponse and update contact
     await contactResponse.save({ session });
     contact.contactResponses.push(contactResponse._id);
     await contact.save({ session });
-
+    // Log activity within transaction
+    await contact.logActivity(
+      'CONTACT_RESPONSE_ADDED',
+      new mongoose.Types.ObjectId(user._id),
+      { activity, note, contactResponseId: contactResponse._id },
+      session // Include session for transaction consistency
+    );
     // Commit transaction
     await session.commitTransaction();
-
-    // Log activity asynchronously without blocking response
-    setImmediate(() => {
-        contact.logActivity(
-              'CONTACT_RESPONSE_ADDED',
-              new mongoose.Types.ObjectId(user._id),
-              { activity, note, contactResponseId: contactResponse._id },
-              undefined // No session, as transaction is already committed
-        )
-        .catch((error) => {
-          console.error('Error in logActivity:', error);
-          // Non-blocking: logActivity failure does not affect response
-        });
-    });
-
     return NextResponse.json(
       { message: 'ContactResponse created successfully', id: contactResponse._id.toString() },
       { status: 201 }
     );
   } catch (error: unknown) {
     console.error('Error in POST /contact-response:', error);
-
     if (session) {
       await session.abortTransaction();
     }
-
     const err = error as Error;
     const statusCode = err.message.includes('login') || err.message.includes('Not allowed') ? 401 : 500;
-
     return NextResponse.json(
       { message: 'Server error', error: err.message },
       { status: statusCode }

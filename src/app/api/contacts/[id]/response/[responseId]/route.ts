@@ -8,9 +8,10 @@ import Pipeline from '@/app/models/Pipeline';
 import Stage from '@/app/models/Stage';
 import CalendarEvent from '@/app/models/CalendarEvents';
 import dbConnect from '@/app/lib/db/connection';
+import User from '@/app/models/User';
 
 // Async function to simulate awaiting params
-// const getParams = async (params: { contactId: string; responseId: string }): Promise<{ contactId: string; responseId: string }> => {
+// const getParams = async (params: { id: string; responseId: string }): Promise<{ id: string; responseId: string }> => {
 //   return Promise.resolve(params); // Simulate async params retrieval
 // };
 
@@ -21,7 +22,7 @@ import dbConnect from '@/app/lib/db/connection';
 // Update an existing ContactResponse
 export async function PUT(
   request: NextRequest,
-  context: { params: Promise<{ contactId: string; responseId: string }> }
+  context: { params: Promise<{ id: string; responseId: string }> }
 ): Promise<NextResponse> {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -36,12 +37,12 @@ export async function PUT(
     authorizeRoles(user, 'admin', 'team_member');
 
     // Await params
-   const { contactId, responseId } = await context.params;
+   const { id, responseId } = await context.params;
 
     const { activity, note, meetingScheduledDate } = await request.json();
 
     // Validate inputs
-    if (!mongoose.Types.ObjectId.isValid(contactId)) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
       await session.abortTransaction();
       session.endSession();
       return NextResponse.json({ message: 'Invalid contact ID' }, { status: 400 });
@@ -72,7 +73,7 @@ export async function PUT(
     }
 
     // Check if contact exists
-    const contact = await Contact.findById(contactId).session(session);
+    const contact = await Contact.findById(id).session(session);
     if (!contact) {
       await session.abortTransaction();
       session.endSession();
@@ -82,7 +83,7 @@ export async function PUT(
     // Check if ContactResponse exists and belongs to the contact
     const contactResponse = await ContactResponse.findOne({
       _id: responseId,
-      contact: contactId,
+      contact: id,
     }).session(session);
     if (!contactResponse) {
       await session.abortTransaction();
@@ -135,6 +136,7 @@ export async function GET(
     // Authenticate user and check roles
     Pipeline
     Stage
+    User
     CalendarEvent
     await dbConnect();
     const user = await isAuthenticatedUser(request);

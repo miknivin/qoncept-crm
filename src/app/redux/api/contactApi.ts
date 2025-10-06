@@ -19,6 +19,7 @@ export interface ResponseActivity {
   user: { _id: string; name: string; email?: string };
   details: Record<string, unknown>;
   createdAt: string;
+  meetingScheduledDate?:any
 }
 export type ResponseContact = Omit<IContact, "uid" | "activities"> & {
   _id: string;
@@ -219,6 +220,7 @@ export interface ContactResponseItem {
 interface UpdateContactResponseRequest {
   contactId: string;
   responseId: string;
+  meetingScheduledDate?:any;
   activity: ContactResponseItem["activity"];
   note?: string;
 }

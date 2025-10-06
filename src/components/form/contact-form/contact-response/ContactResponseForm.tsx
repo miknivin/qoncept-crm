@@ -93,13 +93,24 @@ const ContactResponseForm: React.FC<ContactResponseFormProps> = ({ contact, onCl
     setMinDate(localFormatted);
   }, []);
   // Pre-fill form with response data in update mode
-  useEffect(() => {
-    if (isUpdate && responseData?.data) {
-      setActivity(responseData.data.activity);
-      setNote(responseData.data.note || "");
-      setDate(responseData.data.date ? new Date(responseData.data.date).toISOString().slice(0, 16) : "");
+useEffect(() => {
+  if (isUpdate && responseData?.data) {
+    console.log("responseData.data:", responseData.data); // Debugging
+    setActivity(responseData.data.activity || "HAD_CONVERSATION");
+    setNote(responseData.data.note || "");
+    if (responseData.data.meetingScheduledDate) {
+      const meetingDate = new Date(responseData.data.meetingScheduledDate);
+      if (!isNaN(meetingDate.getTime())) {
+        setDate(meetingDate.toISOString().slice(0, 16));
+      } else {
+        console.warn("Invalid meetingScheduledDate:", responseData.data.meetingScheduledDate);
+        setDate("");
+      }
+    } else {
+      setDate("");
     }
-  }, [isUpdate, responseData]);
+  }
+}, [isUpdate, responseData]);
 
   const handleActivityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newActivity = e.target.value as ActivityType;
@@ -131,6 +142,7 @@ const ContactResponseForm: React.FC<ContactResponseFormProps> = ({ contact, onCl
         await updateContactResponse({
           contactId: contact._id,
           responseId: contactResponseId,
+          meetingScheduledDate:date,
           activity,
           note,
         }).unwrap();

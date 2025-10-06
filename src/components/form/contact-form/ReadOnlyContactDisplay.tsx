@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
-
 import React, { useState, useEffect } from 'react';
 import { ResponseContact, useGetContactResponsesQuery } from '@/app/redux/api/contactApi';
 import { toast } from 'react-toastify';
@@ -11,6 +10,9 @@ import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
 import ContactResponseCard from './ContactResponseCard';
+import { Modal } from '@/components/ui/modal';
+import ContactResponseForm from './contact-response/ContactResponseForm';
+import Button from '@/components/ui/button/Button';
 
 interface ReadOnlyContactDisplayProps {
   contact: ResponseContact;
@@ -32,6 +34,10 @@ const ReadOnlyContactDisplay: React.FC<ReadOnlyContactDisplayProps> = ({ contact
     notes: '',
     businessName: '',
   });
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isUpdate, setIsUpdate] = useState(false);
+  const [contactResponseId, setContactResponseId] = useState<string | undefined>(undefined);
+
   const { data: responsesData, isLoading: isResponsesLoading, error: responsesError } = useGetContactResponsesQuery(contact._id);
 
   // Pre-populate contact data
@@ -47,12 +53,25 @@ const ReadOnlyContactDisplay: React.FC<ReadOnlyContactDisplayProps> = ({ contact
     }
   }, [contact]);
 
+  const openModal = (update: boolean = false, responseId?: string) => {
+    setIsUpdate(update);
+    setContactResponseId(responseId);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setIsUpdate(false);
+    setContactResponseId(undefined);
+  };
+
   const handleResponseUpdate = (responseId: string) => {
-    toast.info(`Update response with ID: ${responseId}`);
-    // Example: router.push(`/contacts/${contact._id}/response/${responseId}/edit`);
+    openModal(true, responseId);
+    toast.info(`Opening update form for response ID: ${responseId}`);
   };
 
   return (
+    <>
     <div className="space-y-6 sticky top-1 md:top-20">
       <div>
         <label
@@ -124,12 +143,19 @@ const ReadOnlyContactDisplay: React.FC<ReadOnlyContactDisplayProps> = ({ contact
           {contactData.notes || 'N/A'}
         </div>
       </div>
-
       {/* Contact Responses Section */}
       <div className="mt-6">
-        <h2 className="text-lg font-semibold text-start text-gray-900 dark:text-white mb-4">
-          Contact Activity History
-        </h2>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg font-semibold text-start text-gray-900 dark:text-white">
+            Contact Activity History
+          </h2>
+          <Button
+            variant="primary"
+            onClick={() => openModal(false)}
+          >
+            Add New Response
+          </Button>
+        </div>
         {isResponsesLoading ? (
           <div className="flex justify-center">
             <VeryShortSpinnerPrimary />
@@ -166,7 +192,17 @@ const ReadOnlyContactDisplay: React.FC<ReadOnlyContactDisplayProps> = ({ contact
           </p>
         )}
       </div>
+      
     </div>
+    <Modal isOpen={isModalOpen} onClose={closeModal} className="max-w-[700px] p-6 lg:p-10">
+        <ContactResponseForm
+          contact={contact}
+          onClose={closeModal}
+          isUpdate={isUpdate}
+          contactResponseId={contactResponseId}
+        />
+      </Modal>
+    </>
   );
 };
 
