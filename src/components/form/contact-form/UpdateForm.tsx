@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { ResponseContact, useUpdateContactMutation, useGetContactResponsesQuery } from '@/app/redux/api/contactApi';
-import { useRouter } from 'next/navigation';
+// import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
 import VeryShortSpinnerPrimary from '@/components/ui/loaders/veryShortSpinnerPrimary';
 import { Swiper, SwiperSlide } from 'swiper/react';
@@ -12,6 +12,7 @@ import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
 import ContactResponseCard from './ContactResponseCard';
+// import { useRouter } from 'next/router';
 
 interface UpdateContactFormProps {
   contact: ResponseContact;
@@ -26,7 +27,7 @@ interface ContactFormData {
 }
 
 const UpdateContactForm: React.FC<UpdateContactFormProps> = ({ contact }) => {
-  const router = useRouter();
+  // const router = useRouter()
   const [updateContact, { isLoading: isUpdating }] = useUpdateContactMutation();
   const { data: responsesData, isLoading: isResponsesLoading, error: responsesError } = useGetContactResponsesQuery(contact._id);
   const [formData, setFormData] = useState<ContactFormData>({
@@ -70,7 +71,6 @@ const UpdateContactForm: React.FC<UpdateContactFormProps> = ({ contact }) => {
       };
       const result = await updateContact(payload).unwrap();
       if (result.success) {
-        router.push('/contacts');
         toast.success('Contact updated successfully');
       }
     } catch (error: any) {
