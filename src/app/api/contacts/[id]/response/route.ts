@@ -74,7 +74,7 @@ export async function POST(
       'CONTACT_RESPONSE_ADDED',
       new mongoose.Types.ObjectId(user._id),
       { activity, note, contactResponseId: contactResponse._id },
-      session // Include session for transaction consistency
+      session
     );
     // Commit transaction
     await session.commitTransaction();

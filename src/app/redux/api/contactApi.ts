@@ -191,6 +191,12 @@ interface CreateContactResponseResponse {
   id:string;
 }
 
+interface UpdateContactStageResponse {
+  success: boolean;
+  message: string;
+  contact: ResponseContact;
+}
+
 export interface ContactResponseItem {
   _id: string;
   contact: string;
@@ -265,6 +271,11 @@ interface UpdateCalendarEventRequest {
   allDay?: boolean;
   extendedProps?: { calendar: string };
   contactResponse?: string;
+}
+
+interface UpdateContactStageRequest {
+  contactId: string;
+  stageId: string;
 }
 
 
@@ -353,7 +364,7 @@ export const contactApi = createApi({
       }),
       invalidatesTags: ["Contacts"],
     }),
-     updateProbability: builder.mutation<UpdateProbabilityResponse, { id: string; probability: number }>({
+    updateProbability: builder.mutation<UpdateProbabilityResponse, { id: string; probability: number }>({
       query: ({ id, probability }) => ({
         url: `/contacts/probability/${id}`,
         method: "PATCH",
@@ -375,6 +386,17 @@ export const contactApi = createApi({
         method: "GET",
       }),
       providesTags: (result, error, id) => [{ type: "Contacts", id }],
+    }),
+    updateContactStage: builder.mutation<UpdateContactStageResponse, UpdateContactStageRequest>({
+      query: ({ contactId, stageId }) => ({
+        url: `/contacts/${contactId}/stage`,
+        method: "PATCH",
+        body: { stageId },
+      }),
+      invalidatesTags: (result, error, { contactId }) => [
+        { type: "Contacts", id: contactId },
+        { type: "Contacts", id: "LIST" },
+      ],
     }),
     createContactResponse: builder.mutation<CreateContactResponseResponse, CreateContactResponseRequest>({
       query: ({ contactId, ...body }) => ({
@@ -461,6 +483,7 @@ export const {
   useUpdateProbabilityMutation,
   useUpdateContactNotesMutation,
   useGetContactNotesAndTagsQuery,
+  useUpdateContactStageMutation,
   useCreateContactResponseMutation,
   useUpdateContactResponseMutation,
   useGetContactResponsesQuery,

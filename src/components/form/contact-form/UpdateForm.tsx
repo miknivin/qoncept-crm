@@ -2,8 +2,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ResponseContact, useUpdateContactMutation, useGetContactResponsesQuery } from '@/app/redux/api/contactApi';
-// import { useRouter } from 'next/navigation';
+import { ResponseContact, useUpdateContactMutation, useGetContactResponsesQuery, useUpdateContactStageMutation } from '@/app/redux/api/contactApi';
+import { useGetStagesByPipelineIdQuery } from '@/app/redux/api/pipelineApi';
 import { toast } from 'react-toastify';
 import VeryShortSpinnerPrimary from '@/components/ui/loaders/veryShortSpinnerPrimary';
 import { Swiper, SwiperSlide } from 'swiper/react';
@@ -12,7 +12,6 @@ import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
 import ContactResponseCard from './ContactResponseCard';
-// import { useRouter } from 'next/router';
 
 interface UpdateContactFormProps {
   contact: ResponseContact;
@@ -27,8 +26,8 @@ interface ContactFormData {
 }
 
 const UpdateContactForm: React.FC<UpdateContactFormProps> = ({ contact }) => {
-  // const router = useRouter()
   const [updateContact, { isLoading: isUpdating }] = useUpdateContactMutation();
+  const [updateContactStage, { isLoading: isStageUpdating }] = useUpdateContactStageMutation();
   const { data: responsesData, isLoading: isResponsesLoading, error: responsesError } = useGetContactResponsesQuery(contact._id);
   const [formData, setFormData] = useState<ContactFormData>({
     name: '',
@@ -38,28 +37,43 @@ const UpdateContactForm: React.FC<UpdateContactFormProps> = ({ contact }) => {
     businessName: '',
   });
   const [error, setError] = useState<string | null>(null);
+  const [selectedStage, setSelectedStage] = useState<string>('');
+
+  const DEFAULT_PIPELINE_ID = process.env.NEXT_PUBLIC_DEFAULT_PIPELINE || '6858217887f5899a7e6fc6f1';
+  const { data: stagesData, isLoading: isStagesLoading, error: stagesError } = useGetStagesByPipelineIdQuery(DEFAULT_PIPELINE_ID, {
+    skip: !DEFAULT_PIPELINE_ID,
+  });
 
   // Pre-populate form with contact data
   useEffect(() => {
     if (contact) {
       setFormData({
-        name: contact.name,
-        email: contact.email,
-        phone: contact.phone,
+        name: contact.name || '',
+        email: contact.email || '',
+        phone: contact.phone || '',
         notes: contact.notes || '',
         businessName: contact.businessName || '',
       });
+      const pipelineEntry = Array.isArray(contact.pipelinesActive) && contact.pipelinesActive.length > 0
+        ? contact.pipelinesActive.find(entry => entry.pipeline_id?.toString() === DEFAULT_PIPELINE_ID)
+        : null;
+      setSelectedStage(pipelineEntry?.stage_id?.toString() || '');
     }
-  }, [contact]);
+  }, [contact, DEFAULT_PIPELINE_ID]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleStageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedStage(e.target.value);
+  };
+
   const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
+
     try {
       const payload = {
         id: contact._id,
@@ -68,17 +82,45 @@ const UpdateContactForm: React.FC<UpdateContactFormProps> = ({ contact }) => {
         phone: formData.phone,
         notes: formData.notes,
         businessName: formData.businessName,
+        tags: contact.tags || [], // Preserve existing tags
       };
-      const result = await updateContact(payload).unwrap();
-      if (result.success) {
+
+      // Update contact details first
+      const contactResult = await updateContact(payload).unwrap();
+      if (contactResult.success) {
         toast.success('Contact updated successfully');
+      }
+
+      // Check if stage has changed and update if necessary
+      const pipelineEntry = Array.isArray(contact.pipelinesActive) && contact.pipelinesActive.length > 0
+        ? contact.pipelinesActive.find(entry => entry.pipeline_id?.toString() === DEFAULT_PIPELINE_ID)
+        : null;
+      const currentStageId = pipelineEntry?.stage_id?.toString() || '';
+      const stageChanged = selectedStage && selectedStage !== currentStageId;
+
+      if (stageChanged) {
+        const stageResult = await updateContactStage({
+          contactId: contact._id,
+          stageId: selectedStage,
+        }).unwrap();
+        if (stageResult.success) {
+          toast.success('Contact stage updated successfully');
+        }
       }
     } catch (error: any) {
       console.error('Error updating contact:', error);
-      const errorMessage = error.data?.message || 'Failed to update contact';
+      const errorMessage = error.data?.message || error.data?.error || 'Failed to update contact';
       const errorDetails = error?.data?.errors?.join(', ') || '';
-      setError(errorDetails ? `${errorMessage}: ${errorDetails}` : errorMessage);
-      toast.error(errorDetails ? `${errorMessage}: ${errorDetails}` : errorMessage);
+      const finalMessage = errorMessage.includes('VersionError')
+        ? 'Failed to update contact due to concurrent modification. Please try again.'
+        : errorDetails ? `${errorMessage}: ${errorDetails}` : errorMessage;
+      setError(finalMessage);
+      toast.error(finalMessage);
+      // Revert stage selection on error
+      const pipelineEntry = Array.isArray(contact.pipelinesActive) && contact.pipelinesActive.length > 0
+        ? contact.pipelinesActive.find(entry => entry.pipeline_id?.toString() === DEFAULT_PIPELINE_ID)
+        : null;
+      setSelectedStage(pipelineEntry?.stage_id?.toString() || '');
     }
   };
 
@@ -159,6 +201,60 @@ const UpdateContactForm: React.FC<UpdateContactFormProps> = ({ contact }) => {
         </div>
         <div>
           <label
+            htmlFor="stage"
+            className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-white"
+          >
+            Stage
+          </label>
+          {isStagesLoading ? (
+            <div className="flex justify-center">
+              <VeryShortSpinnerPrimary />
+            </div>
+          ) : stagesError ? (
+            <p className="text-red-500 text-sm">
+              Failed to load stages: {(stagesError as any)?.data?.error || 'Unknown error'}
+            </p>
+          ) : stagesData?.data && stagesData.data.length > 0 ? (
+            <div className="relative">
+              <select
+                value={selectedStage}
+                onChange={handleStageChange}
+                disabled={isStageUpdating || isUpdating}
+                className="appearance-none bg-transparent border w-full border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:bg-gray-900 dark:border-gray-700 dark:text-white dark:focus:ring-brand-800"
+              >
+                <option value="" disabled>Select a stage</option>
+                {stagesData.data
+                  .map((stage) => (
+                    <option key={stage._id} value={stage._id}>
+                      {stage.name}
+                    </option>
+                  ))}
+              </select>
+              <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                <svg
+                  className="w-4 h-4 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              No stages available for this pipeline.
+            </p>
+          )}
+        </div>
+        <div>
+          <label
             htmlFor="notes"
             className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-white"
           >
@@ -176,14 +272,13 @@ const UpdateContactForm: React.FC<UpdateContactFormProps> = ({ contact }) => {
         {error && <p className="text-red-500 text-sm">{error}</p>}
         <button
           type="submit"
-          disabled={isUpdating}
+          disabled={isUpdating || isStageUpdating}
           className="w-full h-11 rounded-lg bg-brand-500 text-white font-medium text-sm hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:bg-brand-600 dark:hover:bg-brand-700 disabled:opacity-50"
         >
-          {isUpdating ? 'Updating...' : 'Submit'}
+          {isUpdating || isStageUpdating ? 'Updating...' : 'Submit'}
         </button>
       </form>
 
-      {/* Contact Responses Section */}
       <div className="mt-6">
         <h2 className="text-lg font-semibold text-start text-gray-900 dark:text-white mb-4">
           Contact Activity History
