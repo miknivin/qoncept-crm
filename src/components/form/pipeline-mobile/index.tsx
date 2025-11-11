@@ -15,7 +15,7 @@ import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { useBatchUpdateContactDragMutation } from "@/app/redux/api/contactApi";
 import { get, set, del } from "idb-keyval";
 import useAutoSave from "@/hooks/useAutoSave";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 interface Tag {
   user: string;
   name: string;
@@ -70,6 +70,7 @@ export default function MobilePipelineBody({ pipelineId }: { pipelineId: string 
   const [selectedStage, setSelectedStage] = useState<string>(process.env.NEXT_PUBLIC_DEFAULT_STAGE|| "682da76db5aab2e983c88636");
   const [pendingUpdates, setPendingUpdates] = useState<BatchUpdate[]>([]);
   const { contactQueries, isLoading: isContactsLoading, refetch } = useFetchContactsWithLoading(pipelineId, localStages);
+  const router = useRouter();
   const searchParams = useSearchParams()
 
   const hasActiveFilters = !!(
@@ -85,6 +86,26 @@ export default function MobilePipelineBody({ pipelineId }: { pipelineId: string 
       setLocalStages(data.pipeline.stages);
     }
   }, [data]);
+
+useEffect(() => {
+  const stageFromUrl = searchParams.get("stage-mobile");
+
+  if (stageFromUrl === "all") {
+    setSelectedStage("all");
+    return;
+  }
+
+  if (stageFromUrl && localStages.length > 0) {
+    const isValidStage = localStages.some((s) => s._id === stageFromUrl);
+    if (isValidStage) {
+      setSelectedStage(stageFromUrl);
+      return;
+    }
+  }
+
+  // Fallback: use env default or hardcoded fallback
+  setSelectedStage(process.env.NEXT_PUBLIC_DEFAULT_STAGE || "682da76db5aab2e983c88636");
+}, [searchParams, localStages]);
 
   // Aggregate contacts from all stages or filter by selected stage
 useEffect(() => {
@@ -254,6 +275,22 @@ useEffect(() => {
     useSensor(KeyboardSensor)
   );
 
+  const handleStageSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const newStage = e.target.value;
+  setSelectedStage(newStage);
+
+  // Sync URL immediately
+  const current = new URLSearchParams(searchParams.toString());
+  if (newStage === "all") {
+    current.delete("stage-mobile");
+  } else {
+    current.set("stage-mobile", newStage);
+  }
+
+  const newUrl = `${window.location.pathname}?${current.toString()}`;
+  router.replace(newUrl, { scroll: false });
+};
+
   return (
     <div className="min-h-screen rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
       <div className="mx-auto w-full relative">
@@ -296,7 +333,7 @@ useEffect(() => {
               <div className="flex gap-3 items-center">
                 <select
                   value={selectedStage}
-                  onChange={(e) => setSelectedStage(e.target.value)}
+                  onChange={handleStageSelectChange}
                   className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
                 >
                   <option value="all">All Stages</option>

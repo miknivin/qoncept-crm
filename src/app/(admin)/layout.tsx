@@ -21,7 +21,7 @@ const loading = useSelector((state: RootState) => state.user.loading);
   const router = useRouter();
 
   useEffect(() => {
-    console.log("isAuthenticated:", isAuthenticated, "loading:", loading);
+
     if (isAuthenticated === false && !loading) {
       router.push("/signin");
     }
