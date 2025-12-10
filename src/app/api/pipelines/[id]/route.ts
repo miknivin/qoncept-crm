@@ -110,7 +110,10 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
             // Update existing stage by stage_id
             return {
               updateOne: {
-                filter: { _id: stage.stage_id, pipeline_id: pipelineId },
+                filter: { 
+                  _id: new mongoose.Types.ObjectId(stage.stage_id), 
+                  pipeline_id: pipelineId 
+                },
                 update: { $set: stageData },
                 upsert: false, // Only update if exists
               },

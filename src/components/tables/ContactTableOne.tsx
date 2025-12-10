@@ -152,10 +152,10 @@ const ContactTableOne: React.FC = () => {
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
-      const allContactIds = data?.contacts?.map((contact) => contact._id) || [];
+      const allContactIds = data?.contacts?.map((contact) => contact._id as string) || [];
       setSelectedContacts((prev) => [...new Set([...prev, ...allContactIds])]);
     } else {
-      const currentPageIds = data?.contacts?.map((contact) => contact._id) || [];
+      const currentPageIds = data?.contacts?.map((contact) => contact._id as string) || [];
       setSelectedContacts((prev) => prev.filter((id) => !currentPageIds.includes(id)));
     }
   };

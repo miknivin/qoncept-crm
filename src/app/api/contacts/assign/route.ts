@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from "next/server";
-import mongoose from "mongoose";
+import mongoose, { Types } from "mongoose";
 import User from "@/app/models/User";
 import Contact from "@/app/models/Contact";
 import Pipeline from "@/app/models/Pipeline";
@@ -189,33 +189,40 @@ export async function POST(req: NextRequest) {
         }
 
         // Perform bulk updates
-        const bulkOps = updates.map(({ contactId, assignedTo, activity, pipelinesActive }) => {
-          const updateOp: any = {
-            updateOne: {
-              filter: { _id: contactId },
-              update: {
-                $set: { assignedTo },
-                $push: { activities: activity },
-                $inc: { __v: 1 },
-              },
+       const bulkOps = updates.map(({ contactId, assignedTo, activity, pipelinesActive }) => {
+        const updateOp: any = {
+          updateOne: {
+            filter: { _id: new Types.ObjectId(contactId) },
+            update: {
+              $set: { assignedTo },
+              $push: {
+              activities: {
+                $each: [activity as any]
+              }},
+              $inc: { __v: 1 },
             },
-          };
-          if (isAddAsNewLead && pipelinesActive) {
-            updateOp.updateOne.update.$set.pipelinesActive = pipelinesActive;
-          }
-          return updateOp;
-        });
+          },
+        };
+
+        if (isAddAsNewLead && pipelinesActive) {
+          updateOp.updateOne.update.$set.pipelinesActive = pipelinesActive;
+        }
+
+        return updateOp;
+      });
 
         await Contact.bulkWrite(bulkOps, { session });
 
         // Log activity for pipeline addition if isAddAsNewLead is true
         if (isAddAsNewLead) {
-          const pipelineActivityOps = contactIds.map((contactId) => ({
-            updateOne: {
-              filter: { _id: contactId },
-              update: {
-                $push: {
-                  activities: {
+        const pipelineActivityOps = contactIds.map((contactId) => ({
+        updateOne: {
+          filter: { _id: new Types.ObjectId(contactId) },
+          update: {
+            $push: {
+              activities: {
+                $each: [
+                  {
                     action: "PIPELINE_ADDED",
                     user: currentUser._id!,
                     details: {
@@ -223,11 +230,15 @@ export async function POST(req: NextRequest) {
                       stage_id: process.env.DEFAULT_STAGE!,
                     },
                     createdAt: new Date(),
-                  },
-                },
-              },
-            },
-          }));
+                  } as any
+                ]
+              }
+            }
+          }
+        }
+        }));
+
+
           await Contact.bulkWrite(pipelineActivityOps, { session });
         }
       });

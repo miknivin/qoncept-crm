@@ -22,7 +22,7 @@ interface FilterBody {
   stage?: string;
 }
 
-type ResponseContact = Omit<IContact, "activities" | "uid">;
+// type ResponseContact = Omit<IContact, "activities" | "uid">;
 
 export async function POST(req: NextRequest) {
   try {
@@ -304,7 +304,7 @@ export async function POST(req: NextRequest) {
     const skip = (page - 1) * limit;
 
     // Fetch contacts with pagination and total count in parallel
-    const [contacts, total] = await Promise.all([
+      const [contacts, total] = await Promise.all([
       Contact.find(searchQuery)
         .select("-activities -uid")
         .populate("assignedTo.user", "name email")
@@ -316,10 +316,10 @@ export async function POST(req: NextRequest) {
         .skip(skip)
         .limit(limit)
         .sort({ createdAt: -1 })
-        .lean() as Promise<ResponseContact[]>,
+        .lean(),
       Contact.countDocuments(searchQuery),
     ]);
-    console.log(contacts);
+
 
     // Calculate total pages
     const totalPages = Math.ceil(total / limit);

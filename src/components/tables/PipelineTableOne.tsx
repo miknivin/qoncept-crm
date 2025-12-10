@@ -62,7 +62,7 @@ const PipelineTableOne: React.FC = () => {
   };
 
   return (
-    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
+    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/5 ">
       <div className="mb-4 px-5 py-3 flex gap-3 justify-between">
         <input
           type="text"
