@@ -15,7 +15,8 @@ export const useFetchContacts = (
 ) => {
   const searchParams = useSearchParams();
   const [contactQueries, setContactQueries] = useState<{ [stageId: string]: ContactQueryState }>({});
-
+  console.log('called');
+  
   useEffect(() => {
     if (!pipelineId || !localStages.length) {
       setContactQueries({});
@@ -32,7 +33,22 @@ export const useFetchContacts = (
         }
       });
       setContactQueries(queries);
-
+      const activitiesParam = searchParams.get("activities");
+      console.log(activitiesParam,'activityparam');
+      
+      let activities: { value: string; isNot: boolean }[] | undefined = undefined;
+      if (activitiesParam) {
+        try {
+          const parsed = JSON.parse(activitiesParam);
+          console.log(parsed,'parsed');
+          
+          if (Array.isArray(parsed)) {
+            activities = parsed;
+          }
+        } catch (e) {
+          console.error("Invalid activities param:", e);
+        }
+      }
       // Fetch contacts for each stage with filters
       await Promise.all(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -44,7 +60,8 @@ export const useFetchContacts = (
               source: searchParams.get("source") || undefined,
               assignedTo: searchParams.get("assignedTo") || undefined,
               startDate:searchParams.get("startDate") || undefined,
-              endDate:searchParams.get("endDate") || undefined
+              endDate:searchParams.get("endDate") || undefined,
+              activities,
             };
             // Call fetchContactsByStage with a single object argument
             const data = await fetchContactsByStage({

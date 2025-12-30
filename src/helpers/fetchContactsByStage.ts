@@ -42,9 +42,10 @@ interface FetchContactsByStageParams {
   stageId: string;
   keyword?: string;
   source?: string;
-  startDate?: string; // Updated to string | undefined
-  endDate?: string;   // Updated to string | undefined
+  startDate?: string;
+  endDate?: string;
   assignedTo?: string;
+  activities?: { value: string; isNot: boolean }[]; // ← NEW: Activity filter
 }
 
 export async function fetchContactsByStage({
@@ -55,23 +56,36 @@ export async function fetchContactsByStage({
   startDate,
   endDate,
   assignedTo,
+  activities,
 }: FetchContactsByStageParams): Promise<GetContactsResponse> {
   try {
-    // Validate dates before including them in the request
     const params: { [key: string]: string } = {
       pipelineId,
       stageId,
     };
+
     if (keyword) params.keyword = keyword;
     if (source) params.source = source;
     if (assignedTo) params.assignedTo = assignedTo;
-    if (startDate && !isNaN(Date.parse(startDate))) params.startDate = startDate;
-    if (endDate && !isNaN(Date.parse(endDate))) params.endDate = endDate;
+
+    // Validate and add dates
+    if (startDate && !isNaN(Date.parse(startDate))) {
+      params.startDate = startDate;
+    }
+    if (endDate && !isNaN(Date.parse(endDate))) {
+      params.endDate = endDate;
+    }
+
+    // ← NEW: Add activities as JSON string if present
+    if (activities && activities.length > 0) {
+      params.activities = JSON.stringify(activities);
+    }
 
     const response = await axios.get("/api/contacts/by-stage", {
       params,
       withCredentials: true,
     });
+
     return response.data;
   } catch (error: unknown) {
     console.error("Error fetching contacts by stage:", error);

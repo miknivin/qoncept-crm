@@ -80,7 +80,7 @@ export default function PipelineBody({ pipelineId }: { pipelineId: string }) {
     [stageId: string]: Contact[];
   }>({});
   const { contactQueries } = useFetchContacts(pipelineId, localStages);
-  
+ 
   const [draggedContact, setDraggedContact] = useState<Contact | null>(null);
   const [pendingUpdates, setPendingUpdates] = useState<BatchUpdate[]>([]);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -342,7 +342,8 @@ useEffect(() => {
     searchParams.get("source") ||
     searchParams.get("assignedTo") ||
     searchParams.get("startDate") ||
-    searchParams.get("endDate")
+    searchParams.get("endDate") ||
+    searchParams.get("activities")
   );
 
   return (
