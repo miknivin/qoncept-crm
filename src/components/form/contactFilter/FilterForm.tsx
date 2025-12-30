@@ -211,13 +211,9 @@ export default function FilterForm({ isOpen, onClose }: ContactOffCanvasProps) {
           <SourceFilter value={source} onChange={setSource} disabled={isSubmitting} />
 
           <ActivityFilter
-
             selectedActivities={selectedActivities}
-
             onSelectedActivitiesChange={setSelectedActivities}
-
             disabled={isSubmitting}
-
           />
 
           {user?.role === "admin" && (

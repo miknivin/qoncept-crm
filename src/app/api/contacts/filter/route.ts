@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import dbConnect from "@/app/lib/db/connection";
 import { NextRequest, NextResponse } from "next/server";
 import Contact, { IContact } from "@/app/models/Contact";
@@ -21,8 +22,6 @@ interface FilterBody {
   };
   stage?: string;
 }
-
-// type ResponseContact = Omit<IContact, "activities" | "uid">;
 
 export async function POST(req: NextRequest) {
   try {
@@ -53,8 +52,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
-     await dbConnect();
-    
+    await dbConnect();
+
     // Parse query parameters
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get("page") || "1");
@@ -86,7 +85,6 @@ export async function POST(req: NextRequest) {
     // Restrict team_member to their own contacts
     if (!isAdmin) {
       searchQuery["assignedTo.user"] = user._id;
-      // Team members cannot use assignedTo filter
       if (filter.assignedTo && filter.assignedTo.length > 0) {
         return NextResponse.json(
           { error: "Team members can only view their own assigned contacts" },
@@ -94,7 +92,6 @@ export async function POST(req: NextRequest) {
         );
       }
     } else if (filter.assignedTo && filter.assignedTo.length > 0) {
-      // For admin, process assignedTo as an array with isNot logic
       const includeUsers = filter.assignedTo
         .filter((a) => !a.isNot && mongoose.Types.ObjectId.isValid(a.userId))
         .map((a) => new mongoose.Types.ObjectId(a.userId));
@@ -113,9 +110,9 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Search by keyword using $or with $regex for name, email, phone, notes
+    // Keyword search
     if (keyword) {
-      const regex = { $regex: keyword, $options: "i" }; // Case-insensitive search
+      const regex = { $regex: keyword, $options: "i" };
       searchQuery.$or = [
         { name: regex },
         { email: regex },
@@ -124,22 +121,22 @@ export async function POST(req: NextRequest) {
       ];
     }
 
-    // Filter by pipelineNames
+    // Pipeline names
     if (filter.pipelineNames?.length) {
       searchQuery["pipelinesActive.pipelineName"] = { $in: filter.pipelineNames };
     }
 
-    // Filter by tags
+    // Tags
     if (filter.tags?.length) {
       searchQuery["tags.name"] = { $in: filter.tags };
     }
 
-    // Filter by source
+    // Source
     if (filter.source) {
       searchQuery.source = filter.source;
     }
 
-    // Filter by activities
+    // === ACTIVITIES FILTERING (including NO_ACTIVITY_RECORDED) ===
     if (filter.activities && filter.activities.length > 0) {
       const validActivities = [
         'HAD_CONVERSATION',
@@ -157,9 +154,9 @@ export async function POST(req: NextRequest) {
         'FULL_PAYMENT_DONE',
         'PAYMENT_DONE_MONTHLY',
         'OTHER',
+        'NO_ACTIVITY_RECORDED', // ← Added here
       ];
 
-      // Validate activity values
       const invalidActivities = filter.activities.filter(
         (a) => !validActivities.includes(a.value)
       );
@@ -170,141 +167,145 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // Separate include and exclude activities
-      const includeActivities = filter.activities
-        .filter((a) => !a.isNot)
-        .map((a) => a.value);
-      const excludeActivities = filter.activities
-        .filter((a) => a.isNot)
-        .map((a) => a.value);
+      // Separate NO_ACTIVITY_RECORDED logic
+      const noActivityFilters = filter.activities.filter(a => a.value === 'NO_ACTIVITY_RECORDED');
+      const regularActivityFilters = filter.activities.filter(a => a.value !== 'NO_ACTIVITY_RECORDED');
 
-      // Initialize contactIds arrays
-      let includeContactIds: mongoose.Types.ObjectId[] = [];
-      let excludeContactIds: mongoose.Types.ObjectId[] = [];
+      // Handle "No activity recorded" (contacts with zero responses)
+      if (noActivityFilters.length > 0) {
+        const wantsNoActivity = noActivityFilters.some(a => !a.isNot);
+        const wantsHasActivity = noActivityFilters.some(a => a.isNot);
 
-      // Fetch contacts for include activities
-      if (includeActivities.length > 0) {
-        const contactResponses = await ContactResponse.find({ activity: { $in: includeActivities } })
-          .select("contact")
-          .lean();
-        includeContactIds = contactResponses.map((response) => response.contact);
-        if (includeContactIds.length === 0) {
-          // If no contacts match include activities, return empty results
-          searchQuery._id = { $in: [] };
-        } else {
-          searchQuery._id = { $in: includeContactIds };
+        if (wantsNoActivity && wantsHasActivity) {
+          // Contradictory: both "no activity" and "has activity" → impossible
+          return NextResponse.json(
+            { error: "Cannot combine 'No activity recorded' with 'Not No activity recorded'" },
+            { status: 400 }
+          );
+        }
+
+        if (wantsNoActivity) {
+          // Contacts with NO contactResponses
+          searchQuery.contactResponses = { $size: 0 };
+        } else if (wantsHasActivity) {
+          // Contacts with AT LEAST one response
+          searchQuery.contactResponses = { $exists: true, $ne: [], $not: { $size: 0 } };
         }
       }
 
-      // Fetch contacts for exclude activities
-      if (excludeActivities.length > 0) {
-        const contactResponses = await ContactResponse.find({ activity: { $in: excludeActivities } })
-          .select("contact")
-          .lean();
-        excludeContactIds = contactResponses.map((response) => response.contact);
-        if (excludeContactIds.length > 0) {
-          if (searchQuery._id) {
-            // Combine with existing _id filter
-            searchQuery._id = { $in: (searchQuery._id.$in || []).filter((id: mongoose.Types.ObjectId) => !excludeContactIds.includes(id)) };
+      // Handle regular activities (HAD_CONVERSATION, etc.)
+      if (regularActivityFilters.length > 0) {
+        const includeActivities = regularActivityFilters
+          .filter((a) => !a.isNot)
+          .map((a) => a.value);
+        const excludeActivities = regularActivityFilters
+          .filter((a) => a.isNot)
+          .map((a) => a.value);
+
+        let includeContactIds: mongoose.Types.ObjectId[] = [];
+        let excludeContactIds: mongoose.Types.ObjectId[] = [];
+
+        if (includeActivities.length > 0) {
+          const responses = await ContactResponse.find({ activity: { $in: includeActivities } })
+            .select("contact")
+            .lean();
+          includeContactIds = responses.map(r => r.contact as mongoose.Types.ObjectId);
+
+          if (includeContactIds.length === 0) {
+            searchQuery._id = { $in: [] }; // No matches → empty result
           } else {
-            searchQuery._id = { $nin: excludeContactIds };
+            searchQuery._id = searchQuery._id?.$in
+              ? { $in: includeContactIds.filter(id => (searchQuery._id as any).$in.includes(id)) }
+              : { $in: includeContactIds };
+          }
+        }
+
+        if (excludeActivities.length > 0) {
+          const responses = await ContactResponse.find({ activity: { $in: excludeActivities } })
+            .select("contact")
+            .lean();
+          excludeContactIds = responses.map(r => r.contact as mongoose.Types.ObjectId);
+
+          if (excludeContactIds.length > 0) {
+            if (searchQuery._id?.$in) {
+              searchQuery._id.$in = (searchQuery._id.$in as mongoose.Types.ObjectId[]).filter(
+                id => !excludeContactIds.includes(id)
+              );
+              if ((searchQuery._id.$in as any[]).length === 0) {
+                searchQuery._id = { $in: [] };
+              }
+            } else {
+              searchQuery._id = { $nin: excludeContactIds };
+            }
           }
         }
       }
     }
 
-    // Filter by createdAt date range
+    // Date filters (createdAt, updatedAt)
     if (filter.createdAt) {
       searchQuery.createdAt = {};
       if (filter.createdAt.startDate) {
         try {
-          // Set start of the day
           const startDate = new Date(filter.createdAt.startDate);
-          startDate.setHours(0, 0, 0, 0); // Ensure start of day
+          startDate.setHours(0, 0, 0, 0);
           searchQuery.createdAt.$gte = startDate;
         } catch (error) {
           console.log(error);
-          return NextResponse.json(
-            { error: "Invalid startDate format" },
-            { status: 400 }
-          );
+          
+          return NextResponse.json({ error: "Invalid startDate format" }, { status: 400 });
         }
       }
-
       if (filter.createdAt.endDate) {
         try {
-          // Set end of the day
           const endDate = new Date(filter.createdAt.endDate);
-          endDate.setHours(23, 59, 59, 999); // Ensure end of day
+          endDate.setHours(23, 59, 59, 999);
           searchQuery.createdAt.$lte = endDate;
         } catch (error) {
           console.log(error);
-          return NextResponse.json(
-            { error: "Invalid endDate format" },
-            { status: 400 }
-          );
+          return NextResponse.json({ error: "Invalid endDate format" }, { status: 400 });
         }
       }
-      // Remove createdAt filter if no valid dates provided
-      if (Object.keys(searchQuery.createdAt).length === 0) {
-        delete searchQuery.createdAt;
-      }
+      if (Object.keys(searchQuery.createdAt).length === 0) delete searchQuery.createdAt;
     }
 
     if (filter.updatedAt) {
       searchQuery.updatedAt = {};
       if (filter.updatedAt.startDate) {
         try {
-          // Set start of the day
           const startDate = new Date(filter.updatedAt.startDate);
-          startDate.setHours(0, 0, 0, 0); // Ensure start of day
+          startDate.setHours(0, 0, 0, 0);
           searchQuery.updatedAt.$gte = startDate;
         } catch (error) {
           console.log(error);
-          return NextResponse.json(
-            { error: "Invalid updatedAt startDate format" },
-            { status: 400 }
-          );
+          return NextResponse.json({ error: "Invalid updatedAt startDate format" }, { status: 400 });
         }
       }
-
       if (filter.updatedAt.endDate) {
         try {
-          // Set end of the day
           const endDate = new Date(filter.updatedAt.endDate);
-          endDate.setHours(23, 59, 59, 999); // Ensure end of day
+          endDate.setHours(23, 59, 59, 999);
           searchQuery.updatedAt.$lte = endDate;
         } catch (error) {
           console.log(error);
-          return NextResponse.json(
-            { error: "Invalid updatedAt endDate format" },
-            { status: 400 }
-          );
+          return NextResponse.json({ error: "Invalid updatedAt endDate format" }, { status: 400 });
         }
       }
-      // Remove updatedAt filter if no valid dates provided
-      if (Object.keys(searchQuery.updatedAt).length === 0) {
-        delete searchQuery.updatedAt;
-      }
+      if (Object.keys(searchQuery.updatedAt).length === 0) delete searchQuery.updatedAt;
     }
 
-    // Filter by stage
+    // Stage filter
     if (filter.stage) {
       if (mongoose.Types.ObjectId.isValid(filter.stage)) {
         searchQuery["pipelinesActive.stage_id"] = new mongoose.Types.ObjectId(filter.stage);
       } else {
-        return NextResponse.json(
-          { error: "Invalid stage ID" },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: "Invalid stage ID" }, { status: 400 });
       }
     }
 
-    // Calculate skip for pagination
     const skip = (page - 1) * limit;
 
-    // Fetch contacts with pagination and total count in parallel
-      const [contacts, total] = await Promise.all([
+    const [contacts, total] = await Promise.all([
       Contact.find(searchQuery)
         .select("-activities -uid")
         .populate("assignedTo.user", "name email")
@@ -320,8 +321,6 @@ export async function POST(req: NextRequest) {
       Contact.countDocuments(searchQuery),
     ]);
 
-
-    // Calculate total pages
     const totalPages = Math.ceil(total / limit);
 
     return NextResponse.json(

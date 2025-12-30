@@ -17,6 +17,7 @@ const activityOptions = [
   { value: "FULL_PAYMENT_DONE", label: "Full Payment Done" },
   { value: "PAYMENT_DONE_MONTHLY", label: "Payment Done Monthly" },
   { value: "OTHER", label: "Other" },
+  { value: "NO_ACTIVITY_RECORDED", label: "No activity recorded" },
 ];
 
 interface Activity {

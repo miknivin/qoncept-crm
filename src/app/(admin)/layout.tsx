@@ -16,10 +16,11 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const { isExpanded, isHovered, isMobileOpen } = useSidebar();
-const isAuthenticated = useSelector((state: RootState) => state.user.isAuthenticated);
-const loading = useSelector((state: RootState) => state.user.loading);
+  const isAuthenticated = useSelector((state: RootState) => state.user.isAuthenticated);
+  const loading = useSelector((state: RootState) => state.user.loading);
   const router = useRouter();
-
+  
+  
   useEffect(() => {
 
     if (isAuthenticated === false && !loading) {
