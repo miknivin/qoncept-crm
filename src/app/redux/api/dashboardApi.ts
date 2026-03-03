@@ -12,6 +12,8 @@ interface DashboardResponse {
   success: boolean;
   totalContacts: number;
   totalClosedContacts: number;
+  currentMonthLeaves: number;
+  totalLeaves: number;
   monthlyConversionRates: MonthlyConversionRate[];
 }
 

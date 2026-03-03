@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 const MONGODB_URI =
-  process.env.NODE_ENV === "development"
+  process.env.NODE_ENV !== "development"
     ? process.env.MONGODB_URI
     : process.env.MONGODBLIVE_URI;
 
@@ -35,7 +35,7 @@ async function dbConnect() {
     console.log(
       "Attempting to connect to MongoDB with URI:",
       MONGODB_URI.replace(/:([^:@]+)@/, ":****@")
-    ); // Mask password
+    );
 
     cached.promise = mongoose
       .connect(MONGODB_URI, opts)

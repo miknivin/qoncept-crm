@@ -33,8 +33,12 @@ interface Contact {
   probability?: number;
 }
 
+// Updated response interface to match the new backend response
 export interface GetContactsResponse {
   contacts: Contact[];
+  total: number;          // ← NEW: total matching documents
+  page: number;           // ← NEW
+  limit: number;          // ← NEW
 }
 
 interface FetchContactsByStageParams {
@@ -45,9 +49,17 @@ interface FetchContactsByStageParams {
   startDate?: string;
   endDate?: string;
   assignedTo?: string;
-  activities?: { value: string; isNot: boolean }[]; // ← NEW: Activity filter
+  activities?: { value: string; isNot: boolean }[];
+  page?: number;          // ← NEW: optional pagination
+  limit?: number;         // ← NEW: optional pagination (default 10 on backend)
 }
 
+/**
+ * Fetches paginated contacts for a specific pipeline stage with filters
+ * 
+ * @param params - Query parameters including pagination
+ * @returns Promise with contacts array + pagination metadata
+ */
 export async function fetchContactsByStage({
   pipelineId,
   stageId,
@@ -57,18 +69,23 @@ export async function fetchContactsByStage({
   endDate,
   assignedTo,
   activities,
+  page = 1,               // default to page 1
+  limit = 10,             // default to match backend
 }: FetchContactsByStageParams): Promise<GetContactsResponse> {
   try {
-    const params: { [key: string]: string } = {
+    const params: Record<string, string> = {
       pipelineId,
       stageId,
+      page: page.toString(),
+      limit: limit.toString(),
     };
 
+    // Add optional filters only if they exist
     if (keyword) params.keyword = keyword;
     if (source) params.source = source;
     if (assignedTo) params.assignedTo = assignedTo;
 
-    // Validate and add dates
+    // Dates - only add if valid
     if (startDate && !isNaN(Date.parse(startDate))) {
       params.startDate = startDate;
     }
@@ -76,7 +93,7 @@ export async function fetchContactsByStage({
       params.endDate = endDate;
     }
 
-    // ← NEW: Add activities as JSON string if present
+    // Activities filter - serialize as JSON string
     if (activities && activities.length > 0) {
       params.activities = JSON.stringify(activities);
     }
@@ -86,9 +103,10 @@ export async function fetchContactsByStage({
       withCredentials: true,
     });
 
-    return response.data;
+    return response.data as GetContactsResponse;
   } catch (error: unknown) {
     console.error("Error fetching contacts by stage:", error);
-    throw new Error("Failed to fetch contacts");
+    // You can throw a custom error or return fallback - depending on your error handling strategy
+    throw new Error("Failed to fetch contacts by stage");
   }
 }

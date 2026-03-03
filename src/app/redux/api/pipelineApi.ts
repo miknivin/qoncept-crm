@@ -111,6 +111,9 @@ interface PipelineResponse {
 
 interface GetContactsByStageResponse {
   contacts: LeanContact[];
+  total: number;
+  page: number;
+  limit: number;
 }
 
 // Interface for lean pipelines response
@@ -123,6 +126,19 @@ interface GetAllPipelinesLeanResponse {
 interface GetStagesByPipelineIdResponse {
   success: boolean;
   data: MinimalStage[];
+}
+
+export interface GetContactsByStageParams {
+  pipelineId: string;
+  stageId: string;
+  keyword?: string;
+  source?: string;
+  assignedTo?: string;
+  startDate?: string;
+  endDate?: string;
+  activities?: string; // JSON stringified array
+  page?: number;
+  limit?: number;
 }
 
 interface UpdatePipelineRequest {
@@ -173,11 +189,37 @@ export const pipelineApi = createApi({
       }),
       invalidatesTags: ["Pipelines", "Stages"],
     }),
-    getContactsByStage: builder.query<GetContactsByStageResponse, { pipelineId: string; stageId: string }>({
-      query: ({ pipelineId, stageId }) => ({
-        url: `/contacts/by-stage?pipelineId=${pipelineId}&stageId=${stageId}`,
-        method: "GET",
-      }),
+   getContactsByStage: builder.query<GetContactsByStageResponse, GetContactsByStageParams>({
+      query: ({
+        pipelineId,
+        stageId,
+        keyword,
+        source,
+        assignedTo,
+        startDate,
+        endDate,
+        activities,
+        page = 1,
+        limit = 50, // adjust default as needed
+      }) => {
+        const params = new URLSearchParams({
+          pipelineId,
+          stageId,
+          page: page.toString(),
+          limit: limit.toString(),
+          ...(keyword && { keyword }),
+          ...(source && { source }),
+          ...(assignedTo && { assignedTo }),
+          ...(startDate && { startDate }),
+          ...(endDate && { endDate }),
+          ...(activities && { activities }),
+        });
+
+        return {
+          url: `/contacts/by-stage?${params.toString()}`,
+          method: "GET",
+        };
+      },
       providesTags: (result, error, { pipelineId, stageId }) => [
         { type: "Contacts", id: `${pipelineId}-${stageId}` },
       ],
@@ -204,6 +246,7 @@ export const {
   useGetPipelinesQuery,
   useGetPipelineByIdQuery,
   useGetContactsByStageQuery,
+  useLazyGetContactsByStageQuery,
   useGetAllPipelinesLeanQuery,
   useGetStagesByPipelineIdQuery,
   useUpdatePipelineMutation

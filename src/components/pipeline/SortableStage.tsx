@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 // import ShuffleIcon from "../ui/flowbiteIcons/Shuffle";
@@ -12,12 +12,15 @@ interface Stage {
 
 interface SortableStageProps {
   stage: Stage;
-  count:number;
-  isFinalThree: boolean; 
+  count: number;
+  isFinalThree: boolean;
+  children?: React.ReactNode;   // ← added so you can pass contacts list
 }
 
-function SortableStage({ stage, count=0, isFinalThree }: SortableStageProps) {
-  const { attributes, setNodeRef, transform, transition } = useSortable({ id: `stage-${stage._id}` });
+function SortableStage({ stage, count = 0, isFinalThree, children }: SortableStageProps) {
+  const { attributes, setNodeRef, transform, transition } = useSortable({
+    id: `stage-${stage._id}`,
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -34,30 +37,34 @@ function SortableStage({ stage, count=0, isFinalThree }: SortableStageProps) {
       ref={setNodeRef}
       style={style}
       {...attributes}
-      className={`mb-4 rounded border  border-gray-200 p-4 dark:border-gray-700 hover:shadow-md sticky top-0 ${
-        isFinalThree ? "bg-success-500 dark:bg-success-600" : "bg-white dark:bg-gray-800"
-      }`}
+ className="mb-4 rounded border border-gray-200 dark:border-gray-700 hover:shadow-md max-h-[85vh] overflow-y-auto min-w-64 top-0"
       role="listitem"
       aria-label={`Stage: ${stage.name}`}
     >
-      <div className="flex justify-center items-center flex-col relative">
+      <div className={`flex sticky  justify-center items-center flex-col  mb-4 rounded border  border-gray-200 p-4 dark:border-gray-700 hover:shadow-md  top-0 bg-white  ${isFinalThree ? "text-white dark:text-white bg-success-500 dark:bg-success-600"  : "text-gray-800 dark:text-white/90 bg-white dark:bg-gray-800"}`}>
         <h4 className={`font-medium text-lg ${isFinalThree ? "text-white dark:text-white" : "text-gray-800 dark:text-white/90"}`}>
           {stage.name}
         </h4>
-        <p className="font-light text-xs">{count} contacts</p>
-        {showShuffleButton && (
-          <div></div>
-          // <button
-          //   type="button"
-          //   className="p-2 rounded-full absolute top-[-5px] right-0 text-xs font-medium text-center inline-flex items-center text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
-          // >
-          //   <ShuffleIcon />
-          // </button>
-        )}
+        <p className="font-light text-xs text-white dark:text-white">{count} contacts</p>
 
+        {showShuffleButton && (
+          <div>
+            {/* <button
+              type="button"
+              className="p-2 rounded-full absolute top-[-5px] right-0 text-xs font-medium text-center inline-flex items-center text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
+            >
+              <ShuffleIcon />
+            </button> */}
+          </div>
+        )}
+      </div>
+
+      {/* Contacts go here – this is where children are rendered */}
+      <div className="mt-3">
+        {children}
       </div>
     </div>
   );
 }
 
-export default SortableStage;
+export default memo(SortableStage);

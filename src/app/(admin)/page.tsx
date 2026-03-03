@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
 import ContactsMetrics from "@/components/ecommerce/ContactsMetrics";
-import MonthlySalesChart from "@/components/ecommerce/MonthlySalesChart";
+// import MonthlySalesChart from "@/components/ecommerce/MonthlySalesChart";
 import MonthlyTarget from "@/components/ecommerce/MonthlyTarget";
 import Calendar from "@/components/calendar/Calendar";
 import ContactTableTwo from "@/components/tables/ContactTableTwo";
@@ -64,10 +64,12 @@ export default function Page() {
     <div className="grid grid-cols-12 gap-4 md:gap-6">
       <div className="col-span-12 space-y-6 xl:col-span-7">
         <ContactsMetrics
+          currentMonthLeaves={data.currentMonthLeaves}
+          totalLeaves={data.totalLeaves}
           totalContacts={data.totalContacts}
           totalClosedContacts={data.totalClosedContacts}
         />
-        <MonthlySalesChart monthlyConversionRates={data.monthlyConversionRates} />
+        {/* <MonthlySalesChart monthlyConversionRates={data.monthlyConversionRates} /> */}
       </div>
 
       <div className="col-span-12 xl:col-span-5">

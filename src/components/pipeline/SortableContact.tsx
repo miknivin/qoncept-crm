@@ -1,12 +1,12 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { memo } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import PhoneIcon from "@/components/ui/flowbiteIcons/Phone";
 import EmailIcon from "@/components/ui/flowbiteIcons/Email";
 import NotesIcon from "@/components/ui/flowbiteIcons/Notes";
-import { useUpdateProbabilityMutation } from "@/app/redux/api/contactApi";
-import VeryShortSpinnerPrimary from "../ui/loaders/veryShortSpinnerPrimary";
+// import { useUpdateProbabilityMutation } from "@/app/redux/api/contactApi";
+// import VeryShortSpinnerPrimary from "../ui/loaders/veryShortSpinnerPrimary";
 import { useModal } from "@/hooks/useModal";
 import { Modal } from "@/components/ui/modal";
 import QRCodeModalContent from "@/components/qr-code/QRCodeModalContent";
@@ -16,42 +16,15 @@ import Link from "next/link";
 import { useSelector } from "react-redux";
 import { RootState } from "@/app/redux/rootReducer";
 import ContactResponseTabs from "./ContactResponseTab";
-import { useSearchParams } from "next/navigation"; // Add this import
-
-interface Tag {
-  user: string;
-  name: string;
-}
-
-interface Contact {
-  _id: string;
-  name?: string;
-  email?: string;
-  phone?: string;
-  businessName?: string;
-  assignedTo?: AssignedTo[];
-  probability?: number;
-  notes?: string;
-  tags?: Tag[];
-}
-
-interface User {
-  _id: string;
-  name: string;
-  email: string;
-}
-
-interface AssignedTo {
-  user: User;
-  time: string; 
-}
+import { useSearchParams } from "next/navigation";
+import { Contact } from "./types";
 
 interface SortableContactProps {
   contact: Contact;
-  data: { stageId: string };
+  data: { stageId: string };   // required for drag context
 }
 
-function SortableContact({ contact, data }: SortableContactProps) {
+function SortableContactComponent({ contact, data }: SortableContactProps) {
   const {
     attributes,
     listeners,
@@ -59,20 +32,20 @@ function SortableContact({ contact, data }: SortableContactProps) {
     transform,
     transition,
   } = useSortable({
-    id: `contact-${contact._id}`,
-    data,
+    id: `contact-${contact._id}`,   // consistent ID format
+    data,                           // pass stageId through
   });
 
   const searchParams = useSearchParams();
   const { user } = useSelector((state: RootState) => state.user);
-  const [probability, setProbability] = useState(contact.probability?.toString() || "50");
-  const [updateProbability, { isLoading }] = useUpdateProbabilityMutation();
+  // const [probability, setProbability] = useState(contact.probability?.toString() || "50");
+  // const [updateProbability, { isLoading }] = useUpdateProbabilityMutation();
   const { isOpen: isQRModalOpen, openModal: openQRModal, closeModal: closeQRModal } = useModal();
   const { isOpen: isNotesModalOpen, openModal: openNotesModal, closeModal: closeNotesModal } = useModal();
 
-  useEffect(() => {
-    setProbability(contact.probability?.toString() || "50");
-  }, [contact.probability]);
+  // useEffect(() => {
+  //   setProbability(contact.probability?.toString() || "50");
+  // }, [contact.probability]);
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -98,25 +71,23 @@ function SortableContact({ contact, data }: SortableContactProps) {
     }
   };
 
-  const handleProbabilitySlide = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setProbability(e.target.value);
-  };
+  // const handleProbabilitySlide = (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   setProbability(e.target.value);
+  // };
 
-  const handleProbabilityChange = async () => {
-    try {
-      await updateProbability({
-        id: contact._id,
-        probability: parseInt(probability),
-      }).unwrap();
-    } catch (error) {
-      console.error("Failed to update probability:", error);
-      setProbability(contact.probability?.toString() || "50");
-    }
-  };
+  // const handleProbabilityChange = async () => {
+  //   try {
+  //     await updateProbability({
+  //       id: contact._id,
+  //       probability: parseInt(probability),
+  //     }).unwrap();
+  //   } catch (error) {
+  //     console.error("Failed to update probability:", error);
+  //     setProbability(contact.probability?.toString() || "50");
+  //   }
+  // };
 
-  // Determine if the user is an admin
   const isAdmin = user && user.role === "admin";
-
   const currentQuery = Object.fromEntries(searchParams);
   const newQuery = {
     ...currentQuery,
@@ -143,12 +114,12 @@ function SortableContact({ contact, data }: SortableContactProps) {
           <a href={`tel:${contact.phone}`} className="text-xs underline text-gray-500 line-clamp-2 dark:text-gray-400">
             {contact.phone || "Nil"}
           </a>
-          {user&&user.role==="admin"&&(
+          {user && user.role === "admin" && (
             <p className="text-xs text-blue-500 dark:text-blue-400">
               {contact?.assignedTo?.map((assigned) => assigned.user.name).join(", ") || "None"}
             </p>
           )}
-          
+
           {contact?.tags && contact.tags.length > 0 && (
             contact.tags.slice(0, 2).map((tag, index) => (
               <span
@@ -160,6 +131,7 @@ function SortableContact({ contact, data }: SortableContactProps) {
             ))
           )}
         </div>
+
         <div className="flex flex-col justify-start items-start w-full">
           <div
             className="inline-flex rounded-md shadow-xs my-2"
@@ -190,29 +162,29 @@ function SortableContact({ contact, data }: SortableContactProps) {
               disabled={!contact.email}
               className={`inline-flex items-center border-r px-2 py-2 text-sm font-medium text-gray-900 bg-transparent border-t border-b border-gray-900 hover:bg-gray-200 hover:text-white focus:z-10 focus:ring-2 focus:ring-gray-500 focus:bg-gray-900 focus:text-white dark:border-white dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:bg-gray-700 ${
                 !contact.email ? "opacity-50 cursor-not-allowed" : ""
-              } ${isAdmin ? "" : "border-r"}`} // Add border-r if not admin
+              } ${isAdmin ? "" : "border-r"}`}
             >
               <EmailIcon />
             </button>
             <button
               type="button"
               onClick={openNotesModal}
-              className="inline-flex items-center px-2 py-2 text-sm font-medium text-gray-900 bg-transparent border-t border-b  border-gray-900  hover:bg-gray-200 hover:text-white focus:z-10 focus:ring-2 focus:ring-gray-500 focus:bg-gray-900 focus:text-white dark:border-white dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:bg-gray-700"
+              className="inline-flex items-center px-2 py-2 text-sm font-medium text-gray-900 bg-transparent border-t border-b border-gray-900 hover:bg-gray-200 hover:text-white focus:z-10 focus:ring-2 focus:ring-gray-500 focus:bg-gray-900 focus:text-white dark:border-white dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:bg-gray-700"
               aria-label={`View notes and tags for ${contact.name || "contact"}`}
             >
               <NotesIcon />
             </button>
-
-              <Link
-                href={{
+            <Link
+              href={{
                 pathname: `/contacts/${contact._id || "684fbbf3a1b0e8eda0c7cfa4"}`,
-                query: newQuery, // Use merged query parameters
+                query: newQuery,
               }}
-                className="inline-flex items-center px-2 py-2 text-sm font-medium text-gray-900 bg-transparent border border-gray-900 rounded-e-lg hover:bg-gray-200 hover:text-white focus:z-10 focus:ring-2 focus:ring-gray-500 focus:bg-gray-900 focus:text-white dark:border-white dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:bg-gray-700"
-              >
-                <RedirectIcon />
-              </Link>
+              className="inline-flex items-center px-2 py-2 text-sm font-medium text-gray-900 bg-transparent border border-gray-900 rounded-e-lg hover:bg-gray-200 hover:text-white focus:z-10 focus:ring-2 focus:ring-gray-500 focus:bg-gray-900 focus:text-white dark:border-white dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:bg-gray-700"
+            >
+              <RedirectIcon />
+            </Link>
           </div>
+{/* 
           <div className="flex justify-between flex-row-reverse items-center gap-3 w-full">
             <label
               htmlFor={`probability-range-${contact._id}`}
@@ -232,9 +204,10 @@ function SortableContact({ contact, data }: SortableContactProps) {
               disabled={isLoading}
               className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
             />
-          </div>
+          </div> */}
         </div>
       </div>
+
       <Modal isOpen={isQRModalOpen} onClose={closeQRModal} className="max-w-[400px] p-6">
         <QRCodeModalContent contact={contact} onClose={closeQRModal} />
       </Modal>
@@ -245,4 +218,8 @@ function SortableContact({ contact, data }: SortableContactProps) {
   );
 }
 
-export default SortableContact;
+const areEqual = (prev: SortableContactProps, next: SortableContactProps) => {
+  return prev.contact === next.contact && prev.data.stageId === next.data.stageId;
+};
+
+export default memo(SortableContactComponent, areEqual);

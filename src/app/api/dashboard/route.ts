@@ -1,8 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from 'next/server';
 import { authorizeRoles, isAuthenticatedUser } from '../middlewares/auth';
 import Contact from '@/app/models/Contact';
+import LeaveRequest from '@/app/models/Leave'; // ← Note: your import was 'Leave' but model is LeaveRequest
 import dbConnect from '@/app/lib/db/connection';
-
+import { startOfMonth, endOfMonth } from 'date-fns';
 
 interface MonthlyConversionRate {
   year: number;
@@ -17,168 +19,170 @@ interface DashboardResponse {
   totalContacts: number;
   totalClosedContacts: number;
   monthlyConversionRates: MonthlyConversionRate[];
+  totalLeaves: number;
+  currentMonthLeaves: number;
 }
 
 export async function GET(req: NextRequest) {
   try {
-    // Authenticate user
-
     const user = await isAuthenticatedUser(req);
     if (!user) {
-      return NextResponse.json(
-        { success: false, message: 'Need to login' },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, message: 'Need to login' }, { status: 401 });
     }
 
-    // Authorize admin or team_member role
     try {
       authorizeRoles(user, 'admin', 'team_member');
-    } catch (error) {
-      console.log(error);
+    } catch {
       return NextResponse.json(
         { error: 'Only admins or team members can view dashboard data' },
-        { status: 401 }
+        { status: 403 }
       );
     }
 
-    // Connect to database
     await dbConnect();
-    
-    // Define stage IDs for closed contacts
-    const closedStageIds = [
-      '682da76db5aab2e983c8863d',
+
+const defaultStages = [
+        '682da76db5aab2e983c8863d',
       '682da76db5aab2e983c8863e',
       '682da76db5aab2e983c8863f',
-    ];
+]
 
-    // Base query based on user role
-    const baseQuery = user.role === 'team_member' ? { 'assignedTo.user': user._id } : {};
+const closedStageIds: string[] = process.env.SUCCESS_STAGES
+  ? JSON.parse(process.env.SUCCESS_STAGES)
+  : defaultStages;
 
-    // Count total contacts
-    const totalContacts = await Contact.countDocuments(baseQuery);
+    const isAdmin = user.role === 'admin';
 
-    // Count total contacts in specified stages
-    const totalClosedContacts = await Contact.countDocuments({
-      ...baseQuery,
-      'pipelinesActive.stage_id': { $in: closedStageIds },
-    });
+    // Contacts base query (team_member sees only assigned, admin sees all)
+    const contactBaseQuery = isAdmin ? {} : { 'assignedTo.user': user._id };
 
-    // Calculate month-wise conversion rates using aggregation
-    const monthlyData = await Contact.aggregate([
-      {
-        $match: baseQuery,
-      },
-      {
-        $facet: {
-          // Total contacts per month (based on createdAt)
-          totalContacts: [
-            {
-              $group: {
-                _id: {
-                  year: { $year: '$createdAt' },
-                  month: { $month: '$createdAt' },
+    // Leaves base query - different depending on role
+    const leaveBaseQuery = isAdmin
+      ? {}                                    // Admin → all employees
+      : { employeeId: user._id };             // Team member → only self
+
+    // ─── Parallel queries ───
+    const [
+      totalContacts,
+      totalClosedContacts,
+      monthlyData,
+      totalLeaves,
+      currentMonthLeaves
+    ] = await Promise.all([
+      // 1. Total contacts
+      Contact.countDocuments(contactBaseQuery),
+
+      // 2. Total closed contacts
+      Contact.countDocuments({
+        ...contactBaseQuery,
+        'pipelinesActive.stage_id': { $in: closedStageIds },
+      }),
+
+      // 3. Monthly aggregation for conversion rates (same logic as contacts)
+      Contact.aggregate([
+        { $match: contactBaseQuery },
+        {
+          $facet: {
+            totalContacts: [
+              {
+                $group: {
+                  _id: { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } },
+                  count: { $sum: 1 },
                 },
-                count: { $sum: 1 },
               },
-            },
-            {
-              $sort: { '_id.year': 1, '_id.month': 1 },
-            },
-          ],
-          // Closed contacts per month (based on updatedAt)
-          closedContacts: [
-            {
-              $match: {
-                'pipelinesActive.stage_id': { $in: closedStageIds },
+              { $sort: { '_id.year': 1, '_id.month': 1 } },
+            ],
+            closedContacts: [
+              {
+                $match: { 'pipelinesActive.stage_id': { $in: closedStageIds } },
               },
-            },
-            {
-              $group: {
-                _id: {
-                  year: { $year: '$updatedAt' },
-                  month: { $month: '$updatedAt' },
+              {
+                $group: {
+                  _id: { year: { $year: '$updatedAt' }, month: { $month: '$updatedAt' } },
+                  count: { $sum: 1 },
                 },
-                count: { $sum: 1 },
               },
-            },
-            {
-              $sort: { '_id.year': 1, '_id.month': 1 },
-            },
-          ],
+              { $sort: { '_id.year': 1, '_id.month': 1 } },
+            ],
+          },
         },
-      },
+      ]),
+
+      // 4. Total leaves (all time)
+      LeaveRequest.countDocuments(leaveBaseQuery),
+
+      // 5. Current month leaves (overlapping)
+      (async () => {
+        const now = new Date();
+        const firstDay = startOfMonth(now);
+        const lastDay = endOfMonth(now);
+
+        return LeaveRequest.countDocuments({
+          ...leaveBaseQuery,
+          startDate: { $lte: lastDay },
+          endDate: { $gte: firstDay },
+        });
+      })(),
     ]);
-   // console.log(monthlyData,'monthlydata');
-    
-    // Map month numbers to names
+
+    // ─── Process monthly conversion rates ───
     const monthNames = [
       'January', 'February', 'March', 'April', 'May', 'June',
       'July', 'August', 'September', 'October', 'November', 'December',
     ];
 
-    // Combine total and closed contacts, calculate conversion rates
     const monthlyConversionRates: MonthlyConversionRate[] = [];
-    const totalContactsByMonth = monthlyData[0].totalContacts;
-    const closedContactsByMonth = monthlyData[0].closedContacts;
+    const totalByMonth = monthlyData[0].totalContacts;
+    const closedByMonth = monthlyData[0].closedContacts;
 
-    // Iterate over total contacts to ensure all months with contacts are included
-    totalContactsByMonth.forEach((total: { _id: { year: number; month: number }; count: number }) => {
-      const closed = closedContactsByMonth.find(
-        (c: { _id: { year: number; month: number } }) =>
-          c._id.year === total._id.year && c._id.month === total._id.month
+    totalByMonth.forEach((t: any) => {
+      const closed = closedByMonth.find(
+        (c: any) => c._id.year === t._id.year && c._id.month === t._id.month
       );
-      const closedCount = closed ? closed.count : 0;
-      const conversionRate = total.count > 0 ? (closedCount / total.count).toFixed(2) : '0.00';
+      const closedCount = closed?.count ?? 0;
+      const rate = t.count > 0 ? (closedCount / t.count).toFixed(2) : '0.00';
 
       monthlyConversionRates.push({
-        year: total._id.year,
-        month: monthNames[total._id.month - 1],
-        totalContacts: total.count,
+        year: t._id.year,
+        month: monthNames[t._id.month - 1],
+        totalContacts: t.count,
         closedContacts: closedCount,
-        conversionRate,
+        conversionRate: rate,
       });
     });
 
-    // Include months with only closed contacts (if any)
-    closedContactsByMonth.forEach((closed: { _id: { year: number; month: number }; count: number }) => {
-      if (
-        !totalContactsByMonth.find(
-          (t: { _id: { year: number; month: number } }) =>
-            t._id.year === closed._id.year && t._id.month === closed._id.month
-        )
-      ) {
+    // Rare case: months with only closed
+    closedByMonth.forEach((c: any) => {
+      if (!totalByMonth.some((t: any) => t._id.year === c._id.year && t._id.month === c._id.month)) {
         monthlyConversionRates.push({
-          year: closed._id.year,
-          month: monthNames[closed._id.month - 1],
+          year: c._id.year,
+          month: monthNames[c._id.month - 1],
           totalContacts: 0,
-          closedContacts: closed.count,
+          closedContacts: c.count,
           conversionRate: '0.00',
         });
       }
     });
 
-    // Sort monthlyConversionRates by year and month
     monthlyConversionRates.sort((a, b) => {
       if (a.year !== b.year) return a.year - b.year;
       return monthNames.indexOf(a.month) - monthNames.indexOf(b.month);
     });
 
-    // Prepare response
+    // ─── Final response ───
     const response: DashboardResponse = {
       success: true,
       totalContacts,
       totalClosedContacts,
       monthlyConversionRates,
+      totalLeaves,
+      currentMonthLeaves,
     };
 
     return NextResponse.json(response, { status: 200 });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   } catch (error: any) {
-    console.error('Error fetching dashboard data:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    console.error('Dashboard error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -1,5 +1,4 @@
 "use client";
-
 import { useSidebar } from "@/context/SidebarContext";
 import AppHeader from "@/layout/AppHeader";
 import AppSidebar from "@/layout/AppSidebar";
@@ -19,10 +18,8 @@ export default function AdminLayout({
   const isAuthenticated = useSelector((state: RootState) => state.user.isAuthenticated);
   const loading = useSelector((state: RootState) => state.user.loading);
   const router = useRouter();
-  
-  
-  useEffect(() => {
 
+  useEffect(() => {
     if (isAuthenticated === false && !loading) {
       router.push("/signin");
     }
@@ -36,25 +33,45 @@ export default function AdminLayout({
     return null;
   }
 
+  // Margin-left logic (same as before)
   const mainContentMargin = isMobileOpen
     ? "ml-0"
     : isExpanded || isHovered
-    ? "lg:ml-[250px]"
-    : "lg:ml-[90px]";
+    ? "lg:ml-[230px]"
+    : "lg:ml-[70px]";
+
+  // Dynamic max-width logic based on sidebar state
+  // On mobile → full width
+  // On desktop → 100vw minus sidebar width
+  const contentMaxWidth = isMobileOpen
+    ? "max-w-full"
+    : (isExpanded || isHovered)
+    ? "max-w-[calc(100vw-245px)]"
+    : "max-w-[calc(100vw-85px)]";
 
   return (
     <div className="min-h-screen xl:flex">
       {/* Sidebar and Backdrop */}
       <AppSidebar />
       <Backdrop />
+
       {/* Main Content Area */}
       <div
         className={`flex-1 transition-all duration-300 ease-in-out ${mainContentMargin}`}
       >
         {/* Header */}
         <AppHeader />
-        {/* Page Content */}
-        <div className="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6">{children}</div>
+
+        {/* Page Content – now with dynamic max-width */}
+        <div
+          className={`
+            mx-auto p-4 md:p-6
+            ${contentMaxWidth}
+            transition-all duration-300 ease-in-out
+          `}
+        >
+          {children}
+        </div>
       </div>
     </div>
   );
