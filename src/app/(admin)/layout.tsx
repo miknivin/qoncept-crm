@@ -33,36 +33,36 @@ export default function AdminLayout({
     return null;
   }
 
-  // Margin-left logic (same as before)
+  // ────────────────────────────────────────────────
+  // Margin logic (when sidebar pushes content)
+  // ────────────────────────────────────────────────
   const mainContentMargin = isMobileOpen
     ? "ml-0"
     : isExpanded || isHovered
     ? "lg:ml-[230px]"
     : "lg:ml-[70px]";
 
-  // Dynamic max-width logic based on sidebar state
-  // On mobile → full width
-  // On desktop → 100vw minus sidebar width
-  const contentMaxWidth = isMobileOpen
-    ? "max-w-full"
-    : (isExpanded || isHovered)
-    ? "max-w-[calc(100vw-245px)]"
-    : "max-w-[calc(100vw-85px)]";
+  // ────────────────────────────────────────────────
+  // Max-width logic – force full width on mobile & tablet
+  // ────────────────────────────────────────────────
+  const contentMaxWidth = `
+    max-w-full              // default = mobile + tablet
+    lg:${(isExpanded || isHovered) ? "max-w-[calc(100vw-245px)]" : "max-w-[calc(100vw-85px)]"}
+  `;
 
   return (
     <div className="min-h-screen xl:flex">
-      {/* Sidebar and Backdrop */}
+      {/* Sidebar + Backdrop */}
       <AppSidebar />
       <Backdrop />
 
-      {/* Main Content Area */}
+      {/* Main content area */}
       <div
         className={`flex-1 transition-all duration-300 ease-in-out ${mainContentMargin}`}
       >
-        {/* Header */}
         <AppHeader />
 
-        {/* Page Content – now with dynamic max-width */}
+        {/* Page content wrapper */}
         <div
           className={`
             mx-auto p-4 md:p-6

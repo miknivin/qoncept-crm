@@ -116,6 +116,13 @@ interface GetContactsByStageResponse {
   limit: number;
 }
 
+interface GetContactsByPipelineResponse {
+  contacts: LeanContact[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
 // Interface for lean pipelines response
 interface GetAllPipelinesLeanResponse {
   success: boolean;
@@ -137,6 +144,18 @@ export interface GetContactsByStageParams {
   startDate?: string;
   endDate?: string;
   activities?: string; // JSON stringified array
+  page?: number;
+  limit?: number;
+}
+
+export interface GetContactsByPipelineParams {
+  pipelineId: string;
+  keyword?: string;
+  source?: string;
+  assignedTo?: string;
+  startDate?: string;
+  endDate?: string;
+  activities?: string;
   page?: number;
   limit?: number;
 }
@@ -224,6 +243,39 @@ export const pipelineApi = createApi({
         { type: "Contacts", id: `${pipelineId}-${stageId}` },
       ],
     }),
+    getContactsByPipeline: builder.query<GetContactsByPipelineResponse, GetContactsByPipelineParams>({
+      query: ({
+        pipelineId,
+        keyword,
+        source,
+        assignedTo,
+        startDate,
+        endDate,
+        activities,
+        page = 1,
+        limit = 50,
+      }) => {
+        const params = new URLSearchParams({
+          pipelineId,
+          page: page.toString(),
+          limit: limit.toString(),
+          ...(keyword && { keyword }),
+          ...(source && { source }),
+          ...(assignedTo && { assignedTo }),
+          ...(startDate && { startDate }),
+          ...(endDate && { endDate }),
+          ...(activities && { activities }),
+        });
+
+        return {
+          url: `/contacts/by-pipeline?${params.toString()}`,
+          method: "GET",
+        };
+      },
+      providesTags: (result, error, { pipelineId }) => [
+        { type: "Contacts", id: `${pipelineId}-all` },
+      ],
+    }),
     getAllPipelinesLean: builder.query<GetAllPipelinesLeanResponse, void>({
       query: () => ({
         url: "/pipelines/names",
@@ -247,6 +299,8 @@ export const {
   useGetPipelineByIdQuery,
   useGetContactsByStageQuery,
   useLazyGetContactsByStageQuery,
+  useGetContactsByPipelineQuery,
+  useLazyGetContactsByPipelineQuery,
   useGetAllPipelinesLeanQuery,
   useGetStagesByPipelineIdQuery,
   useUpdatePipelineMutation
