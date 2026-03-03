@@ -45,10 +45,9 @@ export default function AdminLayout({
   // ────────────────────────────────────────────────
   // Max-width logic – force full width on mobile & tablet
   // ────────────────────────────────────────────────
-  const contentMaxWidth = `
-    max-w-full              // default = mobile + tablet
-    lg:${(isExpanded || isHovered) ? "max-w-[calc(100vw-245px)]" : "max-w-[calc(100vw-85px)]"}
-  `;
+  const contentMaxWidth = isExpanded || isHovered
+  ? "max-w-full lg:max-w-[calc(100vw-245px)]"
+  : "max-w-full lg:max-w-[calc(100vw-85px)]";
 
   return (
     <div className="min-h-screen xl:flex">
@@ -58,6 +57,7 @@ export default function AdminLayout({
 
       {/* Main content area */}
       <div
+
         className={`flex-1 transition-all duration-300 ease-in-out ${mainContentMargin}`}
       >
         <AppHeader />
