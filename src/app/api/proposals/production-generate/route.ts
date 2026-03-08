@@ -210,17 +210,12 @@ export async function POST(req: NextRequest) {
     const templatePath = path.join(process.cwd(), "src", "app", "lib", "templates", "qoncept_proposal.ejs");
     const template = await readFile(templatePath, "utf-8");
     const html = ejs.render(template, { data: renderPayload });
-const isVercel = !!process.env.VERCEL;
-    // Browser launch (same reliable pattern)
- const browser = await puppeteer.launch({
+const browser = await puppeteer.launch({
   args: chromium.args,
   defaultViewport: chromium.defaultViewport,
-  executablePath: isVercel
-    ? await chromium.executablePath()
-    : undefined,
+  executablePath: await chromium.executablePath(),
   headless: true,
 });
-
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: "networkidle0" });
 
