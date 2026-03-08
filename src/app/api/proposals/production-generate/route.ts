@@ -43,23 +43,23 @@ const sanitizeFilePart = (value: string): string =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "") || "proposal";
 
-const localImageToDataUri = async (absolutePath: string): Promise<string | null> => {
-  try {
-    const buffer = await readFile(absolutePath);
-    const ext = path.extname(absolutePath).toLowerCase();
-    const mime =
-      ext === ".png"
-        ? "image/png"
-        : ext === ".jpg" || ext === ".jpeg"
-        ? "image/jpeg"
-        : ext === ".webp"
-        ? "image/webp"
-        : "application/octet-stream";
-    return `data:${mime};base64,${buffer.toString("base64")}`;
-  } catch {
-    return null;
-  }
-};
+// const localImageToDataUri = async (absolutePath: string): Promise<string | null> => {
+//   try {
+//     const buffer = await readFile(absolutePath);
+//     const ext = path.extname(absolutePath).toLowerCase();
+//     const mime =
+//       ext === ".png"
+//         ? "image/png"
+//         : ext === ".jpg" || ext === ".jpeg"
+//         ? "image/jpeg"
+//         : ext === ".webp"
+//         ? "image/webp"
+//         : "application/octet-stream";
+//     return `data:${mime};base64,${buffer.toString("base64")}`;
+//   } catch {
+//     return null;
+//   }
+// };
 
 export async function POST(req: NextRequest) {
   try {
@@ -132,9 +132,6 @@ export async function POST(req: NextRequest) {
     const version = (latestProposal?.version || 0) + 1;
     const proposalNumber = `PRP-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${String(version).padStart(3, "0")}`;
 
-    const coverBackground = await localImageToDataUri(
-      path.join(process.cwd(), "public", "proposal-front.png")
-    );
 
     const resolvedTitle = (proposalTitle || "Service Proposal").trim();
     const coverTitleWords = resolvedTitle.toUpperCase().split(/\s+/).filter(Boolean);
@@ -207,9 +204,6 @@ export async function POST(req: NextRequest) {
         contactPhone: contact.phone,
         businessName: contact.businessName || "",  // assuming businessName is a field
         proposalNumber,
-      },
-      images: {
-        coverBackground: coverBackground || undefined,
       },
     };
 
