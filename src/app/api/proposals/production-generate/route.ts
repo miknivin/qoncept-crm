@@ -212,7 +212,7 @@ export async function POST(req: NextRequest) {
     const html = ejs.render(template, { data: renderPayload });
 const browser = await puppeteer.launch({
   args: chromium.args,
-  defaultViewport: chromium.defaultViewport,
+  defaultViewport: { width: 1280, height: 800 },
   executablePath: await chromium.executablePath(),
   headless: true,
 });

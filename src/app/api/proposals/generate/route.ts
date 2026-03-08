@@ -219,9 +219,9 @@ export async function POST(req: NextRequest) {
       const executablePath = await chromium.executablePath();
       browser = await puppeteerCore.default.launch({
         args: chromium.args,
-        defaultViewport: chromium.defaultViewport,
+        defaultViewport: { width: 1280, height: 800 },
         executablePath,
-        headless: chromium.headless,
+        headless: true,
       });
     } else {
       const puppeteer = await import("puppeteer");
