@@ -13,7 +13,6 @@ import Contact from "@/app/models/Contact";
 import Service from "@/app/models/Service";
 import Proposal from "@/app/models/Proposal";
 
-export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 interface ProposalItemInput {
