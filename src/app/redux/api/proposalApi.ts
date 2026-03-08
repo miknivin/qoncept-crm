@@ -41,9 +41,22 @@ export const proposalApi = createApi({
           filename: extractFilenameFromDisposition(response.headers.get("content-disposition")),
         }),
       }),
+      
+    }),
+    generateProposalProduction: builder.mutation<GenerateProposalResponse, GenerateProposalRequest>({
+      query: (body) => ({
+        url: "/proposals/production-generate",
+        method: "POST",
+        body,
+        responseHandler: async (response) => ({
+          blob: await response.blob(),
+          filename: extractFilenameFromDisposition(response.headers.get("content-disposition")),
+        }),
+      }),
+      
     }),
   }),
 });
 
-export const { useGenerateProposalMutation } = proposalApi;
+export const { useGenerateProposalMutation, useGenerateProposalProductionMutation } = proposalApi;
 

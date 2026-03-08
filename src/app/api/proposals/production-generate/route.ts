@@ -4,6 +4,9 @@ import { readFile } from "fs/promises";
 import path from "path";
 import { Types } from "mongoose";
 import ejs from "ejs";
+import puppeteer from "puppeteer-core";
+import chromium from "@sparticuz/chromium";
+
 import dbConnect from "@/app/lib/db/connection";
 import { authorizeRoles, isAuthenticatedUser } from "@/app/api/middlewares/auth";
 import Contact from "@/app/models/Contact";
@@ -26,13 +29,7 @@ interface GenerateProposalBody {
   advanceAmount?: number;
 }
 
-interface LeanService {
-  _id: Types.ObjectId;
-  name: string;
-  description?: string;
-  price: number;
-  currency?: "INR" | "USD" | "EUR" | "GBP";
-}
+
 
 const currencySymbols: Record<string, string> = {
   INR: "₹",
@@ -68,6 +65,7 @@ const localImageToDataUri = async (absolutePath: string): Promise<string | null>
 export async function POST(req: NextRequest) {
   try {
     await dbConnect();
+
     const user = await isAuthenticatedUser(req);
     authorizeRoles(user, "admin", "team_member");
 
@@ -92,14 +90,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const contact = await Contact.findById(contactId).lean();
+    // Removed .lean() → now returns full Mongoose document
+    const contact = await Contact.findById(contactId);
     if (!contact) {
       return NextResponse.json({ message: "Contact not found" }, { status: 404 });
     }
 
     const serviceIds = items.map((item) => new Types.ObjectId(item.serviceId));
-    const services = (await Service.find({ _id: { $in: serviceIds } })) as LeanService[];
-    const serviceMap = new Map(services.map((service) => [service._id.toString(), service]));
+    const services = await Service.find({ _id: { $in: serviceIds } });
+
+    // No need for LeanService interface anymore — services are now Mongoose docs
+    const serviceMap = new Map<string, any>(
+      services.map((service) => [service._id.toString(), service])
+    );
 
     if (services.length !== items.length) {
       return NextResponse.json({ message: "One or more services were not found" }, { status: 404 });
@@ -129,7 +132,11 @@ export async function POST(req: NextRequest) {
     const latestProposal = await Proposal.findOne({ contactId }).sort({ version: -1 }).select("version");
     const version = (latestProposal?.version || 0) + 1;
     const proposalNumber = `PRP-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${String(version).padStart(3, "0")}`;
-    const coverBackground = await localImageToDataUri(path.join(process.cwd(), "public", "proposal-front.png"));
+
+    const coverBackground = await localImageToDataUri(
+      path.join(process.cwd(), "public", "proposal-front.png")
+    );
+
     const resolvedTitle = (proposalTitle || "Service Proposal").trim();
     const coverTitleWords = resolvedTitle.toUpperCase().split(/\s+/).filter(Boolean);
     const coverTitleLine1 = coverTitleWords[0] || "SERVICE";
@@ -199,7 +206,7 @@ export async function POST(req: NextRequest) {
         contactName: contact.name,
         contactEmail: contact.email,
         contactPhone: contact.phone,
-        businessName: (contact as any).businessName || "",
+        businessName: contact.businessName || "",  // assuming businessName is a field
         proposalNumber,
       },
       images: {
@@ -211,33 +218,25 @@ export async function POST(req: NextRequest) {
     const template = await readFile(templatePath, "utf-8");
     const html = ejs.render(template, { data: renderPayload });
 
-    const isVercelProduction = process.env.VERCEL === "1" || process.env.NODE_ENV === "production";
-    let browser: any;
-    if (isVercelProduction) {
-      const chromium = (await import("@sparticuz/chromium")).default;
-      const puppeteerCore = await import("puppeteer-core");
-      const executablePath = await chromium.executablePath();
-      browser = await puppeteerCore.default.launch({
-        args: chromium.args,
-        defaultViewport: chromium.defaultViewport,
-        executablePath,
-        headless: chromium.headless,
-      });
-    } else {
-      const puppeteer = await import("puppeteer");
-      browser = await puppeteer.default.launch({
-        headless: true,
-        args: ["--no-sandbox", "--disable-setuid-sandbox"],
-      });
-    }
+    // Browser launch (same reliable pattern)
+    const browser = await puppeteer.launch({
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
+    });
+
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: "networkidle0" });
+
     const pdfBuffer = await page.pdf({
       format: "A4",
       printBackground: true,
     });
+
     await browser.close();
 
+    // Save to DB
     await Proposal.create({
       contactId: new Types.ObjectId(contactId),
       createdBy: new Types.ObjectId(user._id),
@@ -256,7 +255,7 @@ export async function POST(req: NextRequest) {
     const fileContactName = sanitizeFilePart(contact.name || "contact");
     const fileName = `${fileContactName}-proposal-v${version}.pdf`;
 
-    return new NextResponse(pdfBuffer, {
+    return new NextResponse(Buffer.from(pdfBuffer), {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",

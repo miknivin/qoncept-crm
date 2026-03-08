@@ -1,12 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
-
 import { useMemo, useState } from "react";
 import { toast } from "react-toastify";
 import Button from "@/components/ui/button/Button";
 import ShortSpinnerDark from "@/components/ui/loaders/ShortSpinnerDark";
 import { useGetServicesQuery } from "@/app/redux/api/serviceApi";
-import { useGenerateProposalMutation } from "@/app/redux/api/proposalApi";
+import {
+  useGenerateProposalMutation,
+  useGenerateProposalProductionMutation,
+} from "@/app/redux/api/proposalApi";
 
 interface ContactPreview {
   _id: string;
@@ -24,12 +26,21 @@ interface SelectedService {
 }
 
 export default function GenerateProposalForm({ contact, onClose }: GenerateProposalModalProps) {
+  // Dynamically choose the mutation based on environment
+  const isProduction = process.env.NODE_ENV === "production";
+
+  const useGenerateMutation = isProduction
+    ? useGenerateProposalProductionMutation
+    : useGenerateProposalMutation;
+
+  const [generateProposal, { isLoading: isGenerating }] = useGenerateMutation();
+
   const { data, isLoading: isLoadingServices } = useGetServicesQuery({
     page: 1,
     limit: 100,
     search: "",
   });
-  const [generateProposal, { isLoading: isGenerating }] = useGenerateProposalMutation();
+
   const [proposalTitle, setProposalTitle] = useState("Service Proposal");
   const [preparedFor, setPreparedFor] = useState(contact.name || "");
   const [advanceAmount, setAdvanceAmount] = useState<string>("");
@@ -122,6 +133,7 @@ export default function GenerateProposalForm({ contact, onClose }: GeneratePropo
             />
           </div>
         </div>
+
         <div>
           <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
             Advance Amount (optional)
@@ -136,7 +148,9 @@ export default function GenerateProposalForm({ contact, onClose }: GeneratePropo
         </div>
 
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Services</label>
+          <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+            Services
+          </label>
           <div className="max-h-72 overflow-y-auto rounded-md border border-gray-200 dark:border-gray-700">
             {isLoadingServices ? (
               <div className="flex justify-center py-6">
@@ -161,7 +175,9 @@ export default function GenerateProposalForm({ contact, onClose }: GeneratePropo
                           className="mt-1"
                         />
                         <div>
-                          <p className="text-sm font-medium text-gray-900 dark:text-white">{service.name}</p>
+                          <p className="text-sm font-medium text-gray-900 dark:text-white">
+                            {service.name}
+                          </p>
                           <p className="text-xs text-gray-500">
                             {service.currency} {service.price} ({service.billingType})
                           </p>
