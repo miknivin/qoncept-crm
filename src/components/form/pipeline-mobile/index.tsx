@@ -518,7 +518,7 @@ export default function MobilePipelineBody({ pipelineId }: { pipelineId: string 
             )}
 
             <div className="space-y-4 px-3 pb-5">
-              {localContacts.length === 0 ? (
+              {!isBootstrapping && localContacts.length === 0 ? (
                 <p className="text-sm text-gray-500 dark:text-gray-400 text-center">No contacts available</p>
               ) : (
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>

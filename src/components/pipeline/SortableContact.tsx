@@ -18,6 +18,8 @@ import { RootState } from "@/app/redux/rootReducer";
 import ContactResponseTabs from "./ContactResponseTab";
 import { useSearchParams } from "next/navigation";
 import { Contact } from "./types";
+import InvoiceIcon from "../ui/flowbiteIcons/InvoiceIcon";
+import GenerateProposalForm from "../form/proposal-form/GenerateProposalForm";
 
 interface SortableContactProps {
   contact: Contact;
@@ -42,7 +44,7 @@ function SortableContactComponent({ contact, data }: SortableContactProps) {
   // const [updateProbability, { isLoading }] = useUpdateProbabilityMutation();
   const { isOpen: isQRModalOpen, openModal: openQRModal, closeModal: closeQRModal } = useModal();
   const { isOpen: isNotesModalOpen, openModal: openNotesModal, closeModal: closeNotesModal } = useModal();
-
+  const { isOpen: isInvoiceModalOpen, openModal: openInvoiceModal, closeModal: closeInvoiceModal } = useModal();
   // useEffect(() => {
   //   setProbability(contact.probability?.toString() || "50");
   // }, [contact.probability]);
@@ -88,6 +90,7 @@ function SortableContactComponent({ contact, data }: SortableContactProps) {
   // };
 
   const isAdmin = user && user.role === "admin";
+  const canGenerateProposal = user && ["admin", "team_member"].includes(user.role);
   const currentQuery = Object.fromEntries(searchParams);
   const newQuery = {
     ...currentQuery,
@@ -174,6 +177,16 @@ function SortableContactComponent({ contact, data }: SortableContactProps) {
             >
               <NotesIcon />
             </button>
+            {canGenerateProposal && (
+              <button
+                type="button"
+                onClick={openInvoiceModal}
+                className="inline-flex items-center border-l px-2 py-2 text-sm font-medium text-gray-900 bg-transparent border-t border-b border-gray-900 hover:bg-gray-200 hover:text-white focus:z-10 focus:ring-2 focus:ring-gray-500 focus:bg-gray-900 focus:text-white dark:border-white dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:bg-gray-700"
+                aria-label={`Generate proposal for ${contact.name || "contact"}`}
+              >
+                <InvoiceIcon className="w-4 h-4" />
+              </button>
+            )}
             <Link
               href={{
                 pathname: `/contacts/${contact._id || "684fbbf3a1b0e8eda0c7cfa4"}`,
@@ -213,6 +226,12 @@ function SortableContactComponent({ contact, data }: SortableContactProps) {
       </Modal>
       <Modal isOpen={isNotesModalOpen} onClose={closeNotesModal} className="max-w-[600px] p-6">
         <ContactResponseTabs contact={contact} onClose={closeNotesModal} />
+      </Modal>
+      <Modal isOpen={isInvoiceModalOpen} onClose={closeInvoiceModal} className="max-w-[700px] p-6 lg:p-10">
+        <GenerateProposalForm
+          contact={{ _id: contact._id, name: contact.name || "Client" }}
+          onClose={closeInvoiceModal}
+        />
       </Modal>
     </div>
   );

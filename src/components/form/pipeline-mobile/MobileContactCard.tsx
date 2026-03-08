@@ -18,6 +18,8 @@ import { useSelector } from "react-redux";
 import { RootState } from "@/app/redux/rootReducer";
 import ContactResponseTabs from "@/components/pipeline/ContactResponseTab";
 import { useSearchParams } from "next/navigation";
+import InvoiceIcon from "@/components/ui/flowbiteIcons/InvoiceIcon";
+import GenerateProposalForm from "../proposal-form/GenerateProposalForm";
 
 interface Tag {
   user: string;
@@ -80,6 +82,7 @@ function MobileContactCard({ contact, stages, onStageChange, selectedStageFromPa
   const [selectedStage, setSelectedStage] = useState(contact.stageId || "");
   const [updateProbability, { isLoading: isProbabilityLoading }] = useUpdateProbabilityMutation();
   const { isOpen: isNotesModalOpen, openModal: openNotesModal, closeModal: closeNotesModal } = useModal();
+  const { isOpen: isInvoiceModalOpen, openModal: openInvoiceModal, closeModal: closeInvoiceModal } = useModal();
   const [longPress, setLongPress] = useState(false);
 
   const { user } = useSelector((state: RootState) => state.user);
@@ -164,6 +167,7 @@ let longPressTimeout:any;
     onStageChange(contact._id, newStageId);
   };
   const isAdmin = user && user.role === "admin";
+  const canGenerateProposal = user && ["admin", "team_member"].includes(user.role);
   return (
     <div
       ref={setNodeRef}
@@ -276,7 +280,16 @@ let longPressTimeout:any;
             >
               <NotesIcon />
             </button>
-
+            {canGenerateProposal && (
+              <button
+                type="button"
+                onClick={openInvoiceModal}
+                className="flex items-center px-3 py-1 text-sm font-medium text-gray-900 bg-transparent border border-gray-300 rounded-md hover:bg-gray-100 dark:border-gray-600 dark:text-white dark:hover:bg-gray-700"
+                aria-label={`Generate proposal for ${contact.name || "contact"}`}
+              >
+                <InvoiceIcon className="w-4 h-4" />
+              </button>
+            )}
             <Link
               href={{
                 pathname: `/contacts/${contact._id || "684fbbf3a1b0e8eda0c7cfa4"}`,
@@ -312,6 +325,12 @@ let longPressTimeout:any;
       </div>
       <Modal isOpen={isNotesModalOpen} onClose={closeNotesModal} className="max-w-[400px] p-6">
         <ContactResponseTabs contact={contact} onClose={closeNotesModal} />
+      </Modal>
+      <Modal isOpen={isInvoiceModalOpen} onClose={closeInvoiceModal} className="max-w-[700px] p-6 lg:p-10">
+        <GenerateProposalForm
+          contact={{ _id: contact._id, name: contact.name || "Client" }}
+          onClose={closeInvoiceModal}
+        />
       </Modal>
     </div>
   );

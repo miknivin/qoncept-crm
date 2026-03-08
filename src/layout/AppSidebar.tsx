@@ -18,6 +18,7 @@ import {
 import UsersIcon from "@/components/ui/flowbiteIcons/Users";
 import { useSelector } from "react-redux";
 import { RootState } from "@/app/redux/rootReducer";
+import ServicesIcon from "@/components/ui/flowbiteIcons/ServicesIcon";
 
 type NavItem = {
   name: string;
@@ -42,6 +43,7 @@ const getNavItems = (isMobile: boolean): NavItem[] => [
     name: "Contacts",
     path: "/contacts",
   },
+
   {
     name: "Leave",
     icon: <ListIcon />,
@@ -56,6 +58,11 @@ const getNavItems = (isMobile: boolean): NavItem[] => [
     icon: <UsersIcon />,
     name: "Users",
     path: "/users",
+  },
+    {
+    name: "Services",
+    icon: <ServicesIcon />,
+    path: "/services",
   },
 ];
 

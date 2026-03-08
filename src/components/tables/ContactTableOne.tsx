@@ -19,6 +19,8 @@ import Link from "next/link";
 import AssignUserIcon from "../ui/flowbiteIcons/Assign";
 import { RootState } from '@/app/redux/rootReducer';
 import { useSelector } from "react-redux";
+import GenerateProposalForm from "../form/proposal-form/GenerateProposalForm";
+import InvoiceIcon from "../ui/flowbiteIcons/InvoiceIcon";
 
 export interface FilterParams {
   assignedTo?: { userId: string; isNot: boolean }[];
@@ -41,7 +43,8 @@ const ContactTableOne: React.FC = () => {
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
   const { isOpen, openModal, closeModal } = useModal();
   const [limit, setLimit] = useState("10");
-  const [modalType, setModalType] = useState<"addToPipeline" | "assignContacts" | null>(null);
+  const [modalType, setModalType] = useState<"addToPipeline" | "assignContacts" | "proposal" | null>(null);
+  const [selectedProposalContact, setSelectedProposalContact] = useState<{ _id: string; name: string } | null>(null);
   const searchParams = useSearchParams();
   const router = useRouter();
   const { user } = useSelector((state: RootState) => state.user);
@@ -182,6 +185,12 @@ const ContactTableOne: React.FC = () => {
     setParams((prev) => ({ ...prev, limit: parseInt(value), page: 1 }));
   };
 
+  const handleProposalOpen = (contact: ResponseContact) => {
+    setSelectedProposalContact({ _id: contact._id, name: contact.name });
+    setModalType("proposal");
+    openModal();
+  };
+
   // Clear selections after form submission
   const handleFormSubmit = () => {
     setSelectedContacts([]);
@@ -204,6 +213,8 @@ const ContactTableOne: React.FC = () => {
     data?.contacts?.every((contact) => selectedContacts.includes(contact._id));
 
   const isAdmin = user && user.role === "admin";
+  const canGenerateProposal = user && ["admin", "team_member"].includes(user.role);
+  const columnCount = (isAdmin ? 1 : 0) + 1 + 1 + 1 + (isAdmin ? 1 : 0) + 1 + 1 + (canGenerateProposal ? 1 : 0);
 
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
@@ -263,7 +274,7 @@ const ContactTableOne: React.FC = () => {
           <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400 sticky top-0 z-10">
             <tr>
               {isAdmin && (
-                <th scope="col" className="px-5 py-3 w-12">
+                <th scope="col" className="px-3 py-2 w-12">
                   <input
                     type="checkbox"
                     className={`${checkBoxClass}`}
@@ -272,28 +283,28 @@ const ContactTableOne: React.FC = () => {
                   />
                 </th>
               )}
-              <th scope="col" className="px-5 py-3">
+              <th scope="col" className="px-3 py-2">
                 Contact
               </th>
-              <th scope="col" className="px-5 py-3">
+              <th scope="col" className="px-3 py-2">
                 Phone number
               </th>
-              <th scope="col" className="px-5 py-3">
+              <th scope="col" colSpan={1} className="px-3 py-2 ">
                 Tags
               </th>
               {isAdmin && (
-                <th scope="col" className="px-5 py-3">
+                <th scope="col" className="px-3 py-2">
                   Assigned
                 </th>
               )}
-              <th scope="col" className="px-5 py-3">
+              <th scope="col" className="px-3 py-2">
                 Created at
               </th>
-              <th scope="col" className="px-5 py-3">
+              <th scope="col" className="px-3 py-2">
                 Notes
               </th>
-              {isAdmin && (
-                <th scope="col" className="px-5 py-3">
+              {canGenerateProposal && (
+                <th scope="col" className="px-3 py-2">
                   Action
                 </th>
               )}
@@ -302,7 +313,7 @@ const ContactTableOne: React.FC = () => {
           <tbody>
             {(isLoading || isFetching) && (
               <tr className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200">
-                <td colSpan={8} className="px-5 py-4 text-center">
+                <td colSpan={columnCount} className="px-5 py-4 text-center">
                   <div className="w-full flex justify-center">
                     <ShortSpinnerPrimary />
                   </div>
@@ -311,14 +322,14 @@ const ContactTableOne: React.FC = () => {
             )}
             {error && (
               <tr className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200">
-                <td colSpan={8} className="px-5 py-4 text-center text-red-500">
+                <td colSpan={columnCount} className="px-5 py-4 text-center text-red-500">
                   {getErrorMessage(error)}
                 </td>
               </tr>
             )}
             {!isLoading && !error && data?.contacts?.length === 0 && (
               <tr className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200">
-                <td colSpan={8} className="px-5 py-4 text-center">
+                <td colSpan={columnCount} className="px-5 py-4 text-center">
                   No contacts found
                 </td>
               </tr>
@@ -331,7 +342,7 @@ const ContactTableOne: React.FC = () => {
                   className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200"
                 >
                   {isAdmin && (
-                    <td className="px-5 py-4 w-12">
+                    <td className="px-3 py-2 w-12">
                       <input
                         type="checkbox"
                         className={`${checkBoxClass}`}
@@ -342,7 +353,7 @@ const ContactTableOne: React.FC = () => {
                   )}
                   <th
                     scope="row"
-                    className="px-5 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white"
+                    className="px-3 py-2 font-medium text-gray-900 whitespace-nowrap dark:text-white"
                   >
                     <div className="flex items-center gap-3">
                       <div>
@@ -355,9 +366,9 @@ const ContactTableOne: React.FC = () => {
                       </div>
                     </div>
                   </th>
-                  <td className="px-5 py-4">{contact.phone}</td>
-                  <td className="px-5 py-4">
-                    <div className="flex flex-wrap gap-1">
+                  <td className="px-3 py-2">{contact.phone}</td>
+                  <td className="px-3 py-2">
+                    <div className="flex flex-wrap gap-1 max-w-[130px] whitespace-break-spaces">
                       {contact.tags.length > 0 ? (
                         contact.tags.map((tag, index) => (
                           <Badge key={index} size="sm" color="info">
@@ -370,7 +381,7 @@ const ContactTableOne: React.FC = () => {
                     </div>
                   </td>
                   {isAdmin && (
-                    <td className="px-5 py-4">
+                    <td className="px-3 py-2">
                       <div className="max-w-36 line-clamp-3">
                         {contact.assignedTo.length > 0
                           ? contact.assignedTo
@@ -384,7 +395,7 @@ const ContactTableOne: React.FC = () => {
                       </div>
                     </td>
                   )}
-                  <td className="px-5 py-4">
+                  <td className="px-3 py-2">
                     <div className="max-w-36 line-clamp-3">
                       {new Date(contact.createdAt).toLocaleDateString('en-GB', {
                         day: '2-digit',
@@ -393,7 +404,7 @@ const ContactTableOne: React.FC = () => {
                       })}
                     </div>
                   </td>
-                  <td className="px-5 py-4">
+                  <td className="px-3 py-2">
                     <div className="max-w-36 whitespace-normal break-words line-clamp-3">
                       {contact.contactResponses && contact.contactResponses.length > 0 ? (
                         (() => {
@@ -427,15 +438,28 @@ const ContactTableOne: React.FC = () => {
                       )}
                     </div>
                   </td>
-                  {isAdmin && (
-                    <td className="px-5 py-4">
+                  {canGenerateProposal && (
+                    <td className="px-3 py-2">
                       <div className="flex flex-wrap">
-                        <Link
-                          href={`contacts/${contact._id}`}
-                          className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-2.5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800"
-                        >
-                          <EditIcon />
-                        </Link>
+                        {isAdmin && (
+                          <Link
+                            href={`contacts/${contact._id}`}
+                            className="text-white flex justify-center items-center bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-2.5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800"
+                            title="Edit Contact"
+                          >
+                            <EditIcon />
+                          </Link>
+                        )}
+                        {canGenerateProposal && (
+                          <button
+                            type="button"
+                            onClick={() => handleProposalOpen(contact)}
+                            className="text-white bg-gray-900 hover:bg-black focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-2.5 py-2.5 me-2 mb-2 dark:bg-gray-700 dark:hover:bg-gray-600 focus:outline-none dark:focus:ring-gray-700"
+                            title="Generate Proposal"
+                          >
+                            <InvoiceIcon />
+                          </button>
+                        )}
                       </div>
                     </td>
                   )}
@@ -465,6 +489,16 @@ const ContactTableOne: React.FC = () => {
         )}
         {modalType === "assignContacts" && (
           <AssignContactsForm selectedContacts={selectedContacts} onClose={handleFormSubmit} />
+        )}
+        {modalType === "proposal" && selectedProposalContact && (
+          <GenerateProposalForm
+            contact={selectedProposalContact}
+            onClose={() => {
+              setSelectedProposalContact(null);
+              setModalType(null);
+              closeModal();
+            }}
+          />
         )}
       </Modal>
     </div>
