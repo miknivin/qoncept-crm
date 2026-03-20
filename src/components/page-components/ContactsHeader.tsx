@@ -9,12 +9,17 @@ import ContactOffCanvas from "../ui/drawer/ContactOffCanvas";
 import FileIcon from "../ui/flowbiteIcons/File";
 import ContactImportStepper from "../form/contact-form/bulk-upload/ContactImportStepper";
 import { useSearchParams } from "next/navigation";
+import AiReportModalShell from "./AiReportModalShell";
+import { useSelector } from "react-redux";
+import { RootState } from "@/app/redux/rootReducer";
 
 export default function ContactsHeader() {
   const { isOpen: isAddModalOpen, openModal: openAddModal, closeModal: closeAddModal } = useModal();
   const { isOpen: isFilterOpen, openModal: openFilter, closeModal: closeFilter } = useModal();
   const { isOpen: isImportModalOpen, openModal: openImportModal, closeModal: closeImportModal } = useModal();
+  const { isOpen: isAiReportModalOpen, openModal: openAiReportModal, closeModal: closeAiReportModal } = useModal();
   const searchParams = useSearchParams();
+  const { user } = useSelector((state: RootState) => state.user);
 
   // Check for active filters, excluding empty filter object
   const filterStr = searchParams.get("filter");
@@ -29,6 +34,7 @@ export default function ContactsHeader() {
     searchParams.get("source") ||
     (filterStr && Object.keys(filter).length > 0)
   );
+  const canAccessAiReport = !!user && ["admin", "team_member"].includes(user.role);
 
   return (
     <>
@@ -44,6 +50,11 @@ export default function ContactsHeader() {
                 <div>Filter</div>
               </div>
             </Button>
+            {canAccessAiReport && (
+              <Button size="sm" variant="outline" onClick={() => openAiReportModal()}>
+                AI Report
+              </Button>
+            )}
             <Button size="sm" variant="outline" endIcon={<FileIcon />} onClick={() => openImportModal()}>
               Bulk import
             </Button>
@@ -58,6 +69,14 @@ export default function ContactsHeader() {
       </Modal>
       <Modal isOpen={isAddModalOpen} onClose={closeAddModal} className="max-w-[700px] p-6 lg:p-10">
         <AddContactForm onClose={closeAddModal} />
+      </Modal>
+      <Modal
+        isOpen={isAiReportModalOpen}
+        onClose={closeAiReportModal}
+        isFullscreen
+        className="bg-white p-6 dark:bg-gray-900 lg:p-10"
+      >
+        <AiReportModalShell onClose={closeAiReportModal} />
       </Modal>
       <ContactOffCanvas isOpen={isFilterOpen} onClose={closeFilter} />
     </>

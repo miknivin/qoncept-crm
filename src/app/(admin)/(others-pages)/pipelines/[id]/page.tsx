@@ -6,7 +6,10 @@ import mongoose from "mongoose";
 import { notFound } from "next/navigation";
 
 export const metadata: Metadata = {
-  title: "Qoncept CRM",
+  title: 
+    process.env.NODE_ENV === 'development' 
+      ? 'connect-e CRM' 
+      : 'Qoncept CRM',
   description: "View and manage your CRM pipelines",
 };
 

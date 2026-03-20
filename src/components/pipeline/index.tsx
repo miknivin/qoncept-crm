@@ -22,6 +22,10 @@ import ContactDragOverlay from "./ContactDragOverlay";
 import StageColumn from "./StageColumn";
 import { PipelineBoardProvider } from "./board/PipelineBoardProvider";
 import { usePipelineBoard } from "./usePipelineBoard";
+import { useSelector } from "react-redux";
+import { RootState } from "@/app/redux/rootReducer";
+import { Modal } from "../ui/modal";
+import AiReportModalShell from "../page-components/AiReportModalShell";
 export type { BatchUpdate, Contact, Stage } from "./types";
 
 interface PipelineBoardContentProps {
@@ -68,7 +72,8 @@ export default function PipelineBody({ pipelineId }: { pipelineId: string }) {
   const { data: pipelineData, isLoading, error } = useGetPipelineByIdQuery(pipelineId, {
     skip: !pipelineId,
   });
-
+const { user } = useSelector((state: RootState) => state.user);
+const { isOpen: isAiReportModalOpen, openModal: openAiReportModal, closeModal: closeAiReportModal } = useModal();
   const searchParams = useSearchParams();
   const { isOpen, openModal, closeModal } = useModal();
 
@@ -86,7 +91,7 @@ export default function PipelineBody({ pipelineId }: { pipelineId: string }) {
 
   const filtersKey = useMemo(() => JSON.stringify(filters), [filters]);
   const hasActiveFilters = useMemo(() => Object.values(filters).some(Boolean), [filters]);
-
+  const canAccessAiReport = !!user && ["admin", "team_member"].includes(user.role);
   if (isLoading) {
     return (
       <div className="flex justify-center py-20">
@@ -112,6 +117,11 @@ export default function PipelineBody({ pipelineId }: { pipelineId: string }) {
                 Filter
               </div>
             </Button>
+             {canAccessAiReport && (
+                          <Button size="sm" variant="outline" onClick={() => openAiReportModal()}>
+                            AI Report
+                          </Button>
+                        )}
           </div>
         </div>
 
@@ -123,6 +133,15 @@ export default function PipelineBody({ pipelineId }: { pipelineId: string }) {
           <PipelineBoardContent pipelineId={pipelineId} filters={filters} />
         </PipelineBoardProvider>
       </div>
+
+      <Modal
+              isOpen={isAiReportModalOpen}
+              onClose={closeAiReportModal}
+              isFullscreen
+              className="bg-white p-6 dark:bg-gray-900 lg:p-10"
+            >
+              <AiReportModalShell onClose={closeAiReportModal} />
+            </Modal>
 
       <PipelineOffCanvas isOpen={isOpen} onClose={closeModal} />
     </div>

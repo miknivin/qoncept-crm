@@ -111,9 +111,9 @@ function SortableContactComponent({ contact, data }: SortableContactProps) {
           <p className="text-sm font-medium text-gray-800 dark:text-white/90">
             {contact.name || "Unnamed"}
           </p>
-          <p className="text-xs text-gray-500 line-clamp-2 dark:text-gray-400">
+          {/* <p className="text-xs text-gray-500 line-clamp-2 dark:text-gray-400">
             {contact.businessName || "Nil"}
-          </p>
+          </p> */}
           <a href={`tel:${contact.phone}`} className="text-xs underline text-gray-500 line-clamp-2 dark:text-gray-400">
             {contact.phone || "Nil"}
           </a>

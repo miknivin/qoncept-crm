@@ -8,6 +8,7 @@ import { calenderApi } from "./api/calenderApi";
 import { dashboardApi } from "./api/dashboardApi";
 import { serviceApi } from "./api/serviceApi";
 import { proposalApi } from "./api/proposalApi";
+import { aiReportApi } from "./api/aiReportApi";
 
 const store = configureStore({
   reducer: rootReducer,
@@ -20,7 +21,8 @@ const store = configureStore({
       calenderApi.middleware,
       dashboardApi.middleware,
       serviceApi.middleware,
-      proposalApi.middleware
+      proposalApi.middleware,
+      aiReportApi.middleware
     ),
 });
 

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import Chip from "@/components/ui/chips/Chip";
 
-const activityOptions = [
+export const activityOptions = [
   { value: "HAD_CONVERSATION", label: "Had Conversation" },
   { value: "CALLED_NOT_PICKED", label: "Called Not Picked" },
   { value: "CALLED_INVALID", label: "Called Invalid" },

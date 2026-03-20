@@ -9,7 +9,7 @@ import {
   CalenderIcon,
   ChevronDownIcon,
   GridIcon,
-  ListIcon,
+  // ListIcon,
   PieChartIcon,
   PlugInIcon,
   TableIcon,
@@ -44,11 +44,11 @@ const getNavItems = (isMobile: boolean): NavItem[] => [
     path: "/contacts",
   },
 
-  {
-    name: "Leave",
-    icon: <ListIcon />,
-    path: "/leave-management",
-  },
+  // {
+  //   name: "Leave",
+  //   icon: <ListIcon />,
+  //   path: "/leave-management",
+  // },
   {
     name: "Pipelines",
     icon: <TableIcon />,
@@ -356,7 +356,11 @@ const AppSidebar: React.FC = () => {
               />
               <Image
                 className="hidden dark:block"
-                src="/images/logo/logo-dark.svg"
+                src={
+                  process.env.NODE_ENV === 'development'
+                    ? '/images/logo/logo-dark.png'   // PNG version in dev
+                    : '/images/logo/logo-dark.svg'   // SVG in production
+                }
                 alt="Logo"
                 width={150}
                 height={40}
