@@ -17,7 +17,7 @@ interface MonthlyTargetProps {
 }
 
 export default function MonthlyTarget({ totalClosedContacts,totalContacts }: MonthlyTargetProps) {
-  const target = 20; // Hardcoded target from UI; replace with dynamic value if available
+  const target = 300; // Hardcoded target from UI; replace with dynamic value if available
   const progress = totalClosedContacts >= 0 ? Math.min((totalClosedContacts / target) * 100, 100) : 0;
 
   const series = [progress];
@@ -85,11 +85,9 @@ export default function MonthlyTarget({ totalClosedContacts,totalContacts }: Mon
         <div className="flex justify-between">
           <div>
             <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-              Monthly Target
+              Target
             </h3>
-            <p className="mt-1 font-normal text-gray-500 text-theme-sm dark:text-gray-400">
-              Target you’ve set for each month
-            </p>
+
           </div>
           <div className="relative inline-block">
             <button onClick={toggleDropdown} className="dropdown-toggle">
