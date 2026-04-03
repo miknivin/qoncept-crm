@@ -19,6 +19,7 @@ import UsersIcon from "@/components/ui/flowbiteIcons/Users";
 import { useSelector } from "react-redux";
 import { RootState } from "@/app/redux/rootReducer";
 import ServicesIcon from "@/components/ui/flowbiteIcons/ServicesIcon";
+import { getLogoSrc } from "@/app/lib/utils/logo";
 
 type NavItem = {
   name: string;
@@ -349,18 +350,14 @@ const AppSidebar: React.FC = () => {
             <>
               <Image
                 className="dark:hidden"
-                src="/images/logo/logo.svg"
+                src={getLogoSrc("/images/logo/logo.svg")}
                 alt="Logo"
                 width={150}
                 height={40}
               />
               <Image
                 className="hidden dark:block"
-                src={
-                  process.env.NODE_ENV === 'development'
-                    ? '/images/logo/logo-dark.png'   // PNG version in dev
-                    : '/images/logo/logo-dark.svg'   // SVG in production
-                }
+                src={getLogoSrc("/images/logo/logo-dark.svg")}
                 alt="Logo"
                 width={150}
                 height={40}
@@ -370,14 +367,14 @@ const AppSidebar: React.FC = () => {
             <>
               <Image
                 className="dark:hidden"
-                src="/images/logo/logo-icon-light.svg"
+                src={getLogoSrc("/images/logo/logo-icon-light.svg")}
                 alt="Logo"
                 width={32}
                 height={32}
               />
               <Image
                 className="hidden dark:block"
-                src="/images/logo/logo-icon.svg"
+                src={getLogoSrc("/images/logo/logo-icon.svg")}
                 alt="Logo"
                 width={32}
                 height={32}

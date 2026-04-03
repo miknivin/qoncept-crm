@@ -10,6 +10,7 @@ import React, { useEffect } from "react";
 import { useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
 import { RootState } from "@/app/redux/rootReducer";
+import { getLogoSrc } from "@/app/lib/utils/logo";
 
 export default function AuthLayout({
   children,
@@ -51,7 +52,7 @@ export default function AuthLayout({
                   <Image
                     width={231}
                     height={48}
-                    src="/images/logo/auth-logo.png"
+                    src={getLogoSrc("/images/logo/auth-logo.png")}
                     alt="Logo"
                   />
                 </Link>
