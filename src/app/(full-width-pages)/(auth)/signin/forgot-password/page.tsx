@@ -1,10 +1,11 @@
 import ResetPasswordForm from "@/components/auth/ResetPasswordForm";
 import ResetPasswordConfirmForm from "@/components/auth/ResetPasswordConfirmForm";
 import { Metadata } from "next";
+import { getAppMetaTitle } from "@/app/lib/utils/metadata";
 
 // Define metadata for the page
 export const metadata: Metadata = {
-  title: "Qoncept - Reset password",
+  title: getAppMetaTitle("Qoncept - Reset password"),
   description: "",
 };
 

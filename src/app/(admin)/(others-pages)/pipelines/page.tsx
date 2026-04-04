@@ -3,9 +3,10 @@ import PipelineHeader from "@/components/page-components/PipelineHeader";
 import PipelineTableOne from "@/components/tables/PipelineTableOne";
 import { Metadata } from "next";
 import React from "react";
+import { getAppMetaTitle } from "@/app/lib/utils/metadata";
 
 export const metadata: Metadata = {
-  title: "Qoncept CRM",
+  title: getAppMetaTitle("Qoncept CRM"),
   description:"",
 };
 

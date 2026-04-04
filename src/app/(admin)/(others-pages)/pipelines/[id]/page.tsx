@@ -4,12 +4,15 @@ import { Metadata } from "next";
 import React from "react";
 import mongoose from "mongoose";
 import { notFound } from "next/navigation";
+import { getAppMetaTitle } from "@/app/lib/utils/metadata";
 
 export const metadata: Metadata = {
   title: 
-    process.env.NODE_ENV === 'development' 
-      ? 'connect-e CRM' 
-      : 'Qoncept CRM',
+    process.env.NEXT_PUBLIC_TEST_MODE === "true"
+      ? getAppMetaTitle("Qoncept CRM")
+      : process.env.NODE_ENV === 'development' 
+        ? 'connect-e CRM' 
+        : 'Qoncept CRM',
   description: "View and manage your CRM pipelines",
 };
 

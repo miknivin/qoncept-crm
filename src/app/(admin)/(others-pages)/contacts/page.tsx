@@ -7,9 +7,10 @@ import ContactTableOne from "@/components/tables/ContactTableOne";
 // import UserMetaCard from "@/components/user-profile/UserMetaCard";
 import { Metadata } from "next";
 import React from "react";
+import { getAppMetaTitle } from "@/app/lib/utils/metadata";
 
 export const metadata: Metadata = {
-  title: "Qoncept CRM",
+  title: getAppMetaTitle("Qoncept CRM"),
   description:
     "",
 };

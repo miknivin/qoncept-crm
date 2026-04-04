@@ -4,9 +4,10 @@ import React from "react";
 import mongoose from "mongoose";
 import { notFound } from "next/navigation";
 import MobilePipelineBody from "@/components/form/pipeline-mobile";
+import { getAppMetaTitle } from "@/app/lib/utils/metadata";
 
 export const metadata: Metadata = {
-  title: "Qoncept CRM",
+  title: getAppMetaTitle("Qoncept CRM"),
   description: "View and manage your CRM pipelines",
 };
 
